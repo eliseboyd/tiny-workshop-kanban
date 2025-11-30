@@ -25,6 +25,9 @@ export type Project = {
     title: string;
     description: string | null;
     richContent: string | null;
+    materialsList: string | null;
+    plans: string | null;
+    inspiration: string | null;
     imageUrl: string | null;
     tags: string[] | null;
     attachments: any | null;
@@ -35,6 +38,7 @@ export type Project = {
     // Mapped from snake_case in Supabase
     rich_content?: string;
     image_url?: string;
+    materials_list?: string;
 };
 
 export type SettingsData = {
@@ -65,6 +69,9 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
           ...p,
           richContent: p.rich_content || p.richContent,
           imageUrl: p.image_url || p.imageUrl,
+          materialsList: p.materials_list || p.materialsList,
+          plans: p.plans,
+          inspiration: p.inspiration,
       }));
   };
 
@@ -300,6 +307,9 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
               position: items.filter(i => i.status === columnId).length,
               description: '',
               richContent: null,
+              materialsList: null,
+              plans: null,
+              inspiration: null,
               imageUrl: null,
               tags: [],
               attachments: null,

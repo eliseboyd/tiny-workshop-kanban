@@ -32,6 +32,9 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
     title: string;
     description: string;
     richContent: string;
+    materialsList: string;
+    plans: string;
+    inspiration: string;
     imageUrl: string;
     status: string;
     tags: string[];
@@ -40,11 +43,15 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
     title: '',
     description: '',
     richContent: '',
+    materialsList: '',
+    plans: '',
+    inspiration: '',
     imageUrl: '',
     status: 'todo',
     tags: [],
     attachments: [],
   });
+  const [activeSection, setActiveSection] = useState('overview');
   const [isDragging, setIsDragging] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState('');
@@ -66,6 +73,9 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
             title: project.title,
             description: project.description || '',
             richContent: project.richContent || '',
+            materialsList: project.materialsList || '',
+            plans: project.plans || '',
+            inspiration: project.inspiration || '',
             imageUrl: project.imageUrl || '',
             status: project.status,
             tags: project.tags || [],
@@ -78,6 +88,9 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
             title: '',
             description: '',
             richContent: '',
+            materialsList: '',
+            plans: '',
+            inspiration: '',
             imageUrl: '',
             status: initialStatus || 'todo',
             tags: [],
@@ -362,12 +375,33 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
       tag => tag.toLowerCase().includes(tagInput.toLowerCase()) && !formData.tags.includes(tag)
   );
 
+  const scrollToSection = (id: string) => {
+      const element = document.getElementById(id);
+      if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+          setActiveSection(id);
+      }
+  };
+
   return (
     <div 
-        className={cn("flex flex-col h-full bg-background touch-pan-y", className)}
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
+        className={cn("flex h-full bg-background touch-pan-y", className)}
     >
+        {/* Sidebar (Desktop only) */}
+        <div className="hidden md:flex w-48 flex-col gap-1 p-6 border-r pt-24 sticky top-0 h-full shrink-0">
+            <div className="font-semibold mb-4 px-2 text-sm text-muted-foreground uppercase tracking-wider">Contents</div>
+            <button onClick={() => scrollToSection('overview')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'overview' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>Project Overview</button>
+            <button onClick={() => scrollToSection('materials')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'materials' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>Materials List</button>
+            <button onClick={() => scrollToSection('plans')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'plans' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>Plans</button>
+            <button onClick={() => scrollToSection('inspiration')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'inspiration' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>Inspiration</button>
+        </div>
+
+        {/* Main Content Wrapper */}
+        <div 
+            className="flex-1 flex flex-col h-full overflow-hidden relative"
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
+        >
         {/* Header / Cover Image */}
         <div className="relative shrink-0 group/cover">
             <div 
@@ -533,49 +567,105 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
             </div>
 
             {/* Main Content Area */}
-            <div className="space-y-6">
-                 {/* Combined Description Area */}
-                <div className="space-y-2 min-h-[200px]">
-                    <RichTextEditor
-                        content={formData.description}
-                        onChange={(content) => setFormData({ ...formData, description: content })}
-                        placeholder="Start writing..."
-                        className="text-base leading-relaxed text-foreground"
-                        onImageUpload={handleContentImageUpload}
-                    />
+            <div className="space-y-16 pb-20">
+                 {/* Project Overview */}
+                <div id="overview" className="space-y-4 scroll-mt-20" onMouseEnter={() => setActiveSection('overview')}>
+                    <h2 className="text-xl font-semibold flex items-center gap-2 text-foreground/80">
+                        Project Overview
+                    </h2>
+                    <div className="min-h-[100px]">
+                        <RichTextEditor
+                            content={formData.description}
+                            onChange={(content) => setFormData({ ...formData, description: content })}
+                            placeholder="Describe your project..."
+                            className="text-base leading-relaxed text-foreground"
+                            onImageUpload={handleContentImageUpload}
+                        />
+                    </div>
+                </div>
+
+                {/* Materials List */}
+                <div id="materials" className="space-y-4 scroll-mt-20" onMouseEnter={() => setActiveSection('materials')}>
+                    <h2 className="text-xl font-semibold flex items-center gap-2 text-foreground/80">
+                        Materials List
+                    </h2>
+                    <div className="min-h-[100px]">
+                         <RichTextEditor
+                            content={formData.materialsList}
+                            onChange={(content) => setFormData({ ...formData, materialsList: content })}
+                            placeholder="List materials needed..."
+                            className="text-base leading-relaxed text-foreground"
+                            onImageUpload={handleContentImageUpload}
+                        />
+                    </div>
+                </div>
+
+                {/* Plans */}
+                <div id="plans" className="space-y-4 scroll-mt-20" onMouseEnter={() => setActiveSection('plans')}>
+                    <h2 className="text-xl font-semibold flex items-center gap-2 text-foreground/80">
+                        Plans & Sketches
+                    </h2>
+                    <div className="min-h-[100px]">
+                         <RichTextEditor
+                            content={formData.plans}
+                            onChange={(content) => setFormData({ ...formData, plans: content })}
+                            placeholder="Add your plans or sketches..."
+                            className="text-base leading-relaxed text-foreground"
+                            onImageUpload={handleContentImageUpload}
+                        />
+                    </div>
+                </div>
+
+                {/* Inspiration */}
+                <div id="inspiration" className="space-y-4 scroll-mt-20" onMouseEnter={() => setActiveSection('inspiration')}>
+                    <h2 className="text-xl font-semibold flex items-center gap-2 text-foreground/80">
+                        Inspiration
+                    </h2>
+                    <div className="min-h-[100px]">
+                         <RichTextEditor
+                            content={formData.inspiration}
+                            onChange={(content) => setFormData({ ...formData, inspiration: content })}
+                            placeholder="Add inspiration images or notes..."
+                            className="text-base leading-relaxed text-foreground"
+                            onImageUpload={handleContentImageUpload}
+                        />
+                    </div>
                 </div>
                 
-                {/* Attachments Grid */}
+                {/* Attachments Grid - kept at bottom as global attachments */}
                 {formData.attachments.length > 0 && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-4 border-t">
-                         {formData.attachments.map(file => (
-                            <div key={file.id} className="group relative border rounded-lg overflow-hidden bg-muted/20 hover:bg-muted/40 transition-colors">
-                                <div className="aspect-[4/3] relative">
-                                    {file.type.startsWith('image/') ? (
-                                        <Image 
-                                            src={file.url} 
-                                            alt={file.name} 
-                                            fill 
-                                            className="object-cover" 
-                                            unoptimized 
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center">
-                                            <FileText className="h-10 w-10 text-muted-foreground/50" />
-                                        </div>
-                                    )}
+                    <div className="space-y-4 border-t pt-8">
+                         <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Global Attachments</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                             {formData.attachments.map(file => (
+                                <div key={file.id} className="group relative border rounded-lg overflow-hidden bg-muted/20 hover:bg-muted/40 transition-colors">
+                                    <div className="aspect-[4/3] relative">
+                                        {file.type.startsWith('image/') ? (
+                                            <Image 
+                                                src={file.url} 
+                                                alt={file.name} 
+                                                fill 
+                                                className="object-cover" 
+                                                unoptimized 
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <FileText className="h-10 w-10 text-muted-foreground/50" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="p-2 text-xs truncate font-medium flex justify-between items-center">
+                                        <span className="truncate max-w-[80%]">{file.name}</span>
+                                        <button 
+                                            onClick={() => removeAttachment(file.id)}
+                                            className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="p-2 text-xs truncate font-medium flex justify-between items-center">
-                                    <span className="truncate max-w-[80%]">{file.name}</span>
-                                    <button 
-                                        onClick={() => removeAttachment(file.id)}
-                                        className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
-                                    >
-                                        <X className="h-3 w-3" />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 )}
                 

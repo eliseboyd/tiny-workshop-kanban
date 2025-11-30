@@ -43,6 +43,9 @@ export async function createProject(data: {
   title: string; 
   description?: string; 
   richContent?: string; 
+  materialsList?: string;
+  plans?: string;
+  inspiration?: string;
   imageUrl?: string; 
   tags?: string[]; 
   status?: string;
@@ -55,8 +58,11 @@ export async function createProject(data: {
         id: uuidv4(),
         title: data.title,
         description: data.description,
-        rich_content: data.richContent, // Maps to snake_case in DB
-        image_url: data.imageUrl, // Maps to snake_case in DB
+        rich_content: data.richContent,
+        materials_list: data.materialsList,
+        plans: data.plans,
+        inspiration: data.inspiration,
+        image_url: data.imageUrl,
         tags: data.tags,
         attachments: data.attachments,
         status: data.status || 'todo',
@@ -74,6 +80,9 @@ export async function updateProject(id: string, data: any) {
   if (data.title !== undefined) dbData.title = data.title;
   if (data.description !== undefined) dbData.description = data.description;
   if (data.richContent !== undefined) dbData.rich_content = data.richContent;
+  if (data.materialsList !== undefined) dbData.materials_list = data.materialsList;
+  if (data.plans !== undefined) dbData.plans = data.plans;
+  if (data.inspiration !== undefined) dbData.inspiration = data.inspiration;
   if (data.imageUrl !== undefined) dbData.image_url = data.imageUrl;
   if (data.tags !== undefined) dbData.tags = data.tags;
   if (data.attachments !== undefined) dbData.attachments = data.attachments;
