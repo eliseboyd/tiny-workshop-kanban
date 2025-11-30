@@ -3,20 +3,24 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
+import ImageExtension from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Bold, Italic, Strikethrough, Code, Link as LinkIcon } from 'lucide-react';
+import { Bold, Italic, Strikethrough, Code, Link as LinkIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Toggle } from '@/components/ui/toggle';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 type RichTextEditorProps = {
   content: string;
   onChange: (content: string) => void;
   placeholder?: string;
   className?: string;
+  onImageUpload?: (file: File) => Promise<string>;
 };
 
-export function RichTextEditor({ content, onChange, placeholder, className }: RichTextEditorProps) {
+export function RichTextEditor({ content, onChange, placeholder, className, onImageUpload }: RichTextEditorProps) {
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -32,7 +36,7 @@ export function RichTextEditor({ content, onChange, placeholder, className }: Ri
         },
       }),
       Link.configure({
-        openOnClick: true,
+        openOnClick: false, // We handle clicks manually
         autolink: true,
         defaultProtocol: 'https',
         HTMLAttributes: {
@@ -40,6 +44,11 @@ export function RichTextEditor({ content, onChange, placeholder, className }: Ri
             target: '_blank',
             rel: 'noopener noreferrer',
         }
+      }),
+      ImageExtension.configure({
+        HTMLAttributes: {
+            class: 'w-full h-auto rounded-lg my-4 cursor-zoom-in border border-border/50 shadow-sm transition-all hover:shadow-md',
+        },
       }),
       Placeholder.configure({
         placeholder: placeholder || 'Start typing...',
@@ -54,6 +63,36 @@ export function RichTextEditor({ content, onChange, placeholder, className }: Ri
           className
         ),
       },
+      handleDrop: (view, event, _slice, moved) => {
+        if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
+          const file = event.dataTransfer.files[0];
+          if (file.type.startsWith('image/') && onImageUpload) {
+             event.preventDefault(); 
+             
+             // Optimistic insertion could be done here, but for now we just upload then insert
+             onImageUpload(file).then(url => {
+                const { schema } = view.state;
+                const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY });
+                // If dropped inside, insert at coords, otherwise append?
+                if (coordinates) {
+                    view.dispatch(view.state.tr.insert(coordinates.pos, schema.nodes.image.create({ src: url })));
+                } else {
+                    // Fallback to appending if drop coords are weird
+                     view.dispatch(view.state.tr.insert(view.state.doc.content.size, schema.nodes.image.create({ src: url })));
+                }
+             }).catch(err => console.error("Image upload failed", err));
+             return true; 
+          }
+        }
+        return false;
+      },
+      handleClickOn: (view, pos, node, nodePos, event, direct) => {
+         if (node.type.name === 'image') {
+             setZoomedImage(node.attrs.src);
+             return true;
+         }
+         return false;
+      }
     },
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
@@ -74,9 +113,10 @@ export function RichTextEditor({ content, onChange, placeholder, className }: Ri
   }
 
   return (
-    <div className="relative group border rounded-md p-2 bg-transparent border-transparent hover:border-border focus-within:border-border transition-colors">
-      {/* Fixed Toolbar */}
-      <div className="flex items-center gap-1 mb-2 pb-2 border-b border-border/50 transition-opacity">
+    <>
+        <div className="relative group border rounded-md p-2 bg-transparent border-transparent hover:border-border focus-within:border-border transition-colors">
+        {/* Fixed Toolbar */}
+        <div className="flex items-center gap-1 mb-2 pb-2 border-b border-border/50 transition-opacity">
           <Toggle
             size="sm"
             pressed={editor.isActive('bold')}
@@ -137,5 +177,29 @@ export function RichTextEditor({ content, onChange, placeholder, className }: Ri
       {/* Editor Content */}
       <EditorContent editor={editor} />
     </div>
+
+    {/* Lightbox for Image Expansion */}
+    {zoomedImage && (
+        <div 
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setZoomedImage(null)}
+        >
+            <div className="relative max-w-[90vw] max-h-[90vh] overflow-auto">
+                 <button 
+                    className="absolute top-4 right-4 p-2 text-white/70 hover:text-white bg-black/50 rounded-full transition-colors"
+                    onClick={() => setZoomedImage(null)}
+                >
+                    <X className="h-6 w-6" />
+                </button>
+                <img 
+                    src={zoomedImage} 
+                    alt="Zoomed content" 
+                    className="max-w-full max-h-[90vh] object-contain rounded-md shadow-2xl"
+                    onClick={(e) => e.stopPropagation()} // Prevent closing when clicking image
+                />
+            </div>
+        </div>
+    )}
+    </>
   );
 }

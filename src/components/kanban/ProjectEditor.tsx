@@ -202,6 +202,30 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
       touchStartRef.current = null;
   };
 
+  const handleContentImageUpload = useCallback(async (file: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+          if (!file.type.startsWith('image/')) {
+              reject(new Error("Not an image"));
+              return;
+          }
+          
+          const reader = new FileReader();
+          reader.onloadend = async () => {
+            const base64String = reader.result as string;
+            try {
+                 // Reuse existing upload action
+                 // We use 'content-image.jpg' as a generic name, the server action handles unique naming if needed or we can be more specific
+                 const url = await uploadImageBase64(base64String, file.name || 'content-image.jpg', file.type || 'image/jpeg');
+                 resolve(url);
+            } catch (err) {
+                reject(err);
+            }
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+      });
+  }, []);
+
   const handleFileUpload = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) return;
     
@@ -516,6 +540,7 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
                         onChange={(content) => setFormData({ ...formData, description: content })}
                         placeholder="Start writing..."
                         className="text-base leading-relaxed text-foreground"
+                        onImageUpload={handleContentImageUpload}
                     />
                 </div>
                 
