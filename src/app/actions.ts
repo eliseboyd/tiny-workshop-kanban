@@ -281,45 +281,39 @@ export async function generateProjectImage(projectData: { title: string; descrip
 }
 
 export async function uploadFile(formData: FormData) {
-  // Since we are moving to Supabase, ideally we should use Supabase Storage.
-  // But to keep changes minimal and matching previous logic (local file system for now or maybe switch to Supabase Storage later),
-  // we will keep the local file system logic for now. 
-  // WARNING: Local file uploads will NOT work on Netlify (ephemeral file system).
-  // We should switch to Supabase Storage for production.
-  
-  // For this demo, we will return a placeholder or use an external service if possible.
-  // Or better, let's try to use Supabase Storage if a bucket exists.
-  
-  // FALLBACK: Use the existing local logic but warn it won't persist on Netlify.
-  
+  const supabase = await createClient();
   const file = formData.get('file') as File;
+  
   if (!file) {
     throw new Error('No file uploaded');
   }
 
-  // Convert file to array buffer immediately to avoid passing File object further down if not needed
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  // Fallback to .jpg if no extension (e.g. pasted blobs often don't have one)
-  const ext = path.extname(file.name) || '.jpg';
-  const filename = `${uuidv4()}${ext}`;
-  const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-  const filepath = path.join(uploadDir, filename);
+  const fileExt = path.extname(file.name) || '.jpg';
+  const fileName = `${uuidv4()}${fileExt}`;
+  
+  // Upload to Supabase Storage
+  const { error: uploadError } = await supabase.storage
+    .from('board-uploads')
+    .upload(fileName, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
 
-  // Ensure upload directory exists
-  try {
-    await mkdir(uploadDir, { recursive: true });
-  } catch (error) {
-    // Ignore error if directory already exists
+  if (uploadError) {
+    console.error('Supabase upload error:', uploadError);
+    throw new Error(`Upload failed: ${uploadError.message}`);
   }
 
-  await writeFile(filepath, buffer);
-  
+  // Get public URL
+  const { data: { publicUrl } } = supabase.storage
+    .from('board-uploads')
+    .getPublicUrl(fileName);
+
   return {
     id: uuidv4(),
-    url: `/uploads/${filename}`,
-    name: file.name || 'pasted-image.jpg',
-    type: file.type || 'image/jpeg',
+    url: publicUrl,
+    name: file.name || 'uploaded-file',
+    type: file.type || 'application/octet-stream',
     size: file.size
   };
 }
@@ -331,6 +325,7 @@ export async function uploadProjectImage(formData: FormData) {
 }
 
 export async function uploadImageBase64(base64Data: string, fileName: string, fileType: string) {
+  const supabase = await createClient();
   try {
     if (!base64Data || !base64Data.includes(',')) {
         throw new Error('Invalid base64 data received');
@@ -338,19 +333,27 @@ export async function uploadImageBase64(base64Data: string, fileName: string, fi
 
     const buffer = Buffer.from(base64Data.split(',')[1], 'base64');
     const ext = path.extname(fileName) || '.jpg';
-    const filename = `${uuidv4()}${ext}`;
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    const filepath = path.join(uploadDir, filename);
+    const storageFileName = `${uuidv4()}${ext}`;
 
-    try {
-      await mkdir(uploadDir, { recursive: true });
-    } catch (error) {
-      // Ignore error if directory already exists
+    // Upload to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from('board-uploads')
+      .upload(storageFileName, buffer, {
+        contentType: fileType || 'image/jpeg',
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) {
+        console.error('Supabase upload error:', uploadError);
+        throw new Error(`Server upload failed: ${uploadError.message}`);
     }
 
-    await writeFile(filepath, buffer);
-    
-    return `/uploads/${filename}`;
+    const { data: { publicUrl } } = supabase.storage
+      .from('board-uploads')
+      .getPublicUrl(storageFileName);
+      
+    return publicUrl;
   } catch (error: any) {
     console.error('[Server] Upload failed:', error);
     throw new Error(`Server upload failed: ${error.message}`);
