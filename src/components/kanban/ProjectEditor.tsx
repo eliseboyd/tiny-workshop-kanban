@@ -174,7 +174,7 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
 
   // Swipe to go back logic
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
-  const minSwipeDistance = 50;
+  const minSwipeDistance = 30; // Lower threshold for easier swipe
 
   const onTouchStart = (e: React.TouchEvent) => {
       touchStartRef.current = {
@@ -190,7 +190,7 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
       const distanceY = e.changedTouches[0].clientY - touchStartRef.current.y;
       
       // Check if it's a horizontal swipe (more X than Y movement) and exceeds min distance
-      if (Math.abs(distanceX) > Math.abs(distanceY) && distanceX > minSwipeDistance) {
+      if (Math.abs(distanceX) > Math.abs(distanceY) * 0.8 && distanceX > minSwipeDistance) {
           // Swiped Right -> Go Back
           if (!isModal) {
               router.push('/');
@@ -398,8 +398,40 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
             )}
             </div>
             
-             {/* Action Buttons Overlay */}
-            <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover/cover:opacity-100 transition-opacity z-10">
+            {/* Navigation / Actions Header */}
+            <div className="absolute top-4 left-4 z-20 flex gap-2">
+                 {/* Back Button (Full Page) */}
+                {!isModal && (
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90 gap-1"
+                        onClick={() => router.push('/')}
+                    >
+                        <ChevronLeft className="h-4 w-4" /> Back
+                    </Button>
+                )}
+
+                {/* Expand Button (Modal) */}
+                {project && isModal && (
+                     <Link href={`/projects/${project.id}`} prefetch={false}>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90 gap-1"
+                            title="Open in full view"
+                        >
+                            <Maximize2 className="h-4 w-4" />
+                            <span className="hidden sm:inline">Open as Page</span>
+                        </Button>
+                    </Link>
+                )}
+            </div>
+
+             {/* Action Buttons (Bottom Right of Image) */}
+            <div className="absolute bottom-4 right-4 flex gap-2 z-20">
                  <Button
                     type="button"
                     variant="secondary"
@@ -413,36 +445,9 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
                     title="Generate AI Cover"
                 >
                     {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                    <span className="ml-2 hidden sm:inline">Generate Cover</span>
                 </Button>
-                {project && isModal && (
-                    <Link href={`/projects/${project.id}`} prefetch={false}>
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90"
-                            title="Open in full view"
-                        >
-                            <Maximize2 className="h-3 w-3" />
-                        </Button>
-                    </Link>
-                )}
             </div>
-            
-            {/* Navigation Back (if not modal) */}
-            {!isModal && (
-                <div className="absolute top-4 left-4 z-10">
-                    <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90 gap-1"
-                        onClick={() => router.push('/')}
-                    >
-                        <ChevronLeft className="h-4 w-4" /> Back
-                    </Button>
-                </div>
-            )}
         </div>
 
         <div className="flex-1 overflow-y-auto p-8 sm:p-10 space-y-8">
@@ -451,14 +456,14 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
                 <Input
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="text-5xl font-bold font-sans tracking-tight border-none shadow-none p-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/50 bg-transparent focus-visible:bg-transparent focus:bg-transparent"
+                    className="text-4xl sm:text-5xl font-bold font-sans tracking-tight border-none shadow-none p-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/50 bg-transparent focus-visible:bg-transparent focus:bg-transparent"
                     placeholder="Untitled"
                 />
                 
                 {/* Tags Row */}
                 <div className="flex flex-wrap gap-2 items-center min-h-[32px]">
                     {formData.tags.map(tag => (
-                        <Badge key={tag} variant="secondary" className="gap-1 pr-1 bg-secondary/50 hover:bg-secondary">
+                        <Badge key={tag} variant="secondary" className="gap-1 pr-1 bg-secondary/50 hover:bg-secondary text-sm py-1">
                             {tag}
                             <button onClick={() => removeTag(tag)} className="hover:bg-muted rounded-full p-0.5">
                                 <X className="h-3 w-3" />
@@ -476,7 +481,7 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
                             onFocus={() => setShowTagSuggestions(true)}
                             onKeyDown={handleAddTag}
                             placeholder="Add tag..."
-                            className="h-7 text-sm border-none shadow-none focus-visible:ring-0 px-0 bg-transparent placeholder:text-muted-foreground/50"
+                            className="h-8 text-base border-none shadow-none focus-visible:ring-0 px-0 bg-transparent placeholder:text-muted-foreground/50"
                             autoComplete="off"
                         />
                         {showTagSuggestions && filteredSuggestions.length > 0 && (

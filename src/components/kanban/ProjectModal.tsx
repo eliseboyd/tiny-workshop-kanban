@@ -15,7 +15,7 @@ type ProjectModalProps = {
 export function ProjectModal({ project, isOpen, onClose, initialStatus, existingTags = [] }: ProjectModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[900px] h-[85vh] overflow-hidden flex flex-col p-0 gap-0">
+      <DialogContent className="sm:max-w-[900px] h-[85vh] overflow-hidden flex flex-col p-0 gap-0" showCloseButton={false}>
         <DialogTitle className="sr-only">{project ? 'Edit Project' : 'New Project'}</DialogTitle>
         <ProjectEditor
             project={project}
