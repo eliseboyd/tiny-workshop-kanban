@@ -39,6 +39,8 @@ export type Project = {
     rich_content?: string;
     image_url?: string;
     materials_list?: string;
+    plans?: string;
+    inspiration?: string;
 };
 
 export type SettingsData = {

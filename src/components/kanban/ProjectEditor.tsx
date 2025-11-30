@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Project } from './KanbanBoard';
 import { createProject, updateProject, deleteProject, generateProjectImage, uploadImageBase64, uploadFile } from '@/app/actions';
 import Image from 'next/image';
-import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Paperclip, Minimize2, Maximize2, ChevronLeft } from 'lucide-react';
+import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Paperclip, Maximize2, ChevronLeft, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -32,9 +33,9 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
     title: string;
     description: string;
     richContent: string;
-    materialsList: string;
-    plans: string;
-    inspiration: string;
+    materialsList: { id: string; text: string; toBuy: boolean; toBuild: boolean }[];
+    plans: Attachment[]; // Changed to Attachment array for gallery
+    inspiration: Attachment[]; // Changed to Attachment array for grid
     imageUrl: string;
     status: string;
     tags: string[];
@@ -43,9 +44,9 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
     title: '',
     description: '',
     richContent: '',
-    materialsList: '',
-    plans: '',
-    inspiration: '',
+    materialsList: [],
+    plans: [],
+    inspiration: [],
     imageUrl: '',
     status: 'todo',
     tags: [],
@@ -57,6 +58,181 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
   const [tagInput, setTagInput] = useState('');
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [materialsInput, setMaterialsInput] = useState('');
+
+  const addMaterial = () => {
+      if (!materialsInput.trim()) return;
+      const newMaterial = {
+          id: Math.random().toString(36).substr(2, 9),
+          text: materialsInput.trim(),
+          toBuy: false,
+          toBuild: false
+      };
+      setFormData(prev => ({
+          ...prev,
+          materialsList: [...prev.materialsList, newMaterial]
+      }));
+      setMaterialsInput('');
+  };
+
+  const updateMaterial = (id: string, field: 'toBuy' | 'toBuild') => {
+      setFormData(prev => ({
+          ...prev,
+          materialsList: prev.materialsList.map(item => 
+              item.id === id ? { ...item, [field]: !item[field] } : item
+          )
+      }));
+  };
+
+  const deleteMaterial = (id: string) => {
+      setFormData(prev => ({
+          ...prev,
+          materialsList: prev.materialsList.filter(item => item.id !== id)
+      }));
+  };
+
+  const handleMaterialKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter') {
+          e.preventDefault();
+          addMaterial();
+      }
+  };
+
+  // Generic helper for uploading files to specific section (plans/inspiration)
+  const handleSectionUpload = async (e: React.ChangeEvent<HTMLInputElement>, section: 'plans' | 'inspiration') => {
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
+
+      setIsLoading(true);
+      try {
+          const newAttachments: Attachment[] = [];
+          for (let i = 0; i < files.length; i++) {
+              const file = files[i];
+              const formData = new FormData();
+              formData.append('file', file);
+              const result = await uploadFile(formData);
+              newAttachments.push(result);
+          }
+          setFormData(prev => ({ ...prev, [section]: [...prev[section], ...newAttachments] }));
+      } catch (error) {
+          console.error(`Failed to upload to ${section}`, error);
+      } finally {
+          setIsLoading(false);
+          // Reset input value
+          if (e.target) e.target.value = '';
+      }
+  };
+
+  const removeSectionItem = (id: string, section: 'plans' | 'inspiration') => {
+      setFormData(prev => ({ 
+          ...prev, 
+          [section]: prev[section].filter(item => item.id !== id) 
+      }));
+  };
+
+  // Gallery View Component for Plans
+  const PlansGallery = ({ items }: { items: Attachment[] }) => {
+      if (items.length === 0) {
+          return (
+            <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground flex flex-col items-center gap-2 hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => document.getElementById('plans-upload')?.click()}>
+                <Upload className="h-8 w-8 opacity-50" />
+                <p>Upload plans, sketches, or PDFs</p>
+            </div>
+          );
+      }
+      return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {items.map(item => (
+                  <div key={item.id} className="group relative border rounded-lg overflow-hidden bg-background hover:shadow-md transition-all">
+                      <div className="aspect-[3/2] relative bg-muted/20">
+                          {item.type.startsWith('image/') ? (
+                              <Image 
+                                  src={item.url} 
+                                  alt={item.name} 
+                                  fill 
+                                  className="object-contain p-2" 
+                                  unoptimized 
+                              />
+                          ) : (
+                              <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground p-4">
+                                  <FileText className="h-12 w-12 mb-2 opacity-50" />
+                                  <span className="text-xs uppercase font-bold tracking-wider">{item.type.split('/')[1] || 'FILE'}</span>
+                              </div>
+                          )}
+                          {/* Overlay Actions */}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                               <Link href={item.url} target="_blank" prefetch={false}>
+                                  <Button size="sm" variant="secondary" className="h-8 w-8 p-0">
+                                      <Maximize2 className="h-4 w-4" />
+                                  </Button>
+                               </Link>
+                               <Button size="sm" variant="destructive" className="h-8 w-8 p-0" onClick={() => removeSectionItem(item.id, 'plans')}>
+                                    <Trash2 className="h-4 w-4" />
+                               </Button>
+                          </div>
+                      </div>
+                      <div className="p-3 border-t bg-muted/5">
+                          <p className="text-sm font-medium truncate" title={item.name}>{item.name}</p>
+                          <p className="text-xs text-muted-foreground">{(item.size / 1024 / 1024).toFixed(2)} MB</p>
+                      </div>
+                  </div>
+              ))}
+              <div className="border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/10 cursor-pointer min-h-[200px]" onClick={() => document.getElementById('plans-upload')?.click()}>
+                  <Plus className="h-8 w-8 opacity-50 mb-2" />
+                  <span className="text-sm">Add more</span>
+              </div>
+          </div>
+      );
+  };
+
+  // Masonry Grid for Inspiration
+  const InspirationGrid = ({ items }: { items: Attachment[] }) => {
+       if (items.length === 0) {
+          return (
+            <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground flex flex-col items-center gap-2 hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => document.getElementById('inspiration-upload')?.click()}>
+                <Sparkles className="h-8 w-8 opacity-50" />
+                <p>Add inspiration images</p>
+            </div>
+          );
+      }
+
+      return (
+        <div className="columns-2 sm:columns-3 gap-4 space-y-4">
+             {items.map(item => (
+                  <div key={item.id} className="break-inside-avoid group relative rounded-lg overflow-hidden bg-muted/20 mb-4">
+                      {item.type.startsWith('image/') ? (
+                          <img 
+                              src={item.url} 
+                              alt={item.name} 
+                              className="w-full h-auto object-cover" 
+                          />
+                      ) : (
+                           <div className="aspect-square flex items-center justify-center bg-muted text-muted-foreground">
+                                <FileText className="h-8 w-8" />
+                           </div>
+                      )}
+                       {/* Overlay */}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                           <Link href={item.url} target="_blank" prefetch={false}>
+                              <Button size="sm" variant="secondary" className="h-8 w-8 p-0">
+                                  <Maximize2 className="h-4 w-4" />
+                              </Button>
+                           </Link>
+                           <Button size="sm" variant="destructive" className="h-8 w-8 p-0" onClick={() => removeSectionItem(item.id, 'inspiration')}>
+                                <Trash2 className="h-4 w-4" />
+                           </Button>
+                      </div>
+                  </div>
+             ))}
+              <div className="break-inside-avoid border-2 border-dashed rounded-lg aspect-square flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/10 cursor-pointer" onClick={() => document.getElementById('inspiration-upload')?.click()}>
+                  <Plus className="h-8 w-8 opacity-50 mb-1" />
+                  <span className="text-xs">Add</span>
+              </div>
+        </div>
+      );
+  };
+
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
   const imageAreaRef = useRef<HTMLDivElement>(null);
@@ -73,9 +249,11 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
             title: project.title,
             description: project.description || '',
             richContent: project.richContent || '',
-            materialsList: project.materialsList || '',
-            plans: project.plans || '',
-            inspiration: project.inspiration || '',
+            materialsList: typeof project.materialsList === 'string' 
+                ? JSON.parse(project.materialsList || '[]') 
+                : (project.materialsList || []),
+            plans: typeof project.plans === 'string' ? JSON.parse(project.plans || '[]') : (project.plans || []),
+            inspiration: typeof project.inspiration === 'string' ? JSON.parse(project.inspiration || '[]') : (project.inspiration || []),
             imageUrl: project.imageUrl || '',
             status: project.status,
             tags: project.tags || [],
@@ -88,9 +266,9 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
             title: '',
             description: '',
             richContent: '',
-            materialsList: '',
-            plans: '',
-            inspiration: '',
+            materialsList: [],
+            plans: [],
+            inspiration: [],
             imageUrl: '',
             status: initialStatus || 'todo',
             tags: [],
@@ -383,7 +561,7 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
       }
   };
 
-  return (
+    return (
     <div 
         className={cn("flex h-full bg-background touch-pan-y", className)}
     >
@@ -589,14 +767,64 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
                     <h2 className="text-xl font-semibold flex items-center gap-2 text-foreground/80">
                         Materials List
                     </h2>
-                    <div className="min-h-[100px]">
-                         <RichTextEditor
-                            content={formData.materialsList}
-                            onChange={(content) => setFormData({ ...formData, materialsList: content })}
-                            placeholder="List materials needed..."
-                            className="text-base leading-relaxed text-foreground"
-                            onImageUpload={handleContentImageUpload}
-                        />
+                    <div className="space-y-4">
+                        <div className="flex gap-2">
+                            <Input 
+                                value={materialsInput}
+                                onChange={(e) => setMaterialsInput(e.target.value)}
+                                onKeyDown={handleMaterialKeyDown}
+                                placeholder="Add a material..."
+                                className="flex-1"
+                            />
+                            <Button onClick={addMaterial} size="icon" variant="secondary">
+                                <Plus className="h-4 w-4" />
+                            </Button>
+                        </div>
+
+                        <div className="space-y-2">
+                            {/* Header Row */}
+                            {formData.materialsList.length > 0 && (
+                                <div className="flex items-center gap-4 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                    <div className="flex-1">Item</div>
+                                    <div className="w-16 text-center">To Buy</div>
+                                    <div className="w-16 text-center">To Build</div>
+                                    <div className="w-8"></div>
+                                </div>
+                            )}
+                            
+                            {/* List Items */}
+                            {formData.materialsList.map(item => (
+                                <div key={item.id} className="flex items-center gap-4 p-2 rounded-md hover:bg-accent/30 group transition-colors">
+                                    <div className="flex-1 text-sm">{item.text}</div>
+                                    <div className="w-16 flex justify-center">
+                                        <Checkbox 
+                                            checked={item.toBuy} 
+                                            onCheckedChange={() => updateMaterial(item.id, 'toBuy')}
+                                        />
+                                    </div>
+                                    <div className="w-16 flex justify-center">
+                                        <Checkbox 
+                                            checked={item.toBuild} 
+                                            onCheckedChange={() => updateMaterial(item.id, 'toBuild')}
+                                        />
+                                    </div>
+                                    <div className="w-8 flex justify-center">
+                                        <button 
+                                            onClick={() => deleteMaterial(item.id)}
+                                            className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                            
+                            {formData.materialsList.length === 0 && (
+                                <div className="text-sm text-muted-foreground text-center py-8 border-2 border-dashed rounded-lg">
+                                    No materials added yet
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -606,12 +834,13 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
                         Plans & Sketches
                     </h2>
                     <div className="min-h-[100px]">
-                         <RichTextEditor
-                            content={formData.plans}
-                            onChange={(content) => setFormData({ ...formData, plans: content })}
-                            placeholder="Add your plans or sketches..."
-                            className="text-base leading-relaxed text-foreground"
-                            onImageUpload={handleContentImageUpload}
+                        <PlansGallery items={formData.plans} />
+                        <input 
+                            type="file" 
+                            id="plans-upload" 
+                            className="hidden" 
+                            multiple 
+                            onChange={(e) => handleSectionUpload(e, 'plans')} 
                         />
                     </div>
                 </div>
@@ -622,12 +851,14 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
                         Inspiration
                     </h2>
                     <div className="min-h-[100px]">
-                         <RichTextEditor
-                            content={formData.inspiration}
-                            onChange={(content) => setFormData({ ...formData, inspiration: content })}
-                            placeholder="Add inspiration images or notes..."
-                            className="text-base leading-relaxed text-foreground"
-                            onImageUpload={handleContentImageUpload}
+                        <InspirationGrid items={formData.inspiration} />
+                        <input 
+                            type="file" 
+                            id="inspiration-upload" 
+                            className="hidden" 
+                            multiple 
+                            accept="image/*"
+                            onChange={(e) => handleSectionUpload(e, 'inspiration')} 
                         />
                     </div>
                 </div>
@@ -718,6 +949,7 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
                     </Button>
                 )}
             </div>
+        </div>
         </div>
     </div>
   );
