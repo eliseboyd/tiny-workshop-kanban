@@ -693,10 +693,6 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
         </div>
 
         {/* Footer Actions */}
-            </div>
-        </div>
-
-        {/* Footer Actions */}
         <div className="p-4 border-t bg-background flex justify-between items-center">
             <div className="text-xs text-muted-foreground flex items-center gap-2">
                 {project ? "Last updated just now" : "Draft"}
