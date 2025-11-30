@@ -35,6 +35,9 @@ type ClientDndWrapperProps = {
   handleDeleteColumn: (id: string) => void;
   handleDeleteProject: (id: string) => void;
   handleAddProjectToColumn: (columnId: string) => void;
+  isCreatingInColumn: string | null;
+  onConfirmCreate: (columnId: string, title: string) => void;
+  onCancelCreate: () => void;
 };
 
 export function ClientDndWrapper({
@@ -50,7 +53,10 @@ export function ClientDndWrapper({
   handleColumnTitleChange,
   handleDeleteColumn,
   handleDeleteProject,
-  handleAddProjectToColumn
+  handleAddProjectToColumn,
+  isCreatingInColumn,
+  onConfirmCreate,
+  onCancelCreate,
 }: ClientDndWrapperProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -87,7 +93,7 @@ export function ClientDndWrapper({
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
     >
-      <div className="flex flex-1 w-full gap-4 p-4 overflow-x-auto h-full">
+      <div className="flex flex-1 w-full gap-4 p-4 overflow-x-auto h-full snap-x snap-mandatory">
         <SortableContext items={cols.map(c => c.id)} strategy={horizontalListSortingStrategy}>
           {cols.map((col) => (
             <KanbanColumn
@@ -101,6 +107,9 @@ export function ClientDndWrapper({
               onDeleteProject={handleDeleteProject}
               onAddProject={handleAddProjectToColumn}
               cardSize={settingsState.cardSize}
+              isCreating={isCreatingInColumn === col.id}
+              onConfirmCreate={onConfirmCreate}
+              onCancelCreate={onCancelCreate}
             />
           ))}
         </SortableContext>

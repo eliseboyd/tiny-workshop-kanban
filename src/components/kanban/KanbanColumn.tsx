@@ -8,6 +8,7 @@ import { KanbanCard } from './KanbanCard';
 import { Project } from './KanbanBoard';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Trash2, Plus } from 'lucide-react';
 
 type KanbanColumnProps = {
@@ -20,9 +21,12 @@ type KanbanColumnProps = {
   onDeleteProject?: (id: string) => void;
   onAddProject?: (columnId: string) => void;
   cardSize?: string;
+  isCreating?: boolean;
+  onConfirmCreate?: (columnId: string, title: string) => void;
+  onCancelCreate?: () => void;
 };
 
-export function KanbanColumn({ id, title, items, onCardClick, onTitleChange, onDeleteColumn, onDeleteProject, onAddProject, cardSize }: KanbanColumnProps) {
+export function KanbanColumn({ id, title, items, onCardClick, onTitleChange, onDeleteColumn, onDeleteProject, onAddProject, cardSize, isCreating, onConfirmCreate, onCancelCreate }: KanbanColumnProps) {
   const {
     setNodeRef,
     attributes,
@@ -78,7 +82,7 @@ export function KanbanColumn({ id, title, items, onCardClick, onTitleChange, onD
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="flex h-full w-60 min-w-[240px] flex-col rounded-lg bg-neutral-100 p-3 dark:bg-neutral-900 relative group">
+    <div ref={setNodeRef} style={style} className="flex h-full w-[85vw] md:w-60 md:min-w-[240px] shrink-0 snap-center flex-col rounded-lg bg-neutral-100 p-3 dark:bg-neutral-900 relative group">
       <div 
         className="mb-3 h-6 flex items-center justify-between cursor-grab active:cursor-grabbing" 
         {...attributes} 
@@ -128,6 +132,38 @@ export function KanbanColumn({ id, title, items, onCardClick, onTitleChange, onD
           ))}
         </SortableContext>
         
+        {/* Inline Create Input */}
+        {isCreating && (
+            <div className="touch-none mb-2">
+               <Card className="p-0 gap-0 overflow-hidden border-2 border-primary/20 shadow-sm">
+                  <CardHeader className="p-4 pb-2 space-y-0">
+                     <Input
+                        autoFocus
+                        placeholder="Enter title..."
+                        className="text-base font-medium leading-tight border-none shadow-none p-0 h-auto focus-visible:ring-0 bg-transparent resize-none"
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                onConfirmCreate?.(id, e.currentTarget.value);
+                            } else if (e.key === 'Escape') {
+                                onCancelCreate?.();
+                            }
+                        }}
+                        onBlur={(e) => {
+                            if (!e.currentTarget.value.trim()) {
+                                onCancelCreate?.();
+                            } else {
+                                onConfirmCreate?.(id, e.currentTarget.value);
+                            }
+                        }}
+                     />
+                  </CardHeader>
+                  <CardContent className="p-4 pt-2">
+                      <span className="text-xs text-muted-foreground">Press Enter to save</span>
+                  </CardContent>
+               </Card>
+            </div>
+        )}
+
         {/* Add Project Button - Dotted Line Card */}
         {onAddProject && (
             <button

@@ -1,0 +1,597 @@
+'use client';
+
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Input } from '@/components/ui/input';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { Button } from '@/components/ui/button';
+import { Project } from './KanbanBoard';
+import { createProject, updateProject, deleteProject, generateProjectImage, uploadImageBase64, uploadFile } from '@/app/actions';
+import Image from 'next/image';
+import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Paperclip, Minimize2, Maximize2, ChevronLeft } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
+type Attachment = { id: string; url: string; name: string; type: string; size: number };
+
+type ProjectEditorProps = {
+  project?: Project | null;
+  initialStatus?: string;
+  existingTags?: string[];
+  onClose?: () => void; // For closing the editor (if modal)
+  isModal?: boolean;
+  className?: string;
+};
+
+export function ProjectEditor({ project, initialStatus, existingTags = [], onClose, isModal = false, className }: ProjectEditorProps) {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [formData, setFormData] = useState<{
+    title: string;
+    description: string;
+    richContent: string;
+    imageUrl: string;
+    status: string;
+    tags: string[];
+    attachments: Attachment[];
+  }>({
+    title: '',
+    description: '',
+    richContent: '',
+    imageUrl: '',
+    status: 'todo',
+    tags: [],
+    attachments: [],
+  });
+  const [isDragging, setIsDragging] = useState(false);
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [tagInput, setTagInput] = useState('');
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
+  const tagInputRef = useRef<HTMLInputElement>(null);
+  const imageAreaRef = useRef<HTMLDivElement>(null);
+
+  // Auto-save functionality
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const lastSavedData = useRef(formData);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Initialize lastSavedData when project loads
+  useEffect(() => {
+    if (project) {
+        const initialData = {
+            title: project.title,
+            description: project.description || '',
+            richContent: project.richContent || '',
+            imageUrl: project.imageUrl || '',
+            status: project.status,
+            tags: project.tags || [],
+            attachments: (project.attachments as Attachment[]) || [],
+        };
+        lastSavedData.current = initialData;
+        setFormData(initialData);
+    } else {
+        setFormData({
+            title: '',
+            description: '',
+            richContent: '',
+            imageUrl: '',
+            status: initialStatus || 'todo',
+            tags: [],
+            attachments: [],
+        });
+    }
+  }, [project, initialStatus]);
+
+  useEffect(() => {
+    // Only auto-save if we are editing an existing project
+    if (!project) return;
+
+    const hasChanges = JSON.stringify(formData) !== JSON.stringify(lastSavedData.current);
+    if (!hasChanges) return;
+
+    if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+    }
+
+    setSaveStatus('saving');
+    saveTimeoutRef.current = setTimeout(async () => {
+        try {
+            await updateProject(project.id, formData);
+            lastSavedData.current = formData;
+            setSaveStatus('saved');
+            setTimeout(() => setSaveStatus('idle'), 2000);
+        } catch (error) {
+            console.error('Auto-save failed', error);
+            setSaveStatus('error');
+        }
+    }, 1500); // Debounce for 1.5 seconds
+
+    return () => {
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+        }
+    };
+  }, [formData, project]);
+
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    try {
+      if (project) {
+        await updateProject(project.id, formData);
+      } else {
+        await createProject(formData);
+      }
+      if (onClose) onClose();
+    } catch (error) {
+      console.error('Failed to save project', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!project) return;
+    if (confirm('Are you sure you want to delete this project?')) {
+      setIsLoading(true);
+      try {
+        await deleteProject(project.id);
+        if (onClose) {
+            onClose();
+        } else {
+            router.push('/');
+        }
+      } catch (error) {
+        console.error('Failed to delete project', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleGenerateImage = async () => {
+    if (!formData.title) return;
+    setIsGenerating(true);
+    try {
+      const url = await generateProjectImage({ 
+        title: formData.title, 
+        description: formData.description 
+      });
+      if (formData.imageUrl) {
+        setGeneratedImage(url);
+      } else {
+        setFormData(prev => ({ ...prev, imageUrl: url }));
+      }
+    } catch (error) {
+      console.error('Failed to generate image', error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Swipe to go back logic
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+      touchStartRef.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY
+      };
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+      if (!touchStartRef.current) return;
+      
+      const distanceX = e.changedTouches[0].clientX - touchStartRef.current.x;
+      const distanceY = e.changedTouches[0].clientY - touchStartRef.current.y;
+      
+      // Check if it's a horizontal swipe (more X than Y movement) and exceeds min distance
+      if (Math.abs(distanceX) > Math.abs(distanceY) && distanceX > minSwipeDistance) {
+          // Swiped Right -> Go Back
+          if (!isModal) {
+              router.push('/');
+          } else if (onClose) {
+              onClose();
+          }
+      }
+      
+      touchStartRef.current = null;
+  };
+
+  const handleFileUpload = useCallback(async (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    
+    setIsLoading(true);
+
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result as string;
+        
+        if (base64String.length > 5 * 1024 * 1024 * 1.33) { // ~5MB limit
+             alert("Image is too large (max 5MB). Please use a smaller image.");
+             setIsLoading(false);
+             return;
+        }
+
+        try {
+            const url = await uploadImageBase64(base64String, file.name || 'pasted-image.jpg', file.type || 'image/jpeg');
+            setFormData(prev => ({ ...prev, imageUrl: url }));
+            setGeneratedImage(null);
+        } catch (error: any) {
+            console.error('Failed to upload image - Details:', error);
+            alert(`Upload failed: ${error.message || 'Unknown error'}`);
+        } finally {
+            setIsLoading(false);
+        }
+      };
+      reader.readAsDataURL(file);
+
+    } catch (error) {
+      console.error('Failed to setup upload', error);
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Only enable paste listener if this component is focused or active
+    // A bit tricky without a specific focus target, but usually fine in modal or page
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      // Check if event target is an input or textarea to avoid intercepting text paste
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+          return; // Let default behavior happen for text inputs
+      }
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith('image/')) {
+          const file = items[i].getAsFile();
+          if (file) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const fileToUpload = file.name ? file : new File([file], "pasted-image.png", { type: file.type });
+            
+            handleFileUpload(fileToUpload);
+            return;
+          }
+        }
+      }
+    };
+
+    document.addEventListener('paste', handleGlobalPaste);
+    return () => document.removeEventListener('paste', handleGlobalPaste);
+  }, [handleFileUpload]);
+
+
+  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
+
+      setIsLoading(true);
+      try {
+          const newAttachments: Attachment[] = [];
+          for (let i = 0; i < files.length; i++) {
+              const file = files[i];
+              const formData = new FormData();
+              formData.append('file', file);
+              const result = await uploadFile(formData);
+              newAttachments.push(result);
+          }
+          setFormData(prev => ({ ...prev, attachments: [...prev.attachments, ...newAttachments] }));
+      } catch (error) {
+          console.error('Failed to upload attachment', error);
+      } finally {
+          setIsLoading(false);
+          if (attachmentInputRef.current) attachmentInputRef.current.value = '';
+      }
+  };
+
+  const removeAttachment = (id: string) => {
+      setFormData(prev => ({ ...prev, attachments: prev.attachments.filter(a => a.id !== id) }));
+  };
+
+  const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+          e.preventDefault();
+          addTag(tagInput);
+      }
+  };
+
+  const addTag = (tag: string) => {
+      const trimmedTag = tag.trim();
+      if (trimmedTag && !formData.tags.includes(trimmedTag)) {
+          setFormData(prev => ({ ...prev, tags: [...prev.tags, trimmedTag] }));
+          setTagInput('');
+          setShowTagSuggestions(false);
+      }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+      setFormData(prev => ({ ...prev, tags: prev.tags.filter(tag => tag !== tagToRemove) }));
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileUpload(file);
+  };
+
+  const filteredSuggestions = existingTags.filter(
+      tag => tag.toLowerCase().includes(tagInput.toLowerCase()) && !formData.tags.includes(tag)
+  );
+
+  return (
+    <div 
+        className={cn("flex flex-col h-full bg-background touch-pan-y", className)}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+    >
+        {/* Header / Cover Image */}
+        <div className="relative shrink-0 group/cover">
+            <div 
+            ref={imageAreaRef}
+            tabIndex={0}
+            className={cn(
+                "relative w-full h-48 bg-dots bg-muted/30 flex items-center justify-center overflow-hidden group cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary border-b",
+                isDragging && "bg-muted/50 border-2 border-dashed border-primary",
+                !formData.imageUrl && "hover:bg-muted/40"
+            )}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => !isGenerating && fileInputRef.current?.click()}
+            >
+            <input 
+                type="file" 
+                ref={fileInputRef}
+                className="hidden" 
+                accept="image/*"
+                onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFileUpload(file);
+                }}
+            />
+            
+            {isGenerating && !formData.imageUrl ? (
+                <div className="flex flex-col items-center gap-2 text-muted-foreground animate-pulse">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                    <p className="text-sm">Creating your cover image...</p>
+                </div>
+            ) : formData.imageUrl ? (
+                <>
+                <Image
+                    src={formData.imageUrl}
+                    alt="Project cover"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <p className="text-white text-sm font-medium flex items-center gap-2">
+                    <Upload className="h-4 w-4" /> Change Cover
+                    </p>
+                </div>
+                </>
+            ) : (
+                <div className="flex flex-col items-center gap-2 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                <ImageIcon className="h-8 w-8 opacity-50" />
+                <p className="text-sm">Add cover</p>
+                </div>
+            )}
+            </div>
+            
+             {/* Action Buttons Overlay */}
+            <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover/cover:opacity-100 transition-opacity z-10">
+                 <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleGenerateImage();
+                    }}
+                    disabled={isLoading || isGenerating || !formData.title}
+                    title="Generate AI Cover"
+                >
+                    {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                </Button>
+                {project && isModal && (
+                    <Link href={`/projects/${project.id}`} prefetch={false}>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                            title="Open in full view"
+                        >
+                            <Maximize2 className="h-3 w-3" />
+                        </Button>
+                    </Link>
+                )}
+            </div>
+            
+            {/* Navigation Back (if not modal) */}
+            {!isModal && (
+                <div className="absolute top-4 left-4 z-10">
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90 gap-1"
+                        onClick={() => router.push('/')}
+                    >
+                        <ChevronLeft className="h-4 w-4" /> Back
+                    </Button>
+                </div>
+            )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-8 sm:p-10 space-y-8">
+            {/* Title Section */}
+            <div className="space-y-4">
+                <Input
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="text-5xl font-bold font-sans tracking-tight border-none shadow-none p-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/50 bg-transparent focus-visible:bg-transparent focus:bg-transparent"
+                    placeholder="Untitled"
+                />
+                
+                {/* Tags Row */}
+                <div className="flex flex-wrap gap-2 items-center min-h-[32px]">
+                    {formData.tags.map(tag => (
+                        <Badge key={tag} variant="secondary" className="gap-1 pr-1 bg-secondary/50 hover:bg-secondary">
+                            {tag}
+                            <button onClick={() => removeTag(tag)} className="hover:bg-muted rounded-full p-0.5">
+                                <X className="h-3 w-3" />
+                            </button>
+                        </Badge>
+                    ))}
+                    <div className="relative w-40">
+                        <Input
+                            ref={tagInputRef}
+                            value={tagInput}
+                            onChange={(e) => {
+                                setTagInput(e.target.value);
+                                setShowTagSuggestions(true);
+                            }}
+                            onFocus={() => setShowTagSuggestions(true)}
+                            onKeyDown={handleAddTag}
+                            placeholder="Add tag..."
+                            className="h-7 text-sm border-none shadow-none focus-visible:ring-0 px-0 bg-transparent placeholder:text-muted-foreground/50"
+                            autoComplete="off"
+                        />
+                        {showTagSuggestions && filteredSuggestions.length > 0 && (
+                            <div className="absolute z-10 w-64 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
+                                {filteredSuggestions.map(tag => (
+                                    <div
+                                        key={tag}
+                                        className="px-3 py-2 cursor-pointer hover:bg-accent hover:text-accent-foreground text-sm"
+                                        onClick={() => addTag(tag)}
+                                    >
+                                        {tag}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Content Area */}
+            <div className="space-y-6">
+                 {/* Combined Description Area */}
+                <div className="space-y-2 min-h-[200px]">
+                    <RichTextEditor
+                        content={formData.description}
+                        onChange={(content) => setFormData({ ...formData, description: content })}
+                        placeholder="Type '/' for commands or just start writing..."
+                        className="text-base leading-relaxed text-foreground"
+                    />
+                </div>
+                
+                {/* Attachments Grid */}
+                {formData.attachments.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-4 border-t">
+                         {formData.attachments.map(file => (
+                            <div key={file.id} className="group relative border rounded-lg overflow-hidden bg-muted/20 hover:bg-muted/40 transition-colors">
+                                <div className="aspect-[4/3] relative">
+                                    {file.type.startsWith('image/') ? (
+                                        <Image 
+                                            src={file.url} 
+                                            alt={file.name} 
+                                            fill 
+                                            className="object-cover" 
+                                            unoptimized 
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                            <FileText className="h-10 w-10 text-muted-foreground/50" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="p-2 text-xs truncate font-medium flex justify-between items-center">
+                                    <span className="truncate max-w-[80%]">{file.name}</span>
+                                    <button 
+                                        onClick={() => removeAttachment(file.id)}
+                                        className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+                
+                 {/* Add Attachment Button */}
+                 <div className="pt-2">
+                    <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => attachmentInputRef.current?.click()}
+                        className="text-muted-foreground hover:text-foreground pl-0 gap-2"
+                    >
+                        <Paperclip className="h-4 w-4" /> Add Attachment
+                    </Button>
+                    <input
+                        type="file"
+                        ref={attachmentInputRef}
+                        className="hidden"
+                        multiple
+                        onChange={handleAttachmentUpload}
+                    />
+                </div>
+            </div>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="p-4 border-t bg-background flex justify-between items-center">
+            <div className="text-xs text-muted-foreground flex items-center gap-2">
+                {project ? "Last updated just now" : "Draft"}
+                {saveStatus === 'saving' && <span className="text-primary animate-pulse">Saving...</span>}
+                {saveStatus === 'saved' && <span className="text-green-500">Saved</span>}
+                {saveStatus === 'error' && <span className="text-destructive">Error saving</span>}
+            </div>
+            <div className="flex gap-2">
+                {project && (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleDelete}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                )}
+                {isModal && (
+                    <Button type="submit" onClick={handleSubmit} disabled={isLoading || isGenerating}>
+                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Done"}
+                    </Button>
+                )}
+            </div>
+        </div>
+    </div>
+  );
+}
+

@@ -24,6 +24,21 @@ export async function getProjects() {
   return data;
 }
 
+export async function getProject(id: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error('Error fetching project:', error);
+    return null;
+  }
+  return data;
+}
+
 export async function createProject(data: { 
   title: string; 
   description?: string; 

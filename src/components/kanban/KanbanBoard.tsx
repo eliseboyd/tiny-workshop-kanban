@@ -56,6 +56,8 @@ type KanbanBoardProps = {
   initialColumns: Column[];
 };
 
+import { v4 as uuidv4 } from 'uuid';
+
 export function KanbanBoard({ initialProjects, initialSettings, initialColumns }: KanbanBoardProps) {
   // Map snake_case to camelCase for frontend state
   const mapProjects = (projs: any[]): Project[] => {
@@ -75,6 +77,8 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [newProjectColumnId, setNewProjectColumnId] = useState<string | undefined>(undefined);
   
+  const [isCreatingInColumn, setIsCreatingInColumn] = useState<string | null>(null);
+
   // Filter state
   const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
 
@@ -273,15 +277,48 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   };
 
   const handleCreateProject = () => {
-    setEditingProject(null);
-    setNewProjectColumnId(undefined);
-    setIsModalOpen(true);
+    // Default to first column for "New Project" button
+    if (cols.length > 0) {
+        setIsCreatingInColumn(cols[0].id);
+        // Optional: scroll to column or focus
+    }
   };
 
   const handleAddProjectToColumn = (columnId: string) => {
-      setEditingProject(null);
-      setNewProjectColumnId(columnId);
-      setIsModalOpen(true);
+      setIsCreatingInColumn(columnId);
+  };
+
+  const handleConfirmCreate = async (columnId: string, title: string) => {
+      setIsCreatingInColumn(null);
+      if (title.trim()) {
+          // Optimistic Update
+          const tempId = uuidv4();
+          const optimisticProject: Project = {
+              id: tempId,
+              title: title,
+              status: columnId,
+              position: items.filter(i => i.status === columnId).length,
+              description: '',
+              richContent: null,
+              imageUrl: null,
+              tags: [],
+              attachments: null,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+          };
+          
+          setItems(prev => [...prev, optimisticProject]);
+
+          // Actually create
+          await import('@/app/actions').then(mod => mod.createProject({ 
+              title, 
+              status: columnId 
+          }));
+      }
+  };
+
+  const handleCancelCreate = () => {
+      setIsCreatingInColumn(null);
   };
 
   const handleCreateColumn = async () => {
@@ -444,6 +481,9 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
             handleDeleteColumn={handleDeleteColumn}
             handleDeleteProject={handleDeleteProject}
             handleAddProjectToColumn={handleAddProjectToColumn}
+            isCreatingInColumn={isCreatingInColumn}
+            onConfirmCreate={handleConfirmCreate}
+            onCancelCreate={handleCancelCreate}
         />
       </div>
       <ProjectModal
