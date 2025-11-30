@@ -452,26 +452,32 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
 
         <div className="flex-1 overflow-y-auto p-8 sm:p-10 space-y-8">
             {/* Title Section */}
-            <div className="space-y-4">
-                <Input
+            <div className="space-y-2">
+                <textarea
                     value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="text-4xl sm:text-5xl font-bold font-sans tracking-tight border-none shadow-none p-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/50 bg-transparent focus-visible:bg-transparent focus:bg-transparent"
+                    onChange={(e) => {
+                        setFormData({ ...formData, title: e.target.value });
+                        e.target.style.height = 'auto';
+                        e.target.style.height = e.target.scrollHeight + 'px';
+                    }}
+                    className="w-full text-5xl font-bold font-sans tracking-tight bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 overflow-hidden"
                     placeholder="Untitled"
+                    rows={1}
+                    style={{ height: 'auto' }}
                 />
                 
                 {/* Tags Row */}
                 <div className="flex flex-wrap gap-2 items-center min-h-[32px]">
                     {formData.tags.map(tag => (
-                        <Badge key={tag} variant="secondary" className="gap-1 pr-1 bg-secondary/50 hover:bg-secondary text-sm py-1">
-                            {tag}
-                            <button onClick={() => removeTag(tag)} className="hover:bg-muted rounded-full p-0.5">
+                        <Badge key={tag} variant="outline" className="gap-1 pr-1 bg-transparent hover:bg-secondary/30 text-sm font-normal text-muted-foreground border-transparent hover:border-border transition-all">
+                            #{tag}
+                            <button onClick={() => removeTag(tag)} className="hover:text-foreground rounded-full p-0.5 ml-1 transition-colors">
                                 <X className="h-3 w-3" />
                             </button>
                         </Badge>
                     ))}
-                    <div className="relative w-40">
-                        <Input
+                    <div className="relative min-w-[120px]">
+                        <input
                             ref={tagInputRef}
                             value={tagInput}
                             onChange={(e) => {
@@ -481,7 +487,7 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
                             onFocus={() => setShowTagSuggestions(true)}
                             onKeyDown={handleAddTag}
                             placeholder="Add tag..."
-                            className="h-8 text-base border-none shadow-none focus-visible:ring-0 px-0 bg-transparent placeholder:text-muted-foreground/50"
+                            className="h-8 w-full text-sm bg-transparent border-none outline-none placeholder:text-muted-foreground/40"
                             autoComplete="off"
                         />
                         {showTagSuggestions && filteredSuggestions.length > 0 && (
