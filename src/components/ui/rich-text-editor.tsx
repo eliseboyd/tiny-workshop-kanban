@@ -76,7 +76,7 @@ export function RichTextEditor({ content, onChange, placeholder, className }: Ri
   return (
     <div className="relative group border rounded-md p-2 bg-transparent border-transparent hover:border-border focus-within:border-border transition-colors">
       {/* Fixed Toolbar */}
-      <div className="flex items-center gap-1 mb-2 pb-2 border-b border-border/50 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1 mb-2 pb-2 border-b border-border/50 transition-opacity">
           <Toggle
             size="sm"
             pressed={editor.isActive('bold')}

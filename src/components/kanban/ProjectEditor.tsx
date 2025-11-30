@@ -514,7 +514,7 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
                     <RichTextEditor
                         content={formData.description}
                         onChange={(content) => setFormData({ ...formData, description: content })}
-                        placeholder="Type '/' for commands or just start writing..."
+                        placeholder="Start writing..."
                         className="text-base leading-relaxed text-foreground"
                     />
                 </div>
