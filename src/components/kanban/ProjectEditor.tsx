@@ -474,7 +474,8 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
             </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8 sm:p-10 space-y-8">
+        <div className="flex-1 overflow-y-auto p-8 sm:p-10">
+            <div className="max-w-2xl mx-auto space-y-8">
             {/* Title Section */}
             <div className="space-y-2">
                 <textarea
@@ -597,6 +598,7 @@ export function ProjectEditor({ project, initialStatus, existingTags = [], onClo
                         onChange={handleAttachmentUpload}
                     />
                 </div>
+            </div>
             </div>
         </div>
 
