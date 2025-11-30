@@ -1,957 +1,872 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Input } from '@/components/ui/input';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import { Project } from './KanbanBoard';
-import { createProject, updateProject, deleteProject, generateProjectImage, uploadImageBase64, uploadFile } from '@/app/actions';
+import { updateProject, generateProjectImage, uploadImageBase64, uploadFile } from '@/app/actions';
 import Image from 'next/image';
-import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Paperclip, Maximize2, ChevronLeft, Plus } from 'lucide-react';
+import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+// Dynamically import PDFViewer to avoid SSR issues
+const PDFViewer = dynamic(() => import('@/components/ui/pdf-viewer').then(mod => ({ default: mod.PDFViewer })), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center text-white">
+      <Loader2 className="h-8 w-8 animate-spin" />
+    </div>
+  )
+});
+
 type Attachment = { id: string; url: string; name: string; type: string; size: number };
+type Material = { id: string; text: string; toBuy: boolean; toBuild: boolean };
 
 type ProjectEditorProps = {
-  project?: Project | null;
-  initialStatus?: string;
+  project: Project;
   existingTags?: string[];
-  onClose?: () => void; // For closing the editor (if modal)
+  onClose?: () => void;
   isModal?: boolean;
   className?: string;
 };
 
-export function ProjectEditor({ project, initialStatus, existingTags = [], onClose, isModal = false, className }: ProjectEditorProps) {
+export function ProjectEditor({ project, existingTags = [], onClose, isModal = false, className }: ProjectEditorProps) {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [formData, setFormData] = useState<{
-    title: string;
-    description: string;
-    richContent: string;
-    materialsList: { id: string; text: string; toBuy: boolean; toBuild: boolean }[];
-    plans: Attachment[]; // Changed to Attachment array for gallery
-    inspiration: Attachment[]; // Changed to Attachment array for grid
-    imageUrl: string;
-    status: string;
-    tags: string[];
-    attachments: Attachment[];
-  }>({
-    title: '',
-    description: '',
-    richContent: '',
-    materialsList: [],
-    plans: [],
-    inspiration: [],
-    imageUrl: '',
-    status: 'todo',
-    tags: [],
-    attachments: [],
-  });
-  const [activeSection, setActiveSection] = useState('overview');
   const [isDragging, setIsDragging] = useState(false);
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState('overview');
+  
+  // Simple local state for immediate UI updates
+  const [title, setTitle] = useState(project.title);
+  const [imageUrl, setImageUrl] = useState(project.imageUrl || '');
+  const [richContent, setRichContent] = useState(project.richContent || '');
+  const [tags, setTags] = useState<string[]>(project.tags || []);
+  const [materialsList, setMaterialsList] = useState<Material[]>(() => {
+    try {
+      if (!project.materialsList) return [];
+      if (typeof project.materialsList === 'string') {
+        const parsed = JSON.parse(project.materialsList || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      }
+      return Array.isArray(project.materialsList) ? project.materialsList : [];
+    } catch (e) { 
+      console.error('Failed to parse materialsList:', e);
+      return []; 
+    }
+  });
+  const [plans, setPlans] = useState<Attachment[]>(() => {
+    try {
+      if (!project.plans) return [];
+      if (typeof project.plans === 'string') {
+        const parsed = JSON.parse(project.plans || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      }
+      return Array.isArray(project.plans) ? project.plans : [];
+    } catch (e) { 
+      console.error('Failed to parse plans:', e);
+      return []; 
+    }
+  });
+  const [inspiration, setInspiration] = useState<Attachment[]>(() => {
+    try {
+      if (!project.inspiration) return [];
+      if (typeof project.inspiration === 'string') {
+        const parsed = JSON.parse(project.inspiration || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      }
+      return Array.isArray(project.inspiration) ? project.inspiration : [];
+    } catch (e) { 
+      console.error('Failed to parse inspiration:', e);
+      return []; 
+    }
+  });
+  
   const [tagInput, setTagInput] = useState('');
-  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [materialsInput, setMaterialsInput] = useState('');
-
-  const addMaterial = () => {
-      if (!materialsInput.trim()) return;
-      const newMaterial = {
-          id: Math.random().toString(36).substr(2, 9),
-          text: materialsInput.trim(),
-          toBuy: false,
-          toBuild: false
-      };
-      setFormData(prev => ({
-          ...prev,
-          materialsList: [...prev.materialsList, newMaterial]
-      }));
-      setMaterialsInput('');
-  };
-
-  const updateMaterial = (id: string, field: 'toBuy' | 'toBuild') => {
-      setFormData(prev => ({
-          ...prev,
-          materialsList: prev.materialsList.map(item => 
-              item.id === id ? { ...item, [field]: !item[field] } : item
-          )
-      }));
-  };
-
-  const deleteMaterial = (id: string) => {
-      setFormData(prev => ({
-          ...prev,
-          materialsList: prev.materialsList.filter(item => item.id !== id)
-      }));
-  };
-
-  const handleMaterialKeyDown = (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') {
-          e.preventDefault();
-          addMaterial();
-      }
-  };
-
-  // Generic helper for uploading files to specific section (plans/inspiration)
-  const handleSectionUpload = async (e: React.ChangeEvent<HTMLInputElement>, section: 'plans' | 'inspiration') => {
-      const files = e.target.files;
-      if (!files || files.length === 0) return;
-
-      setIsLoading(true);
-      try {
-          const newAttachments: Attachment[] = [];
-          for (let i = 0; i < files.length; i++) {
-              const file = files[i];
-              const formData = new FormData();
-              formData.append('file', file);
-              const result = await uploadFile(formData);
-              newAttachments.push(result);
-          }
-          setFormData(prev => ({ ...prev, [section]: [...prev[section], ...newAttachments] }));
-      } catch (error) {
-          console.error(`Failed to upload to ${section}`, error);
-      } finally {
-          setIsLoading(false);
-          // Reset input value
-          if (e.target) e.target.value = '';
-      }
-  };
-
-  const removeSectionItem = (id: string, section: 'plans' | 'inspiration') => {
-      setFormData(prev => ({ 
-          ...prev, 
-          [section]: prev[section].filter(item => item.id !== id) 
-      }));
-  };
-
-  // Gallery View Component for Plans
-  const PlansGallery = ({ items }: { items: Attachment[] }) => {
-      if (items.length === 0) {
-          return (
-            <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground flex flex-col items-center gap-2 hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => document.getElementById('plans-upload')?.click()}>
-                <Upload className="h-8 w-8 opacity-50" />
-                <p>Upload plans, sketches, or PDFs</p>
-            </div>
-          );
-      }
-      return (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {items.map(item => (
-                  <div key={item.id} className="group relative border rounded-lg overflow-hidden bg-background hover:shadow-md transition-all">
-                      <div className="aspect-[3/2] relative bg-muted/20">
-                          {item.type.startsWith('image/') ? (
-                              <Image 
-                                  src={item.url} 
-                                  alt={item.name} 
-                                  fill 
-                                  className="object-contain p-2" 
-                                  unoptimized 
-                              />
-                          ) : (
-                              <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground p-4">
-                                  <FileText className="h-12 w-12 mb-2 opacity-50" />
-                                  <span className="text-xs uppercase font-bold tracking-wider">{item.type.split('/')[1] || 'FILE'}</span>
-                              </div>
-                          )}
-                          {/* Overlay Actions */}
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                               <Link href={item.url} target="_blank" prefetch={false}>
-                                  <Button size="sm" variant="secondary" className="h-8 w-8 p-0">
-                                      <Maximize2 className="h-4 w-4" />
-                                  </Button>
-                               </Link>
-                               <Button size="sm" variant="destructive" className="h-8 w-8 p-0" onClick={() => removeSectionItem(item.id, 'plans')}>
-                                    <Trash2 className="h-4 w-4" />
-                               </Button>
-                          </div>
-                      </div>
-                      <div className="p-3 border-t bg-muted/5">
-                          <p className="text-sm font-medium truncate" title={item.name}>{item.name}</p>
-                          <p className="text-xs text-muted-foreground">{(item.size / 1024 / 1024).toFixed(2)} MB</p>
-                      </div>
-                  </div>
-              ))}
-              <div className="border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/10 cursor-pointer min-h-[200px]" onClick={() => document.getElementById('plans-upload')?.click()}>
-                  <Plus className="h-8 w-8 opacity-50 mb-2" />
-                  <span className="text-sm">Add more</span>
-              </div>
-          </div>
-      );
-  };
-
-  // Masonry Grid for Inspiration
-  const InspirationGrid = ({ items }: { items: Attachment[] }) => {
-       if (items.length === 0) {
-          return (
-            <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground flex flex-col items-center gap-2 hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => document.getElementById('inspiration-upload')?.click()}>
-                <Sparkles className="h-8 w-8 opacity-50" />
-                <p>Add inspiration images</p>
-            </div>
-          );
-      }
-
-      return (
-        <div className="columns-2 sm:columns-3 gap-4 space-y-4">
-             {items.map(item => (
-                  <div key={item.id} className="break-inside-avoid group relative rounded-lg overflow-hidden bg-muted/20 mb-4">
-                      {item.type.startsWith('image/') ? (
-                          <img 
-                              src={item.url} 
-                              alt={item.name} 
-                              className="w-full h-auto object-cover" 
-                          />
-                      ) : (
-                           <div className="aspect-square flex items-center justify-center bg-muted text-muted-foreground">
-                                <FileText className="h-8 w-8" />
-                           </div>
-                      )}
-                       {/* Overlay */}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                           <Link href={item.url} target="_blank" prefetch={false}>
-                              <Button size="sm" variant="secondary" className="h-8 w-8 p-0">
-                                  <Maximize2 className="h-4 w-4" />
-                              </Button>
-                           </Link>
-                           <Button size="sm" variant="destructive" className="h-8 w-8 p-0" onClick={() => removeSectionItem(item.id, 'inspiration')}>
-                                <Trash2 className="h-4 w-4" />
-                           </Button>
-                      </div>
-                  </div>
-             ))}
-              <div className="break-inside-avoid border-2 border-dashed rounded-lg aspect-square flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/10 cursor-pointer" onClick={() => document.getElementById('inspiration-upload')?.click()}>
-                  <Plus className="h-8 w-8 opacity-50 mb-1" />
-                  <span className="text-xs">Add</span>
-              </div>
-        </div>
-      );
-  };
-
-  const attachmentInputRef = useRef<HTMLInputElement>(null);
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [viewingAttachment, setViewingAttachment] = useState<{ url: string; type: string; name: string } | null>(null);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
   const imageAreaRef = useRef<HTMLDivElement>(null);
-
-  // Auto-save functionality
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const lastSavedData = useRef(formData);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Initialize lastSavedData when project loads
-  useEffect(() => {
-    if (project) {
-        const initialData = {
-            title: project.title,
-            description: project.description || '',
-            richContent: project.richContent || '',
-            materialsList: typeof project.materialsList === 'string' 
-                ? JSON.parse(project.materialsList || '[]') 
-                : (project.materialsList || []),
-            plans: typeof project.plans === 'string' ? JSON.parse(project.plans || '[]') : (project.plans || []),
-            inspiration: typeof project.inspiration === 'string' ? JSON.parse(project.inspiration || '[]') : (project.inspiration || []),
-            imageUrl: project.imageUrl || '',
-            status: project.status,
-            tags: project.tags || [],
-            attachments: (project.attachments as Attachment[]) || [],
-        };
-        lastSavedData.current = initialData;
-        setFormData(initialData);
+  
+  // Open attachment viewer inline
+  const openAttachment = (url: string, type: string, name: string) => {
+    setViewingAttachment({ url, type, name });
+  };
+  
+  const closeAttachment = () => {
+    setViewingAttachment(null);
+  };
+  
+  // Get all viewable items (plans + inspiration)
+  const allViewableItems = useMemo(() => [...plans, ...inspiration], [plans, inspiration]);
+  
+  // Navigate to next/prev item in viewer
+  const navigateAttachment = useCallback((direction: 'next' | 'prev') => {
+    if (!viewingAttachment) return;
+    const currentIndex = allViewableItems.findIndex(item => item.url === viewingAttachment.url);
+    if (currentIndex === -1) return;
+    
+    let newIndex;
+    if (direction === 'next') {
+      newIndex = (currentIndex + 1) % allViewableItems.length;
     } else {
-        setFormData({
-            title: '',
-            description: '',
-            richContent: '',
-            materialsList: [],
-            plans: [],
-            inspiration: [],
-            imageUrl: '',
-            status: initialStatus || 'todo',
-            tags: [],
-            attachments: [],
-        });
+      newIndex = currentIndex - 1;
+      if (newIndex < 0) newIndex = allViewableItems.length - 1;
     }
-  }, [project, initialStatus]);
-
+    
+    const newItem = allViewableItems[newIndex];
+    setViewingAttachment({ url: newItem.url, type: newItem.type, name: newItem.name });
+  }, [viewingAttachment, allViewableItems]);
+  
+  // Keyboard navigation for attachment viewer
   useEffect(() => {
-    // Only auto-save if we are editing an existing project
-    if (!project) return;
-
-    const hasChanges = JSON.stringify(formData) !== JSON.stringify(lastSavedData.current);
-    if (!hasChanges) return;
-
-    if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-    }
-
-    setSaveStatus('saving');
-    saveTimeoutRef.current = setTimeout(async () => {
-        try {
-            await updateProject(project.id, formData);
-            lastSavedData.current = formData;
-            setSaveStatus('saved');
-            setTimeout(() => setSaveStatus('idle'), 2000);
-        } catch (error) {
-            console.error('Auto-save failed', error);
-            setSaveStatus('error');
-        }
-    }, 1500); // Debounce for 1.5 seconds
-
-    return () => {
-        if (saveTimeoutRef.current) {
-            clearTimeout(saveTimeoutRef.current);
-        }
+    if (!viewingAttachment) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeAttachment();
+      } else if (e.key === 'ArrowRight') {
+        navigateAttachment('next');
+      } else if (e.key === 'ArrowLeft') {
+        navigateAttachment('prev');
+      }
     };
-  }, [formData, project]);
-
-  const handleSubmit = async () => {
-    setIsLoading(true);
-    try {
-      if (project) {
-        await updateProject(project.id, formData);
-      } else {
-        await createProject(formData);
-      }
-      if (onClose) onClose();
-    } catch (error) {
-      console.error('Failed to save project', error);
-    } finally {
-      setIsLoading(false);
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewingAttachment, navigateAttachment]);
+  
+  // Simple debounced save function
+  const debouncedSave = useCallback((data: Partial<Project>) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
     }
-  };
-
-  const handleDelete = async () => {
-    if (!project) return;
-    if (confirm('Are you sure you want to delete this project?')) {
-      setIsLoading(true);
+    setIsSaving(true);
+    saveTimeoutRef.current = setTimeout(async () => {
       try {
-        await deleteProject(project.id);
-        if (onClose) {
-            onClose();
-        } else {
-            router.push('/');
-        }
+        await updateProject(project.id, data);
+        router.refresh();
       } catch (error) {
-        console.error('Failed to delete project', error);
+        console.error('Save failed:', error);
       } finally {
-        setIsLoading(false);
+        setIsSaving(false);
       }
+    }, 500);
+  }, [project.id, router]);
+  
+  // Title handler
+  const handleTitleChange = (newTitle: string) => {
+    setTitle(newTitle);
+    debouncedSave({ title: newTitle });
+  };
+  
+  // Rich content handler
+  const handleContentChange = (content: string) => {
+    setRichContent(content);
+    debouncedSave({ richContent: content });
+  };
+  
+  // Tags handlers
+  const handleAddTag = (tag: string) => {
+    const trimmed = tag.trim().toLowerCase().replace(/^#/, '');
+    if (!trimmed || tags.includes(trimmed)) return;
+    const newTags = [...tags, trimmed];
+    setTags(newTags);
+    updateProject(project.id, { tags: newTags });
+    setTagInput('');
+    setShowTagSuggestions(false);
+  };
+  
+  const handleRemoveTag = (tag: string) => {
+    const newTags = tags.filter(t => t !== tag);
+    setTags(newTags);
+    updateProject(project.id, { tags: newTags });
+  };
+  
+  // Materials handlers
+  const handleAddMaterial = async () => {
+    if (!materialsInput.trim()) return;
+    const newMaterial: Material = {
+      id: Math.random().toString(36).substr(2, 9),
+      text: materialsInput.trim(),
+      toBuy: false,
+      toBuild: false
+    };
+    const newList = [...materialsList, newMaterial];
+    setMaterialsList(newList);
+    await updateProject(project.id, { materialsList: newList });
+    router.refresh();
+    setMaterialsInput('');
+  };
+  
+  const handleUpdateMaterial = async (id: string, field: 'toBuy' | 'toBuild') => {
+    const newList = materialsList.map(item => 
+      item.id === id ? { ...item, [field]: !item[field] } : item
+    );
+    setMaterialsList(newList);
+    await updateProject(project.id, { materialsList: newList });
+    router.refresh();
+  };
+  
+  const handleDeleteMaterial = async (id: string) => {
+    const newList = materialsList.filter(item => item.id !== id);
+    setMaterialsList(newList);
+    await updateProject(project.id, { materialsList: newList });
+    router.refresh();
+  };
+  
+  // Plans handlers
+  const handlePlansUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    try {
+      const newAttachments: Attachment[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fd = new FormData();
+        fd.append('file', file);
+        const result = await uploadFile(fd);
+        newAttachments.push(result);
+      }
+      const newPlans = [...plans, ...newAttachments];
+      setPlans(newPlans);
+      await updateProject(project.id, { plans: newPlans });
+      router.refresh();
+    } catch (error) {
+      console.error('Failed to upload plans', error);
+    }
+    if (e.target) e.target.value = '';
+  };
+  
+  const handleRemovePlan = async (id: string) => {
+    const newPlans = plans.filter(item => item.id !== id);
+    setPlans(newPlans);
+    await updateProject(project.id, { plans: newPlans });
+    router.refresh();
+  };
+  
+  // Inspiration handlers
+  const handleInspirationUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    try {
+      const newAttachments: Attachment[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fd = new FormData();
+        fd.append('file', file);
+        const result = await uploadFile(fd);
+        newAttachments.push(result);
+      }
+      const newInspiration = [...inspiration, ...newAttachments];
+      setInspiration(newInspiration);
+      await updateProject(project.id, { inspiration: newInspiration });
+      router.refresh();
+    } catch (error) {
+      console.error('Failed to upload inspiration', error);
+    }
+    if (e.target) e.target.value = '';
+  };
+  
+  const handleRemoveInspiration = async (id: string) => {
+    const newInspiration = inspiration.filter(item => item.id !== id);
+    setInspiration(newInspiration);
+    await updateProject(project.id, { inspiration: newInspiration });
+    router.refresh();
+  };
+  
+  // Image upload handlers
+  const handleFileUpload = async (file: File) => {
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const result = await uploadFile(fd);
+      setImageUrl(result.url);
+      await updateProject(project.id, { imageUrl: result.url });
+      router.refresh();
+    } catch (error) {
+      console.error('Failed to upload image', error);
     }
   };
-
+  
   const handleGenerateImage = async () => {
-    if (!formData.title) return;
+    if (!title) return;
     setIsGenerating(true);
     try {
-      const url = await generateProjectImage({ 
-        title: formData.title, 
-        description: formData.description 
-      });
-      if (formData.imageUrl) {
-        setGeneratedImage(url);
-      } else {
-        setFormData(prev => ({ ...prev, imageUrl: url }));
-      }
+      const generatedUrl = await generateProjectImage({ title, description: richContent });
+      setImageUrl(generatedUrl);
+      await updateProject(project.id, { imageUrl: generatedUrl });
+      router.refresh();
     } catch (error) {
       console.error('Failed to generate image', error);
     } finally {
       setIsGenerating(false);
     }
   };
-
-  // Swipe to go back logic
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
-  const minSwipeDistance = 30; // Lower threshold for easier swipe
-
-  const onTouchStart = (e: React.TouchEvent) => {
-      touchStartRef.current = {
-          x: e.touches[0].clientX,
-          y: e.touches[0].clientY
-      };
-  };
-
-  const onTouchEnd = (e: React.TouchEvent) => {
-      if (!touchStartRef.current) return;
-      
-      const distanceX = e.changedTouches[0].clientX - touchStartRef.current.x;
-      const distanceY = e.changedTouches[0].clientY - touchStartRef.current.y;
-      
-      // Check if it's a horizontal swipe (more X than Y movement) and exceeds min distance
-      if (Math.abs(distanceX) > Math.abs(distanceY) * 0.8 && distanceX > minSwipeDistance) {
-          // Swiped Right -> Go Back
-          if (!isModal) {
-              router.push('/');
-          } else if (onClose) {
-              onClose();
-          }
-      }
-      
-      touchStartRef.current = null;
-  };
-
-  const handleContentImageUpload = useCallback(async (file: File): Promise<string> => {
-      return new Promise((resolve, reject) => {
-          if (!file.type.startsWith('image/')) {
-              reject(new Error("Not an image"));
-              return;
-          }
-          
-          const reader = new FileReader();
-          reader.onloadend = async () => {
-            const base64String = reader.result as string;
-            try {
-                 // Reuse existing upload action
-                 // We use 'content-image.jpg' as a generic name, the server action handles unique naming if needed or we can be more specific
-                 const url = await uploadImageBase64(base64String, file.name || 'content-image.jpg', file.type || 'image/jpeg');
-                 resolve(url);
-            } catch (err) {
-                reject(err);
-            }
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-      });
-  }, []);
-
-  const handleFileUpload = useCallback(async (file: File) => {
-    if (!file.type.startsWith('image/')) return;
-    
-    setIsLoading(true);
-
+  
+  // Inline image upload for rich text editor
+  const handleContentImageUpload = async (file: File): Promise<string> => {
     try {
       const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64String = reader.result as string;
-        
-        if (base64String.length > 5 * 1024 * 1024 * 1.33) { // ~5MB limit
-             alert("Image is too large (max 5MB). Please use a smaller image.");
-             setIsLoading(false);
-             return;
-        }
-
-        try {
-            const url = await uploadImageBase64(base64String, file.name || 'pasted-image.jpg', file.type || 'image/jpeg');
-            setFormData(prev => ({ ...prev, imageUrl: url }));
-            setGeneratedImage(null);
-        } catch (error: any) {
-            console.error('Failed to upload image - Details:', error);
-            alert(`Upload failed: ${error.message || 'Unknown error'}`);
-        } finally {
-            setIsLoading(false);
-        }
-      };
-      reader.readAsDataURL(file);
-
+      return new Promise((resolve, reject) => {
+        reader.onloadend = async () => {
+          try {
+            const base64 = reader.result as string;
+            const imageUrl = await uploadImageBase64(base64, file.name, file.type);
+            resolve(imageUrl);
+          } catch (error) {
+            reject(error);
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
     } catch (error) {
-      console.error('Failed to setup upload', error);
-      setIsLoading(false);
+      console.error('Failed to upload inline image', error);
+      throw error;
     }
-  }, []);
-
-  useEffect(() => {
-    // Only enable paste listener if this component is focused or active
-    // A bit tricky without a specific focus target, but usually fine in modal or page
-    const handleGlobalPaste = (e: ClipboardEvent) => {
-      // Check if event target is an input or textarea to avoid intercepting text paste
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-          return; // Let default behavior happen for text inputs
-      }
-
-      const items = e.clipboardData?.items;
-      if (!items) return;
-
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].type.startsWith('image/')) {
-          const file = items[i].getAsFile();
-          if (file) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const fileToUpload = file.name ? file : new File([file], "pasted-image.png", { type: file.type });
-            
-            handleFileUpload(fileToUpload);
-            return;
-          }
-        }
-      }
-    };
-
-    document.addEventListener('paste', handleGlobalPaste);
-    return () => document.removeEventListener('paste', handleGlobalPaste);
-  }, [handleFileUpload]);
-
-
-  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files;
-      if (!files || files.length === 0) return;
-
-      setIsLoading(true);
-      try {
-          const newAttachments: Attachment[] = [];
-          for (let i = 0; i < files.length; i++) {
-              const file = files[i];
-              const formData = new FormData();
-              formData.append('file', file);
-              const result = await uploadFile(formData);
-              newAttachments.push(result);
-          }
-          setFormData(prev => ({ ...prev, attachments: [...prev.attachments, ...newAttachments] }));
-      } catch (error) {
-          console.error('Failed to upload attachment', error);
-      } finally {
-          setIsLoading(false);
-          if (attachmentInputRef.current) attachmentInputRef.current.value = '';
-      }
   };
-
-  const removeAttachment = (id: string) => {
-      setFormData(prev => ({ ...prev, attachments: prev.attachments.filter(a => a.id !== id) }));
-  };
-
-  const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Enter') {
-          e.preventDefault();
-          addTag(tagInput);
-      }
-  };
-
-  const addTag = (tag: string) => {
-      const trimmedTag = tag.trim();
-      if (trimmedTag && !formData.tags.includes(trimmedTag)) {
-          setFormData(prev => ({ ...prev, tags: [...prev.tags, trimmedTag] }));
-          setTagInput('');
-          setShowTagSuggestions(false);
-      }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-      setFormData(prev => ({ ...prev, tags: prev.tags.filter(tag => tag !== tagToRemove) }));
-  };
-
+  
+  // Drag and drop
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
   };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
+  
+  const handleDragLeave = () => {
     setIsDragging(false);
   };
-
-  const handleDrop = (e: React.DragEvent) => {
+  
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file) handleFileUpload(file);
+    if (file && file.type.startsWith('image/')) {
+      await handleFileUpload(file);
+    }
   };
-
-  const filteredSuggestions = existingTags.filter(
-      tag => tag.toLowerCase().includes(tagInput.toLowerCase()) && !formData.tags.includes(tag)
-  );
-
-  const scrollToSection = (id: string) => {
-      const element = document.getElementById(id);
-      if (element) {
-          element.scrollIntoView({ behavior: 'smooth' });
-          setActiveSection(id);
+  
+  // Section navigation
+  const scrollToSection = (section: string) => {
+    setActiveSection(section);
+    document.getElementById(`section-${section}`)?.scrollIntoView({ behavior: 'smooth' });
+  };
+  
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = ['overview', 'materials', 'plans', 'inspiration'];
+      for (const section of sections) {
+        const el = document.getElementById(`section-${section}`);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top >= 0 && rect.top < window.innerHeight / 2) {
+            setActiveSection(section);
+            break;
+          }
+        }
       }
+    };
+    const container = document.querySelector('.editor-scroll-container');
+    container?.addEventListener('scroll', handleScroll);
+    return () => container?.removeEventListener('scroll', handleScroll);
+  }, []);
+  
+  // Swipe back gesture for mobile
+  const touchStartX = useRef(0);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
   };
-
-    return (
-    <div 
-        className={cn("flex h-full bg-background touch-pan-y", className)}
-    >
-        {/* Sidebar (Desktop only) */}
-        <div className="hidden md:flex w-48 flex-col gap-1 p-6 border-r pt-24 sticky top-0 h-full shrink-0">
-            <div className="font-semibold mb-4 px-2 text-sm text-muted-foreground uppercase tracking-wider">Contents</div>
-            <button onClick={() => scrollToSection('overview')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'overview' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>Project Overview</button>
-            <button onClick={() => scrollToSection('materials')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'materials' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>Materials List</button>
-            <button onClick={() => scrollToSection('plans')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'plans' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>Plans</button>
-            <button onClick={() => scrollToSection('inspiration')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'inspiration' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>Inspiration</button>
+  
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchEndX - touchStartX.current;
+    if (diff > 100 && touchStartX.current < 50) {
+      if (isModal && onClose) {
+        onClose();
+      } else {
+        router.push('/');
+      }
+    }
+  };
+  
+  // Tag suggestions
+  const filteredSuggestions = existingTags.filter(
+    tag => tag.toLowerCase().includes(tagInput.toLowerCase()) && !tags.includes(tag)
+  );
+  
+  return (
+    <div className={cn("flex h-full bg-background touch-pan-y", className)}>
+      {/* Sidebar (Desktop only) */}
+      <div className="hidden md:flex w-48 flex-col gap-1 p-6 border-r pt-24 sticky top-0 h-screen shrink-0">
+        <div className="font-semibold mb-4 px-2 text-sm text-muted-foreground uppercase tracking-wider">
+          Contents
         </div>
+        <button onClick={() => scrollToSection('overview')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'overview' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>
+          Project Overview
+        </button>
+        <button onClick={() => scrollToSection('materials')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'materials' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>
+          Materials List
+        </button>
+        <button onClick={() => scrollToSection('plans')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'plans' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>
+          Plans
+        </button>
+        <button onClick={() => scrollToSection('inspiration')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'inspiration' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>
+          Inspiration
+        </button>
+        
+        {isSaving && (
+          <div className="mt-auto pt-4 border-t text-xs text-muted-foreground flex items-center gap-2">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Saving...
+          </div>
+        )}
+      </div>
 
-        {/* Main Content Wrapper */}
-        <div 
-            className="flex-1 flex flex-col h-full overflow-hidden relative"
-            onTouchStart={onTouchStart}
-            onTouchEnd={onTouchEnd}
-        >
+      {/* Main Content Wrapper */}
+      <div 
+        className="flex-1 flex flex-col h-full overflow-y-auto relative editor-scroll-container"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {/* Header / Cover Image */}
-        <div className="relative shrink-0 group/cover">
-            <div 
+        <div className="relative group/cover">
+          <div 
             ref={imageAreaRef}
             tabIndex={0}
             className={cn(
-                "relative w-full h-48 bg-dots bg-muted/30 flex items-center justify-center overflow-hidden group cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary border-b",
-                isDragging && "bg-muted/50 border-2 border-dashed border-primary",
-                !formData.imageUrl && "hover:bg-muted/40"
+              "relative w-full h-48 bg-dots bg-muted/30 flex items-center justify-center overflow-hidden group cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary border-b",
+              isDragging && "bg-muted/50 border-2 border-dashed border-primary",
+              !imageUrl && "hover:bg-muted/40"
             )}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={() => !isGenerating && fileInputRef.current?.click()}
-            >
+          >
             <input 
-                type="file" 
-                ref={fileInputRef}
-                className="hidden" 
-                accept="image/*"
-                onChange={(e) => {
+              type="file" 
+              ref={fileInputRef}
+              className="hidden" 
+              accept="image/*"
+              onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) handleFileUpload(file);
-                }}
+              }}
             />
             
-            {isGenerating && !formData.imageUrl ? (
-                <div className="flex flex-col items-center gap-2 text-muted-foreground animate-pulse">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                    <p className="text-sm">Creating your cover image...</p>
-                </div>
-            ) : formData.imageUrl ? (
-                <>
+            {isGenerating && !imageUrl ? (
+              <div className="flex flex-col items-center gap-2 text-muted-foreground animate-pulse">
+                <Loader2 className="h-8 w-8 animate-spin" />
+                <p className="text-sm">Creating your cover image...</p>
+              </div>
+            ) : imageUrl ? (
+              <>
                 <Image
-                    src={formData.imageUrl}
-                    alt="Project cover"
-                    fill
-                    className="object-cover"
-                    unoptimized
+                  src={imageUrl}
+                  alt="Project cover"
+                  fill
+                  className="object-cover"
+                  unoptimized
                 />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <p className="text-white text-sm font-medium flex items-center gap-2">
+                  <p className="text-white text-sm font-medium flex items-center gap-2">
                     <Upload className="h-4 w-4" /> Change Cover
-                    </p>
+                  </p>
                 </div>
-                </>
+              </>
             ) : (
-                <div className="flex flex-col items-center gap-2 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex flex-col items-center gap-2 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                 <ImageIcon className="h-8 w-8 opacity-50" />
                 <p className="text-sm">Add cover</p>
-                </div>
+              </div>
             )}
-            </div>
-            
-            {/* Navigation / Actions Header */}
-            <div className="absolute top-4 left-4 z-20 flex gap-2">
-                 {/* Back Button (Full Page) */}
-                {!isModal && (
-                    <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90 gap-1"
-                        onClick={() => router.push('/')}
-                    >
-                        <ChevronLeft className="h-4 w-4" /> Back
-                    </Button>
-                )}
+          </div>
+          
+          {/* Navigation / Actions Header */}
+          <div className="absolute top-4 left-4 z-20 flex gap-2">
+            {/* Back Button (Full Page) */}
+            {!isModal && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90 gap-1"
+                onClick={() => router.push('/')}
+              >
+                <ChevronLeft className="h-4 w-4" /> Back
+              </Button>
+            )}
 
-                {/* Expand Button (Modal) */}
-                {project && isModal && (
-                     <Link href={`/projects/${project.id}`} prefetch={false}>
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90 gap-1"
-                            title="Open in full view"
-                        >
-                            <Maximize2 className="h-4 w-4" />
-                            <span className="hidden sm:inline">Open as Page</span>
-                        </Button>
-                    </Link>
-                )}
-            </div>
-
-             {/* Action Buttons (Bottom Right of Image) */}
-            <div className="absolute bottom-4 right-4 flex gap-2 z-20">
-                 <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleGenerateImage();
-                    }}
-                    disabled={isLoading || isGenerating || !formData.title}
-                    title="Generate AI Cover"
+            {/* Expand Button (Modal) */}
+            {isModal && (
+              <Link href={`/projects/${project.id}`} prefetch={false}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90 gap-1"
+                  title="Open in full view"
                 >
-                    {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                    <span className="ml-2 hidden sm:inline">Generate Cover</span>
+                  <Maximize2 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Open as Page</span>
                 </Button>
-            </div>
+              </Link>
+            )}
+          </div>
+
+          {/* Action Buttons (Bottom Right of Image) */}
+          <div className="absolute bottom-4 right-4 flex gap-2 z-20">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleGenerateImage();
+              }}
+              disabled={isGenerating || !title}
+              title="Generate AI Cover"
+            >
+              {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+              <span className="ml-2 hidden sm:inline">Generate Cover</span>
+            </Button>
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8 sm:p-10">
+        <div className="p-8 sm:p-10">
+          {viewingAttachment ? (
+            /* Attachment Viewer */
+            <div className="max-w-7xl mx-auto h-full flex flex-col">
+              {/* Viewer Header */}
+              <div className="flex items-center justify-between mb-4 pb-4 border-b">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={closeAttachment}
+                  className="gap-2"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Back to Project
+                </Button>
+                
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  {allViewableItems.length > 1 && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigateAttachment('prev')}
+                        className="h-8 w-8 p-0"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <span>
+                        {allViewableItems.findIndex(item => item.url === viewingAttachment.url) + 1} / {allViewableItems.length}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigateAttachment('next')}
+                        className="h-8 w-8 p-0"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+                
+                <h2 className="font-medium truncate max-w-md">{viewingAttachment.name}</h2>
+              </div>
+              
+              {/* Viewer Content */}
+              <div className="flex-1 min-h-0">
+                {viewingAttachment.type.startsWith('image/') ? (
+                  <div className="w-full h-full flex items-center justify-center bg-muted/10 rounded-lg">
+                    <Image
+                      src={viewingAttachment.url}
+                      alt={viewingAttachment.name}
+                      width={1920}
+                      height={1080}
+                      className="max-w-full max-h-full object-contain"
+                      unoptimized
+                    />
+                  </div>
+                ) : viewingAttachment.type === 'application/pdf' ? (
+                  <div className="w-full h-full">
+                    <PDFViewer url={viewingAttachment.url} fileName={viewingAttachment.name} />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4">
+                    <FileText className="h-16 w-16 opacity-50" />
+                    <p className="text-lg">{viewingAttachment.name}</p>
+                    <a 
+                      href={viewingAttachment.url} 
+                      download 
+                      className="text-primary hover:underline"
+                    >
+                      Download file
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
             <div className="max-w-2xl mx-auto space-y-8">
             {/* Title Section */}
-            <div className="space-y-2">
-                <textarea
-                    value={formData.title}
+            <div id="section-overview" className="space-y-2">
+              <textarea
+                value={title}
+                onChange={(e) => {
+                  handleTitleChange(e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = e.target.scrollHeight + 'px';
+                }}
+                className="w-full text-5xl font-bold font-sans tracking-tight bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 overflow-hidden"
+                placeholder="Untitled"
+                rows={1}
+                style={{ height: 'auto' }}
+              />
+              
+              {/* Tags Row */}
+              <div className="flex flex-wrap gap-2 items-center min-h-[32px]">
+                {tags.map(tag => (
+                  <Badge key={tag} variant="outline" className="gap-1 pr-1 bg-transparent hover:bg-secondary/30 text-sm font-normal text-muted-foreground border-transparent hover:border-border transition-all">
+                    #{tag}
+                    <button onClick={() => handleRemoveTag(tag)} className="hover:text-foreground rounded-full p-0.5 ml-1 transition-colors">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+                <div className="relative min-w-[120px]">
+                  <input
+                    ref={tagInputRef}
+                    value={tagInput}
                     onChange={(e) => {
-                        setFormData({ ...formData, title: e.target.value });
-                        e.target.style.height = 'auto';
-                        e.target.style.height = e.target.scrollHeight + 'px';
+                      setTagInput(e.target.value);
+                      setShowTagSuggestions(true);
                     }}
-                    className="w-full text-5xl font-bold font-sans tracking-tight bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 overflow-hidden"
-                    placeholder="Untitled"
-                    rows={1}
-                    style={{ height: 'auto' }}
-                />
-                
-                {/* Tags Row */}
-                <div className="flex flex-wrap gap-2 items-center min-h-[32px]">
-                    {formData.tags.map(tag => (
-                        <Badge key={tag} variant="outline" className="gap-1 pr-1 bg-transparent hover:bg-secondary/30 text-sm font-normal text-muted-foreground border-transparent hover:border-border transition-all">
-                            #{tag}
-                            <button onClick={() => removeTag(tag)} className="hover:text-foreground rounded-full p-0.5 ml-1 transition-colors">
-                                <X className="h-3 w-3" />
-                            </button>
-                        </Badge>
-                    ))}
-                    <div className="relative min-w-[120px]">
-                        <input
-                            ref={tagInputRef}
-                            value={tagInput}
-                            onChange={(e) => {
-                                setTagInput(e.target.value);
-                                setShowTagSuggestions(true);
-                            }}
-                            onFocus={() => setShowTagSuggestions(true)}
-                            onKeyDown={handleAddTag}
-                            placeholder="Add tag..."
-                            className="h-8 w-full text-sm bg-transparent border-none outline-none placeholder:text-muted-foreground/40"
-                            autoComplete="off"
-                        />
-                        {showTagSuggestions && filteredSuggestions.length > 0 && (
-                            <div className="absolute z-10 w-64 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
-                                {filteredSuggestions.map(tag => (
-                                    <div
-                                        key={tag}
-                                        className="px-3 py-2 cursor-pointer hover:bg-accent hover:text-accent-foreground text-sm"
-                                        onClick={() => addTag(tag)}
-                                    >
-                                        {tag}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                    onFocus={() => setShowTagSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowTagSuggestions(false), 200)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && tagInput.trim()) {
+                        e.preventDefault();
+                        handleAddTag(tagInput);
+                      }
+                    }}
+                    className="w-full text-sm bg-transparent border-none outline-none text-muted-foreground placeholder:text-muted-foreground/30"
+                    placeholder="Add tag..."
+                  />
+                  {showTagSuggestions && filteredSuggestions.length > 0 && (
+                    <div className="absolute top-full left-0 mt-1 bg-popover border rounded-md shadow-md z-50 min-w-[150px]">
+                      {filteredSuggestions.slice(0, 5).map(tag => (
+                        <button
+                          key={tag}
+                          className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+                          onClick={() => handleAddTag(tag)}
+                        >
+                          #{tag}
+                        </button>
+                      ))}
                     </div>
+                  )}
                 </div>
+              </div>
             </div>
 
-            {/* Main Content Area */}
-            <div className="space-y-16 pb-20">
-                 {/* Project Overview */}
-                <div id="overview" className="space-y-4 scroll-mt-20" onMouseEnter={() => setActiveSection('overview')}>
-                    <h2 className="text-xl font-semibold flex items-center gap-2 text-foreground/80">
-                        Project Overview
-                    </h2>
-                    <div className="min-h-[100px]">
-                        <RichTextEditor
-                            content={formData.description}
-                            onChange={(content) => setFormData({ ...formData, description: content })}
-                            placeholder="Describe your project..."
-                            className="text-base leading-relaxed text-foreground"
-                            onImageUpload={handleContentImageUpload}
-                        />
-                    </div>
-                </div>
-
-                {/* Materials List */}
-                <div id="materials" className="space-y-4 scroll-mt-20" onMouseEnter={() => setActiveSection('materials')}>
-                    <h2 className="text-xl font-semibold flex items-center gap-2 text-foreground/80">
-                        Materials List
-                    </h2>
-                    <div className="space-y-4">
-                        <div className="flex gap-2">
-                            <Input 
-                                value={materialsInput}
-                                onChange={(e) => setMaterialsInput(e.target.value)}
-                                onKeyDown={handleMaterialKeyDown}
-                                placeholder="Add a material..."
-                                className="flex-1"
-                            />
-                            <Button onClick={addMaterial} size="icon" variant="secondary">
-                                <Plus className="h-4 w-4" />
-                            </Button>
-                        </div>
-
-                        <div className="space-y-2">
-                            {/* Header Row */}
-                            {formData.materialsList.length > 0 && (
-                                <div className="flex items-center gap-4 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    <div className="flex-1">Item</div>
-                                    <div className="w-16 text-center">To Buy</div>
-                                    <div className="w-16 text-center">To Build</div>
-                                    <div className="w-8"></div>
-                                </div>
-                            )}
-                            
-                            {/* List Items */}
-                            {formData.materialsList.map(item => (
-                                <div key={item.id} className="flex items-center gap-4 p-2 rounded-md hover:bg-accent/30 group transition-colors">
-                                    <div className="flex-1 text-sm">{item.text}</div>
-                                    <div className="w-16 flex justify-center">
-                                        <Checkbox 
-                                            checked={item.toBuy} 
-                                            onCheckedChange={() => updateMaterial(item.id, 'toBuy')}
-                                        />
-                                    </div>
-                                    <div className="w-16 flex justify-center">
-                                        <Checkbox 
-                                            checked={item.toBuild} 
-                                            onCheckedChange={() => updateMaterial(item.id, 'toBuild')}
-                                        />
-                                    </div>
-                                    <div className="w-8 flex justify-center">
-                                        <button 
-                                            onClick={() => deleteMaterial(item.id)}
-                                            className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                            
-                            {formData.materialsList.length === 0 && (
-                                <div className="text-sm text-muted-foreground text-center py-8 border-2 border-dashed rounded-lg">
-                                    No materials added yet
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Plans */}
-                <div id="plans" className="space-y-4 scroll-mt-20" onMouseEnter={() => setActiveSection('plans')}>
-                    <h2 className="text-xl font-semibold flex items-center gap-2 text-foreground/80">
-                        Plans & Sketches
-                    </h2>
-                    <div className="min-h-[100px]">
-                        <PlansGallery items={formData.plans} />
-                        <input 
-                            type="file" 
-                            id="plans-upload" 
-                            className="hidden" 
-                            multiple 
-                            onChange={(e) => handleSectionUpload(e, 'plans')} 
-                        />
-                    </div>
-                </div>
-
-                {/* Inspiration */}
-                <div id="inspiration" className="space-y-4 scroll-mt-20" onMouseEnter={() => setActiveSection('inspiration')}>
-                    <h2 className="text-xl font-semibold flex items-center gap-2 text-foreground/80">
-                        Inspiration
-                    </h2>
-                    <div className="min-h-[100px]">
-                        <InspirationGrid items={formData.inspiration} />
-                        <input 
-                            type="file" 
-                            id="inspiration-upload" 
-                            className="hidden" 
-                            multiple 
-                            accept="image/*"
-                            onChange={(e) => handleSectionUpload(e, 'inspiration')} 
-                        />
-                    </div>
-                </div>
-                
-                {/* Attachments Grid - kept at bottom as global attachments */}
-                {formData.attachments.length > 0 && (
-                    <div className="space-y-4 border-t pt-8">
-                         <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Global Attachments</h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                             {formData.attachments.map(file => (
-                                <div key={file.id} className="group relative border rounded-lg overflow-hidden bg-muted/20 hover:bg-muted/40 transition-colors">
-                                    <div className="aspect-[4/3] relative">
-                                        {file.type.startsWith('image/') ? (
-                                            <Image 
-                                                src={file.url} 
-                                                alt={file.name} 
-                                                fill 
-                                                className="object-cover" 
-                                                unoptimized 
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center">
-                                                <FileText className="h-10 w-10 text-muted-foreground/50" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="p-2 text-xs truncate font-medium flex justify-between items-center">
-                                        <span className="truncate max-w-[80%]">{file.name}</span>
-                                        <button 
-                                            onClick={() => removeAttachment(file.id)}
-                                            className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
-                                        >
-                                            <X className="h-3 w-3" />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-                
-                 {/* Add Attachment Button */}
-                 <div className="pt-2">
-                    <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => attachmentInputRef.current?.click()}
-                        className="text-muted-foreground hover:text-foreground pl-0 gap-2"
-                    >
-                        <Paperclip className="h-4 w-4" /> Add Attachment
-                    </Button>
-                    <input
-                        type="file"
-                        ref={attachmentInputRef}
-                        className="hidden"
-                        multiple
-                        onChange={handleAttachmentUpload}
-                    />
-                </div>
+            {/* Rich Content Editor */}
+            <div className="space-y-2">
+              <RichTextEditor
+                content={richContent}
+                onChange={handleContentChange}
+                onImageUpload={handleContentImageUpload}
+              />
             </div>
-            </div>
-        </div>
 
-        {/* Footer Actions */}
-        <div className="p-4 border-t bg-background flex justify-between items-center">
-            <div className="text-xs text-muted-foreground flex items-center gap-2">
-                {project ? "Last updated just now" : "Draft"}
-                {saveStatus === 'saving' && <span className="text-primary animate-pulse">Saving...</span>}
-                {saveStatus === 'saved' && <span className="text-green-500">Saved</span>}
-                {saveStatus === 'error' && <span className="text-destructive">Error saving</span>}
-            </div>
-            <div className="flex gap-2">
-                {project && (
+            {/* Materials List Section */}
+            <div id="section-materials" className="space-y-4 pt-8 border-t">
+              <h2 className="text-2xl font-bold">Materials List</h2>
+              <div className="space-y-2">
+                {materialsList.map(item => (
+                  <div key={item.id} className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20 hover:bg-muted/30 transition-colors group">
+                    <div className="flex items-center gap-3 flex-1">
+                      <Checkbox
+                        checked={item.toBuy}
+                        onCheckedChange={() => handleUpdateMaterial(item.id, 'toBuy')}
+                      />
+                      <span className="text-xs text-muted-foreground w-16">To Buy</span>
+                      <Checkbox
+                        checked={item.toBuild}
+                        onCheckedChange={() => handleUpdateMaterial(item.id, 'toBuild')}
+                      />
+                      <span className="text-xs text-muted-foreground w-16">To Build</span>
+                      <span className={cn("flex-1", (item.toBuy || item.toBuild) && "line-through text-muted-foreground")}>
+                        {item.text}
+                      </span>
+                    </div>
                     <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleDelete}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      size="sm"
+                      variant="ghost"
+                      className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0"
+                      onClick={() => handleDeleteMaterial(item.id)}
                     >
-                        <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
-                )}
-                {isModal && (
-                    <Button type="submit" onClick={handleSubmit} disabled={isLoading || isGenerating}>
-                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Done"}
-                    </Button>
-                )}
+                  </div>
+                ))}
+                <div className="flex gap-2">
+                  <input
+                    value={materialsInput}
+                    onChange={(e) => setMaterialsInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddMaterial();
+                      }
+                    }}
+                    className="flex-1 px-3 py-2 rounded-md border bg-background text-sm"
+                    placeholder="Add a material..."
+                  />
+                  <Button onClick={handleAddMaterial} size="sm">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
+
+            {/* Plans Section */}
+            <div id="section-plans" className="space-y-4 pt-8 border-t">
+              <h2 className="text-2xl font-bold">Plans & Sketches</h2>
+              <input
+                type="file"
+                id="plans-upload"
+                className="hidden"
+                multiple
+                accept="image/*,.pdf"
+                onChange={handlePlansUpload}
+              />
+              {plans.length === 0 ? (
+                <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground flex flex-col items-center gap-2 hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => document.getElementById('plans-upload')?.click()}>
+                  <Upload className="h-8 w-8 opacity-50" />
+                  <p>Upload plans, sketches, or PDFs</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {plans.map(item => (
+                    <div key={item.id} className="group relative border rounded-lg overflow-hidden bg-background hover:shadow-md transition-all cursor-pointer" onClick={() => openAttachment(item.url, item.type, item.name)}>
+                      <div className="aspect-[3/2] relative bg-muted/20">
+                        {item.type.startsWith('image/') ? (
+                          <Image 
+                            src={item.url} 
+                            alt={item.name} 
+                            fill 
+                            className="object-contain p-2" 
+                            unoptimized 
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground p-4">
+                            <FileText className="h-12 w-12 mb-2 opacity-50" />
+                            <span className="text-xs uppercase font-bold tracking-wider">{item.type.split('/')[1] || 'FILE'}</span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <Button size="sm" variant="secondary" className="h-8 w-8 p-0" onClick={() => openAttachment(item.url, item.type, item.name)}>
+                            <Maximize2 className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="destructive" className="h-8 w-8 p-0" onClick={() => handleRemovePlan(item.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="p-3 border-t bg-muted/5">
+                        <p className="text-sm font-medium truncate" title={item.name}>{item.name}</p>
+                        <p className="text-xs text-muted-foreground">{(item.size / 1024 / 1024).toFixed(2)} MB</p>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/10 cursor-pointer min-h-[200px]" onClick={() => document.getElementById('plans-upload')?.click()}>
+                    <Plus className="h-8 w-8 opacity-50 mb-2" />
+                    <span className="text-sm">Add more</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Inspiration Section */}
+            <div id="section-inspiration" className="space-y-4 pt-8 border-t">
+              <h2 className="text-2xl font-bold">Inspiration</h2>
+              <input
+                type="file"
+                id="inspiration-upload"
+                className="hidden"
+                multiple
+                accept="image/*"
+                onChange={handleInspirationUpload}
+              />
+              {inspiration.length === 0 ? (
+                <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground flex flex-col items-center gap-2 hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => document.getElementById('inspiration-upload')?.click()}>
+                  <Sparkles className="h-8 w-8 opacity-50" />
+                  <p>Add inspiration images</p>
+                </div>
+              ) : (
+                <div className="columns-2 sm:columns-3 gap-4 space-y-4">
+                  {inspiration.map(item => (
+                    <div key={item.id} className="break-inside-avoid group relative rounded-lg overflow-hidden bg-muted/20 mb-4 cursor-pointer" onClick={() => openAttachment(item.url, item.type, item.name)}>
+                      {item.type.startsWith('image/') ? (
+                        <Image 
+                          src={item.url} 
+                          alt={item.name} 
+                          width={400}
+                          height={400}
+                          className="w-full h-auto object-cover" 
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="aspect-square flex items-center justify-center bg-muted text-muted-foreground">
+                          <FileText className="h-8 w-8" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <Button size="sm" variant="secondary" className="h-8 w-8 p-0" onClick={() => openAttachment(item.url, item.type, item.name)}>
+                          <Maximize2 className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="destructive" className="h-8 w-8 p-0" onClick={() => handleRemoveInspiration(item.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="break-inside-avoid border-2 border-dashed rounded-lg aspect-square flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/10 cursor-pointer" onClick={() => document.getElementById('inspiration-upload')?.click()}>
+                    <Plus className="h-8 w-8 opacity-50 mb-1" />
+                    <span className="text-xs">Add</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Done Button (Modal only) */}
+            {isModal && onClose && (
+              <div className="flex justify-end pt-8 pb-4 sticky bottom-0 bg-gradient-to-t from-background via-background to-transparent">
+                <Button onClick={onClose} size="lg">
+                  Done
+                </Button>
+              </div>
+            )}
+          </div>
+          )}
         </div>
-        </div>
+      </div>
     </div>
   );
 }
-

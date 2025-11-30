@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   DragStartEvent,
   DragOverEvent,
@@ -39,8 +40,6 @@ export type Project = {
     rich_content?: string;
     image_url?: string;
     materials_list?: string;
-    plans?: string;
-    inspiration?: string;
 };
 
 export type SettingsData = {
@@ -65,6 +64,8 @@ type KanbanBoardProps = {
 import { v4 as uuidv4 } from 'uuid';
 
 export function KanbanBoard({ initialProjects, initialSettings, initialColumns }: KanbanBoardProps) {
+  const router = useRouter();
+  
   // Map snake_case to camelCase for frontend state
   const mapProjects = (projs: any[]): Project[] => {
       return projs.map(p => ({
@@ -498,13 +499,14 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
             onCancelCreate={handleCancelCreate}
         />
       </div>
-      <ProjectModal
-        project={editingProject}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        initialStatus={newProjectColumnId}
-        existingTags={allTags}
-      />
+      {editingProject && (
+        <ProjectModal
+          project={editingProject}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          existingTags={allTags}
+        />
+      )}
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}

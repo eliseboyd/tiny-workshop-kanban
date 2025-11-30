@@ -14,14 +14,14 @@ export default async function ProjectPage(props: PageProps) {
     notFound();
   }
 
-  // Use mapProjects logic if needed, or ensure getProject returns camelCase.
-  // The current getProject returns snake_case from Supabase directly.
-  // We should map it here to match Project type.
-  
+  // Map snake_case to camelCase to match Project type
   const mappedProject = {
       ...project,
       richContent: project.rich_content,
       imageUrl: project.image_url,
+      materialsList: project.materials_list,
+      plans: project.plans,
+      inspiration: project.inspiration,
   };
 
   return (

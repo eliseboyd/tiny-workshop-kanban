@@ -21,6 +21,12 @@ export async function getProjects() {
     console.error('Error fetching projects:', JSON.stringify(error, null, 2));
     return [];
   }
+  
+  // Debug: Log what we're getting from the database
+  if (data && data.length > 0) {
+    console.log('[Server] Fetched projects. Sample materials_list:', data[0]?.materials_list);
+  }
+  
   return data;
 }
 
@@ -36,6 +42,14 @@ export async function getProject(id: string) {
     console.error('Error fetching project:', error);
     return null;
   }
+  
+  console.log('[Server] Fetched single project:', {
+    id: data?.id,
+    title: data?.title,
+    materials_list: data?.materials_list,
+    materials_list_type: typeof data?.materials_list
+  });
+  
   return data;
 }
 
@@ -80,7 +94,10 @@ export async function updateProject(id: string, data: any) {
   if (data.title !== undefined) dbData.title = data.title;
   if (data.description !== undefined) dbData.description = data.description;
   if (data.richContent !== undefined) dbData.rich_content = data.richContent;
-  if (data.materialsList !== undefined) dbData.materials_list = JSON.stringify(data.materialsList);
+  if (data.materialsList !== undefined) {
+    dbData.materials_list = JSON.stringify(data.materialsList);
+    console.log('[Server] Saving materialsList:', data.materialsList, '-> JSON:', dbData.materials_list);
+  }
   if (data.plans !== undefined) dbData.plans = JSON.stringify(data.plans);
   if (data.inspiration !== undefined) dbData.inspiration = JSON.stringify(data.inspiration);
   if (data.imageUrl !== undefined) dbData.image_url = data.imageUrl;
@@ -89,12 +106,18 @@ export async function updateProject(id: string, data: any) {
   if (data.status !== undefined) dbData.status = data.status;
   if (data.position !== undefined) dbData.position = data.position;
 
+  console.log('[Server] Updating project', id, 'with data:', dbData);
+
   const { error } = await supabase
     .from('projects')
     .update(dbData)
     .eq('id', id);
 
-  if (error) console.error('Error updating project:', error);
+  if (error) {
+    console.error('Error updating project:', error);
+  } else {
+    console.log('[Server] Project updated successfully');
+  }
   revalidatePath('/');
 }
 

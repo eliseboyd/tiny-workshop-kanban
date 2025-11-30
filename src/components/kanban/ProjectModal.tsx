@@ -5,21 +5,21 @@ import { Project } from './KanbanBoard';
 import { ProjectEditor } from './ProjectEditor';
 
 type ProjectModalProps = {
-  project?: Project | null;
+  project: Project;
   isOpen: boolean;
   onClose: () => void;
-  initialStatus?: string;
   existingTags?: string[];
 };
 
-export function ProjectModal({ project, isOpen, onClose, initialStatus, existingTags = [] }: ProjectModalProps) {
+export function ProjectModal({ project, isOpen, onClose, existingTags = [] }: ProjectModalProps) {
+  if (!project) return null;
+  
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[900px] h-[85vh] overflow-hidden flex flex-col p-0 gap-0" showCloseButton={false}>
-        <DialogTitle className="sr-only">{project ? 'Edit Project' : 'New Project'}</DialogTitle>
+        <DialogTitle className="sr-only">Edit Project</DialogTitle>
         <ProjectEditor
             project={project}
-            initialStatus={initialStatus}
             existingTags={existingTags}
             onClose={onClose}
             isModal={true}
