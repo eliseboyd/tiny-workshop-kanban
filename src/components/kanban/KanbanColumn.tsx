@@ -119,22 +119,23 @@ export function KanbanColumn({ id, title, items, onCardClick, onTitleChange, onD
             </Button>
         )}
       </div>
-      <div className="flex flex-1 flex-col gap-2 min-h-0">
-        <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-          {items.map((project) => (
-            <KanbanCard 
-                key={project.id} 
-                project={project} 
-                onClick={() => onCardClick?.(project)} 
-                onDelete={() => onDeleteProject?.(project.id)}
-                size={cardSize || "small"}
-            />
-          ))}
-        </SortableContext>
-        
-        {/* Inline Create Input */}
+      <div className="flex flex-1 flex-col gap-2 min-h-0 overflow-y-auto">
+        {/* Add Project Button - Dotted Line Card - Now at Top */}
+        {onAddProject && !isCreating && (
+            <button
+                onClick={() => onAddProject(id)}
+                className="flex items-center justify-center w-full h-12 rounded-lg border-2 border-dashed border-neutral-300 dark:border-neutral-700 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 hover:border-neutral-400 dark:hover:border-neutral-500 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 transition-all group/add flex-shrink-0"
+            >
+                <span className="flex items-center gap-2 text-sm font-medium">
+                    <Plus className="h-4 w-4 group-hover/add:scale-110 transition-transform" />
+                    Add Project
+                </span>
+            </button>
+        )}
+
+        {/* Inline Create Input - Now at Top */}
         {isCreating && (
-            <div className="touch-none mb-2">
+            <div className="touch-none flex-shrink-0">
                <Card className="p-0 gap-0 overflow-hidden border-2 border-primary/20 shadow-sm">
                   <CardHeader className="p-4 pb-2 space-y-0">
                      <Input
@@ -163,19 +164,18 @@ export function KanbanColumn({ id, title, items, onCardClick, onTitleChange, onD
                </Card>
             </div>
         )}
-
-        {/* Add Project Button - Dotted Line Card */}
-        {onAddProject && (
-            <button
-                onClick={() => onAddProject(id)}
-                className="flex items-center justify-center w-full h-12 rounded-lg border-2 border-dashed border-neutral-300 dark:border-neutral-700 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 hover:border-neutral-400 dark:hover:border-neutral-500 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 transition-all group/add"
-            >
-                <span className="flex items-center gap-2 text-sm font-medium">
-                    <Plus className="h-4 w-4 group-hover/add:scale-110 transition-transform" />
-                    Add Project
-                </span>
-            </button>
-        )}
+        
+        <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+          {items.map((project) => (
+            <KanbanCard 
+                key={project.id} 
+                project={project} 
+                onClick={() => onCardClick?.(project)} 
+                onDelete={() => onDeleteProject?.(project.id)}
+                size={cardSize || "small"}
+            />
+          ))}
+        </SortableContext>
       </div>
     </div>
   );

@@ -303,11 +303,12 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
       if (title.trim()) {
           // Optimistic Update
           const tempId = uuidv4();
+          const position = items.filter(i => i.status === columnId).length;
           const optimisticProject: Project = {
               id: tempId,
               title: title,
               status: columnId,
-              position: items.filter(i => i.status === columnId).length,
+              position: position,
               description: '',
               richContent: null,
               materialsList: null,
@@ -325,7 +326,8 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
           // Actually create
           await import('@/app/actions').then(mod => mod.createProject({ 
               title, 
-              status: columnId 
+              status: columnId,
+              position: position
           }));
       }
   };

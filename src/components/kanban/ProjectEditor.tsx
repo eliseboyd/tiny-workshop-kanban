@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Project } from './KanbanBoard';
 import { updateProject, generateProjectImage, uploadImageBase64, uploadFile } from '@/app/actions';
 import Image from 'next/image';
-import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -80,11 +80,13 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
         return Array.isArray(parsed) ? parsed : [];
       }
       return Array.isArray(project.inspiration) ? project.inspiration : [];
-    } catch (e) { 
+    } catch (e) {
       console.error('Failed to parse inspiration:', e);
-      return []; 
+      return [];
     }
   });
+  const [currentInspirationIndex, setCurrentInspirationIndex] = useState(0);
+  const inspirationScrollRef = useRef<HTMLDivElement>(null);
   
   const [tagInput, setTagInput] = useState('');
   const [materialsInput, setMaterialsInput] = useState('');
@@ -145,8 +147,26 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [viewingAttachment, navigateAttachment]);
   
+  // Track pending changes for immediate save on unmount/background
+  const pendingChangesRef = useRef<Partial<Project> | null>(null);
+  
+  // Immediate save function (no debounce)
+  const immediatelySave = useCallback(async (data: Partial<Project>) => {
+    try {
+      await updateProject(project.id, data);
+      pendingChangesRef.current = null;
+      return true;
+    } catch (error) {
+      console.error('Save failed:', error);
+      return false;
+    }
+  }, [project.id]);
+  
   // Simple debounced save function
   const debouncedSave = useCallback((data: Partial<Project>) => {
+    // Track what needs to be saved
+    pendingChangesRef.current = { ...pendingChangesRef.current, ...data };
+    
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
@@ -154,14 +174,82 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
     saveTimeoutRef.current = setTimeout(async () => {
       try {
         await updateProject(project.id, data);
+        pendingChangesRef.current = null;
         router.refresh();
       } catch (error) {
         console.error('Save failed:', error);
       } finally {
         setIsSaving(false);
       }
-    }, 500);
+    }, 300);
   }, [project.id, router]);
+  
+  // Save immediately when component unmounts or page is backgrounded (critical for mobile)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && pendingChangesRef.current) {
+        // Page is being backgrounded - save immediately
+        immediatelySave(pendingChangesRef.current);
+      }
+    };
+    
+    const handleBeforeUnload = () => {
+      if (pendingChangesRef.current) {
+        // User is navigating away - save immediately
+        immediatelySave(pendingChangesRef.current);
+      }
+    };
+    
+    // Listen for page visibility changes (mobile backgrounding)
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // Listen for page unload (navigation away)
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      // Component unmounting - save any pending changes
+      if (pendingChangesRef.current) {
+        immediatelySave(pendingChangesRef.current);
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [immediatelySave]);
+  
+  // Handle modal close - save before closing
+  const handleClose = async () => {
+    // Cancel any pending debounced save
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    // Save any pending changes immediately
+    if (pendingChangesRef.current) {
+      setIsSaving(true);
+      await immediatelySave(pendingChangesRef.current);
+      setIsSaving(false);
+    }
+    
+    // Now close
+    onClose?.();
+  };
+  
+  // Handle back navigation - save before navigating
+  const handleBack = async () => {
+    // Cancel any pending debounced save
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    // Save any pending changes immediately
+    if (pendingChangesRef.current) {
+      setIsSaving(true);
+      await immediatelySave(pendingChangesRef.current);
+      setIsSaving(false);
+    }
+    
+    // Now navigate back
+    router.push('/');
+  };
   
   // Title handler
   const handleTitleChange = (newTitle: string) => {
@@ -286,6 +374,32 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
     router.refresh();
   };
   
+  const handleSetInspirationAsCover = async (url: string) => {
+    setImageUrl(url);
+    await updateProject(project.id, { imageUrl: url });
+    router.refresh();
+  };
+
+  // Handle inspiration carousel scroll
+  const handleInspirationScroll = useCallback(() => {
+    if (inspirationScrollRef.current && inspiration.length > 0) {
+      const scrollLeft = inspirationScrollRef.current.scrollLeft;
+      const itemWidth = inspirationScrollRef.current.offsetWidth;
+      const index = Math.round(scrollLeft / itemWidth);
+      setCurrentInspirationIndex(index);
+    }
+  }, [inspiration.length]);
+
+  const scrollToInspirationIndex = (index: number) => {
+    if (inspirationScrollRef.current) {
+      const itemWidth = inspirationScrollRef.current.offsetWidth;
+      inspirationScrollRef.current.scrollTo({
+        left: index * itemWidth,
+        behavior: 'smooth'
+      });
+    }
+  };
+  
   // Image upload handlers
   const handleFileUpload = async (file: File) => {
     try {
@@ -388,14 +502,15 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
     touchStartX.current = e.touches[0].clientX;
   };
   
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  const handleTouchEnd = async (e: React.TouchEvent) => {
     const touchEndX = e.changedTouches[0].clientX;
     const diff = touchEndX - touchStartX.current;
     if (diff > 100 && touchStartX.current < 50) {
+      // Save before navigating back
       if (isModal && onClose) {
-        onClose();
+        await handleClose();
       } else {
-        router.push('/');
+        await handleBack();
       }
     }
   };
@@ -445,14 +560,19 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
             ref={imageAreaRef}
             tabIndex={0}
             className={cn(
-              "relative w-full h-48 bg-dots bg-muted/30 flex items-center justify-center overflow-hidden group cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary border-b",
+              "relative w-full h-48 bg-dots bg-muted/30 flex items-center justify-center overflow-hidden group transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary border-b",
               isDragging && "bg-muted/50 border-2 border-dashed border-primary",
-              !imageUrl && "hover:bg-muted/40"
+              !imageUrl && "md:hover:bg-muted/40 md:cursor-pointer"
             )}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            onClick={() => !isGenerating && fileInputRef.current?.click()}
+            onClick={() => {
+              // Only allow click-to-upload on desktop
+              if (window.innerWidth >= 768 && !isGenerating) {
+                fileInputRef.current?.click();
+              }
+            }}
           >
             <input 
               type="file" 
@@ -502,9 +622,10 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
                 variant="secondary"
                 size="sm"
                 className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90 gap-1"
-                onClick={() => router.push('/')}
+                onClick={handleBack}
+                disabled={isSaving}
               >
-                <ChevronLeft className="h-4 w-4" /> Back
+                <ChevronLeft className="h-4 w-4" /> {isSaving ? 'Saving...' : 'Back'}
               </Button>
             )}
 
@@ -525,8 +646,41 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
             )}
           </div>
 
-          {/* Action Buttons (Bottom Right of Image) */}
-          <div className="absolute bottom-4 right-4 flex gap-2 z-20">
+          {/* Action Buttons */}
+          {/* Mobile: Two separate buttons at bottom */}
+          <div className="md:hidden absolute bottom-4 left-4 right-4 flex gap-2 z-20">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="flex-1 h-9 bg-background/90 backdrop-blur-sm hover:bg-background"
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+              disabled={isGenerating}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Upload
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="flex-1 h-9 bg-background/90 backdrop-blur-sm hover:bg-background"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleGenerateImage();
+              }}
+              disabled={isGenerating || !title}
+            >
+              {isGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              Create with AI
+            </Button>
+          </div>
+
+          {/* Desktop: Single button at bottom right */}
+          <div className="hidden md:flex absolute bottom-4 right-4 gap-2 z-20">
             <Button
               type="button"
               variant="secondary"
@@ -540,7 +694,7 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
               title="Generate AI Cover"
             >
               {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-              <span className="ml-2 hidden sm:inline">Generate Cover</span>
+              <span className="ml-2">Generate Cover</span>
             </Button>
           </div>
         </div>
@@ -820,46 +974,133 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
                   <p>Add inspiration images</p>
                 </div>
               ) : (
-                <div className="columns-2 sm:columns-3 gap-4 space-y-4">
-                  {inspiration.map(item => (
-                    <div key={item.id} className="break-inside-avoid group relative rounded-lg overflow-hidden bg-muted/20 mb-4 cursor-pointer" onClick={() => openAttachment(item.url, item.type, item.name)}>
-                      {item.type.startsWith('image/') ? (
-                        <Image 
-                          src={item.url} 
-                          alt={item.name} 
-                          width={400}
-                          height={400}
-                          className="w-full h-auto object-cover" 
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="aspect-square flex items-center justify-center bg-muted text-muted-foreground">
-                          <FileText className="h-8 w-8" />
+                <>
+                  {/* Mobile: Swipeable Carousel */}
+                  <div className="md:hidden">
+                    <div 
+                      ref={inspirationScrollRef}
+                      onScroll={handleInspirationScroll}
+                      className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 -mx-4 px-4"
+                      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    >
+                      {inspiration.map(item => (
+                        <div 
+                          key={item.id} 
+                          className="flex-shrink-0 w-full snap-center"
+                        >
+                          <div className="group relative rounded-lg overflow-hidden bg-muted/20 cursor-pointer aspect-[4/3]" onClick={() => openAttachment(item.url, item.type, item.name)}>
+                            {item.type.startsWith('image/') ? (
+                              <Image 
+                                src={item.url} 
+                                alt={item.name} 
+                                fill
+                                className="object-contain" 
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                                <FileText className="h-12 w-12" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-active:opacity-100 transition-opacity flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                              <Button 
+                                size="sm" 
+                                variant="secondary" 
+                                className="h-10 w-10 p-0" 
+                                onClick={() => handleSetInspirationAsCover(item.url)}
+                                title="Set as cover"
+                              >
+                                <Images className="h-5 w-5" />
+                              </Button>
+                              <Button size="sm" variant="secondary" className="h-10 w-10 p-0" onClick={() => openAttachment(item.url, item.type, item.name)}>
+                                <Maximize2 className="h-5 w-5" />
+                              </Button>
+                              <Button size="sm" variant="destructive" className="h-10 w-10 p-0" onClick={() => handleRemoveInspiration(item.id)}>
+                                <Trash2 className="h-5 w-5" />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
-                        <Button size="sm" variant="secondary" className="h-8 w-8 p-0" onClick={() => openAttachment(item.url, item.type, item.name)}>
-                          <Maximize2 className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="destructive" className="h-8 w-8 p-0" onClick={() => handleRemoveInspiration(item.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      ))}
+                      <div className="flex-shrink-0 w-full snap-center">
+                        <div className="border-2 border-dashed rounded-lg aspect-[4/3] flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/10 cursor-pointer" onClick={() => document.getElementById('inspiration-upload')?.click()}>
+                          <Plus className="h-12 w-12 opacity-50 mb-2" />
+                          <span className="text-sm">Add more</span>
+                        </div>
                       </div>
                     </div>
-                  ))}
-                  <div className="break-inside-avoid border-2 border-dashed rounded-lg aspect-square flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/10 cursor-pointer" onClick={() => document.getElementById('inspiration-upload')?.click()}>
-                    <Plus className="h-8 w-8 opacity-50 mb-1" />
-                    <span className="text-xs">Add</span>
+                    
+                    {/* Pagination Dots */}
+                    <div className="flex items-center justify-center gap-2 mt-4">
+                      {[...inspiration, { id: 'add-more' }].map((item, index) => (
+                        <button
+                          key={item.id}
+                          onClick={() => scrollToInspirationIndex(index)}
+                          className={cn(
+                            "h-2 rounded-full transition-all",
+                            currentInspirationIndex === index 
+                              ? "w-6 bg-primary" 
+                              : "w-2 bg-muted-foreground/30"
+                          )}
+                          aria-label={`Go to image ${index + 1}`}
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
+
+                  {/* Desktop: Masonry Grid */}
+                  <div className="hidden md:block">
+                    <div className="columns-2 sm:columns-3 gap-4 space-y-4">
+                      {inspiration.map(item => (
+                        <div key={item.id} className="break-inside-avoid group relative rounded-lg overflow-hidden bg-muted/20 mb-4 cursor-pointer" onClick={() => openAttachment(item.url, item.type, item.name)}>
+                          {item.type.startsWith('image/') ? (
+                            <Image 
+                              src={item.url} 
+                              alt={item.name} 
+                              width={400}
+                              height={400}
+                              className="w-full h-auto object-cover" 
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="aspect-square flex items-center justify-center bg-muted text-muted-foreground">
+                              <FileText className="h-8 w-8" />
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                            <Button 
+                              size="sm" 
+                              variant="secondary" 
+                              className="h-8 w-8 p-0" 
+                              onClick={() => handleSetInspirationAsCover(item.url)}
+                              title="Set as cover"
+                            >
+                              <Images className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="secondary" className="h-8 w-8 p-0" onClick={() => openAttachment(item.url, item.type, item.name)}>
+                              <Maximize2 className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="destructive" className="h-8 w-8 p-0" onClick={() => handleRemoveInspiration(item.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="break-inside-avoid border-2 border-dashed rounded-lg aspect-square flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/10 cursor-pointer" onClick={() => document.getElementById('inspiration-upload')?.click()}>
+                        <Plus className="h-8 w-8 opacity-50 mb-1" />
+                        <span className="text-xs">Add</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
 
             {/* Done Button (Modal only) */}
             {isModal && onClose && (
               <div className="flex justify-end pt-8 pb-4 sticky bottom-0 bg-gradient-to-t from-background via-background to-transparent">
-                <Button onClick={onClose} size="lg">
-                  Done
+                <Button onClick={handleClose} size="lg" disabled={isSaving}>
+                  {isSaving ? 'Saving...' : 'Done'}
                 </Button>
               </div>
             )}

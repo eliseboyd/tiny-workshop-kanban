@@ -100,7 +100,7 @@ export function ClientDndWrapper({
               key={col.id}
               id={col.id}
               title={col.title}
-              items={filteredItems.filter((i) => i.status === col.id)}
+              items={filteredItems.filter((i) => i.status === col.id).sort((a, b) => a.position - b.position)}
               onCardClick={handleEditProject}
               onTitleChange={handleColumnTitleChange}
               onDeleteColumn={handleDeleteColumn}

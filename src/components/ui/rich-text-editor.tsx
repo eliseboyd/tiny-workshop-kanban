@@ -5,7 +5,9 @@ import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import ImageExtension from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Bold, Italic, Strikethrough, Code, Link as LinkIcon, X } from 'lucide-react';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import { Bold, Italic, Strikethrough, Code, Link as LinkIcon, X, List, ListOrdered, CheckSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Toggle } from '@/components/ui/toggle';
 import { useEffect, useState } from 'react';
@@ -35,6 +37,13 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
           keepAttributes: false,
         },
       }),
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+        HTMLAttributes: {
+          class: 'flex items-start gap-2',
+        },
+      }),
       Link.configure({
         openOnClick: false, // We handle clicks manually
         autolink: true,
@@ -59,7 +68,7 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
     editorProps: {
       attributes: {
         class: cn(
-          'prose dark:prose-invert max-w-none min-h-[100px] focus:outline-none outline-none font-sans',
+          'tiptap max-w-none min-h-[100px] focus:outline-none outline-none font-sans',
           className
         ),
       },
@@ -121,6 +130,7 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
             size="sm"
             pressed={editor.isActive('bold')}
             onPressedChange={() => editor.chain().focus().toggleBold().run()}
+            onMouseDown={(e) => e.preventDefault()}
             className="h-7 w-7 p-0"
             aria-label="Bold"
           >
@@ -130,6 +140,7 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
             size="sm"
             pressed={editor.isActive('italic')}
             onPressedChange={() => editor.chain().focus().toggleItalic().run()}
+            onMouseDown={(e) => e.preventDefault()}
             className="h-7 w-7 p-0"
             aria-label="Italic"
           >
@@ -139,6 +150,7 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
             size="sm"
             pressed={editor.isActive('strike')}
             onPressedChange={() => editor.chain().focus().toggleStrike().run()}
+            onMouseDown={(e) => e.preventDefault()}
             className="h-7 w-7 p-0"
             aria-label="Strikethrough"
           >
@@ -148,10 +160,51 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
             size="sm"
             pressed={editor.isActive('code')}
             onPressedChange={() => editor.chain().focus().toggleCode().run()}
+            onMouseDown={(e) => e.preventDefault()}
             className="h-7 w-7 p-0"
             aria-label="Code"
           >
             <Code className="h-3.5 w-3.5" />
+          </Toggle>
+          <div className="w-px h-4 bg-border mx-1" />
+          <Toggle
+            size="sm"
+            pressed={editor.isActive('bulletList')}
+            onPressedChange={() => {
+              editor.chain().focus().toggleBulletList().run();
+            }}
+            onMouseDown={(e) => e.preventDefault()}
+            disabled={!editor.can().toggleBulletList()}
+            className="h-7 w-7 p-0"
+            aria-label="Bullet List"
+          >
+            <List className="h-3.5 w-3.5" />
+          </Toggle>
+          <Toggle
+            size="sm"
+            pressed={editor.isActive('taskList')}
+            onPressedChange={() => {
+              editor.chain().focus().toggleTaskList().run();
+            }}
+            onMouseDown={(e) => e.preventDefault()}
+            disabled={!editor.can().toggleTaskList()}
+            className="h-7 w-7 p-0"
+            aria-label="Task List"
+          >
+            <CheckSquare className="h-3.5 w-3.5" />
+          </Toggle>
+          <Toggle
+            size="sm"
+            pressed={editor.isActive('orderedList')}
+            onPressedChange={() => {
+              editor.chain().focus().toggleOrderedList().run();
+            }}
+            onMouseDown={(e) => e.preventDefault()}
+            disabled={!editor.can().toggleOrderedList()}
+            className="h-7 w-7 p-0"
+            aria-label="Ordered List"
+          >
+            <ListOrdered className="h-3.5 w-3.5" />
           </Toggle>
           <div className="w-px h-4 bg-border mx-1" />
           <Toggle
@@ -167,6 +220,7 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
                 }
                 editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
             }}
+            onMouseDown={(e) => e.preventDefault()}
             className="h-7 w-7 p-0"
             aria-label="Link"
           >

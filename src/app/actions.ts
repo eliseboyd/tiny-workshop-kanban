@@ -63,6 +63,7 @@ export async function createProject(data: {
   imageUrl?: string; 
   tags?: string[]; 
   status?: string;
+  position?: number;
   attachments?: { id: string; url: string; name: string; type: string; size: number }[];
 }) {
   const supabase = await createClient();
@@ -80,7 +81,7 @@ export async function createProject(data: {
         tags: data.tags,
         attachments: data.attachments,
         status: data.status || 'todo',
-        position: 0, 
+        position: data.position ?? 0, 
     });
 
   if (error) console.error('Error creating project:', error);

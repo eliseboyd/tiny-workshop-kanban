@@ -7,6 +7,7 @@ import { Project } from './KanbanBoard';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { useRef } from 'react';
 
 import {
   ContextMenu,
@@ -24,6 +25,9 @@ type KanbanCardProps = {
 };
 
 export function KanbanCard({ project, onClick, onDelete, size = 'medium' }: KanbanCardProps) {
+  // Touch handling to distinguish between scroll and tap
+  const touchStartPos = useRef<{ x: number; y: number; time: number } | null>(null);
+  const isTouchDevice = useRef(false);
   const {
     attributes,
     listeners,
@@ -57,18 +61,56 @@ export function KanbanCard({ project, onClick, onDelete, size = 'medium' }: Kanb
   const titleSize = isCompact ? 'text-sm' : 'text-base';
   const showDescription = false;
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    isTouchDevice.current = true;
+    touchStartPos.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      time: Date.now(),
+    };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartPos.current) return;
+
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const timeDiff = Date.now() - touchStartPos.current.time;
+    
+    // Calculate movement distance
+    const deltaX = Math.abs(touchEndX - touchStartPos.current.x);
+    const deltaY = Math.abs(touchEndY - touchStartPos.current.y);
+    
+    // Threshold: if moved less than 10px and touch was less than 300ms, it's a tap
+    const MOVEMENT_THRESHOLD = 10;
+    const TIME_THRESHOLD = 300;
+    
+    if (deltaX < MOVEMENT_THRESHOLD && deltaY < MOVEMENT_THRESHOLD && timeDiff < TIME_THRESHOLD) {
+      // This is an intentional tap, not a scroll
+      if (!isDragging) {
+        onClick?.();
+      }
+    }
+    
+    touchStartPos.current = null;
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    // Only handle mouse clicks (desktop), not touch events
+    if (!isTouchDevice.current && !isDragging) {
+      onClick?.();
+    }
+  };
+
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="touch-none">
       <ContextMenu>
       <ContextMenuTrigger>
       <Card 
         className="cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow p-0 gap-0 overflow-hidden"
-        onClick={(e) => {
-            // Prevent click when dragging (optional, but good UX)
-            if (!isDragging) {
-                onClick?.();
-            }
-        }}
+        onClick={handleClick}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         {project.imageUrl && !isCompact && (
           <div className={cn("relative w-full bg-muted/20", imageHeight)}>
