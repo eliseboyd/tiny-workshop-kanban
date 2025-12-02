@@ -4,5 +4,6 @@
   "/auth/callback/route": "/auth/callback",
   "/favicon.ico/route": "/favicon.ico",
   "/login/page": "/login",
-  "/page": "/"
+  "/page": "/",
+  "/projects/[id]/page": "/projects/[id]"
 }

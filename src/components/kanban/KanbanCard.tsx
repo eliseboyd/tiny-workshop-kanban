@@ -103,7 +103,7 @@ export function KanbanCard({ project, onClick, onDelete, size = 'medium' }: Kanb
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="touch-none">
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <ContextMenu>
       <ContextMenuTrigger>
       <Card 

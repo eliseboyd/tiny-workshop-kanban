@@ -68,6 +68,12 @@
           "hostname": "image.pollinations.ai",
           "port": "",
           "pathname": "/**"
+        },
+        {
+          "protocol": "https",
+          "hostname": "erkflyckhkzzfctexazd.supabase.co",
+          "port": "",
+          "pathname": "/storage/v1/object/public/**"
         }
       ],
       "qualities": [

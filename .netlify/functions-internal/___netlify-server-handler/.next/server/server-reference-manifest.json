@@ -1,20 +1,5 @@
 {
   "node": {
-    "403fdfdd9cb536a7bd398ee80122ad33b02b959254": {
-      "workers": {
-        "app/page": {
-          "moduleId": 52772,
-          "async": false,
-          "exportedName": "createProject",
-          "filename": "src/app/actions.ts"
-        }
-      },
-      "layer": {
-        "app/page": "rsc"
-      },
-      "filename": "src/app/actions.ts",
-      "exportedName": "createProject"
-    },
     "60d4cf9315a1f5995437efe9587492f392e7cf2d6f": {
       "workers": {
         "app/page": {
@@ -22,28 +7,20 @@
           "async": false,
           "exportedName": "updateProject",
           "filename": "src/app/actions.ts"
-        }
-      },
-      "layer": {
-        "app/page": "rsc"
-      },
-      "filename": "src/app/actions.ts",
-      "exportedName": "updateProject"
-    },
-    "402ddfd5a40598299b764820736531b9fa7c5a00b8": {
-      "workers": {
-        "app/page": {
-          "moduleId": 52772,
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
           "async": false,
-          "exportedName": "deleteProject",
+          "exportedName": "updateProject",
           "filename": "src/app/actions.ts"
         }
       },
       "layer": {
-        "app/page": "rsc"
+        "app/page": "rsc",
+        "app/projects/[id]/page": "action-browser"
       },
       "filename": "src/app/actions.ts",
-      "exportedName": "deleteProject"
+      "exportedName": "updateProject"
     },
     "40a1e54cda12cd5f1e9e01de3d0d5d79951caca889": {
       "workers": {
@@ -52,10 +29,17 @@
           "async": false,
           "exportedName": "generateProjectImage",
           "filename": "src/app/actions.ts"
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
+          "async": false,
+          "exportedName": "generateProjectImage",
+          "filename": "src/app/actions.ts"
         }
       },
       "layer": {
-        "app/page": "rsc"
+        "app/page": "rsc",
+        "app/projects/[id]/page": "action-browser"
       },
       "filename": "src/app/actions.ts",
       "exportedName": "generateProjectImage"
@@ -67,10 +51,17 @@
           "async": false,
           "exportedName": "uploadImageBase64",
           "filename": "src/app/actions.ts"
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
+          "async": false,
+          "exportedName": "uploadImageBase64",
+          "filename": "src/app/actions.ts"
         }
       },
       "layer": {
-        "app/page": "rsc"
+        "app/page": "rsc",
+        "app/projects/[id]/page": "action-browser"
       },
       "filename": "src/app/actions.ts",
       "exportedName": "uploadImageBase64"
@@ -82,10 +73,17 @@
           "async": false,
           "exportedName": "uploadFile",
           "filename": "src/app/actions.ts"
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
+          "async": false,
+          "exportedName": "uploadFile",
+          "filename": "src/app/actions.ts"
         }
       },
       "layer": {
-        "app/page": "rsc"
+        "app/page": "rsc",
+        "app/projects/[id]/page": "action-browser"
       },
       "filename": "src/app/actions.ts",
       "exportedName": "uploadFile"
@@ -97,10 +95,17 @@
           "async": false,
           "exportedName": "getSettings",
           "filename": "src/app/actions.ts"
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
+          "async": false,
+          "exportedName": "getSettings",
+          "filename": "src/app/actions.ts"
         }
       },
       "layer": {
-        "app/page": "rsc"
+        "app/page": "rsc",
+        "app/projects/[id]/page": "rsc"
       },
       "filename": "src/app/actions.ts",
       "exportedName": "getSettings"
@@ -112,10 +117,17 @@
           "async": false,
           "exportedName": "updateSettings",
           "filename": "src/app/actions.ts"
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
+          "async": false,
+          "exportedName": "updateSettings",
+          "filename": "src/app/actions.ts"
         }
       },
       "layer": {
-        "app/page": "rsc"
+        "app/page": "rsc",
+        "app/projects/[id]/page": "rsc"
       },
       "filename": "src/app/actions.ts",
       "exportedName": "updateSettings"
@@ -149,10 +161,17 @@
           "async": false,
           "exportedName": "updateColumn",
           "filename": "src/app/actions.ts"
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
+          "async": false,
+          "exportedName": "updateColumn",
+          "filename": "src/app/actions.ts"
         }
       },
       "layer": {
-        "app/page": "rsc"
+        "app/page": "rsc",
+        "app/projects/[id]/page": "rsc"
       },
       "filename": "src/app/actions.ts",
       "exportedName": "updateColumn"
@@ -164,10 +183,17 @@
           "async": false,
           "exportedName": "createColumn",
           "filename": "src/app/actions.ts"
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
+          "async": false,
+          "exportedName": "createColumn",
+          "filename": "src/app/actions.ts"
         }
       },
       "layer": {
-        "app/page": "rsc"
+        "app/page": "rsc",
+        "app/projects/[id]/page": "rsc"
       },
       "filename": "src/app/actions.ts",
       "exportedName": "createColumn"
@@ -179,13 +205,42 @@
           "async": false,
           "exportedName": "deleteColumn",
           "filename": "src/app/actions.ts"
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
+          "async": false,
+          "exportedName": "deleteColumn",
+          "filename": "src/app/actions.ts"
         }
       },
       "layer": {
-        "app/page": "rsc"
+        "app/page": "rsc",
+        "app/projects/[id]/page": "rsc"
       },
       "filename": "src/app/actions.ts",
       "exportedName": "deleteColumn"
+    },
+    "402ddfd5a40598299b764820736531b9fa7c5a00b8": {
+      "workers": {
+        "app/page": {
+          "moduleId": 52772,
+          "async": false,
+          "exportedName": "deleteProject",
+          "filename": "src/app/actions.ts"
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
+          "async": false,
+          "exportedName": "deleteProject",
+          "filename": "src/app/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc",
+        "app/projects/[id]/page": "rsc"
+      },
+      "filename": "src/app/actions.ts",
+      "exportedName": "deleteProject"
     },
     "4080a67f1434016f04472f7c6a2f8e329397c1ce01": {
       "workers": {
@@ -194,10 +249,17 @@
           "async": false,
           "exportedName": "updateColumnsOrder",
           "filename": "src/app/actions.ts"
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
+          "async": false,
+          "exportedName": "updateColumnsOrder",
+          "filename": "src/app/actions.ts"
         }
       },
       "layer": {
-        "app/page": "rsc"
+        "app/page": "rsc",
+        "app/projects/[id]/page": "rsc"
       },
       "filename": "src/app/actions.ts",
       "exportedName": "updateColumnsOrder"
@@ -209,10 +271,17 @@
           "async": false,
           "exportedName": "updateColumnOrder",
           "filename": "src/app/actions.ts"
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
+          "async": false,
+          "exportedName": "updateColumnOrder",
+          "filename": "src/app/actions.ts"
         }
       },
       "layer": {
-        "app/page": "rsc"
+        "app/page": "rsc",
+        "app/projects/[id]/page": "rsc"
       },
       "filename": "src/app/actions.ts",
       "exportedName": "updateColumnOrder"
@@ -224,13 +293,86 @@
           "async": false,
           "exportedName": "getProjects",
           "filename": "src/app/actions.ts"
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
+          "async": false,
+          "exportedName": "getProjects",
+          "filename": "src/app/actions.ts"
         }
       },
       "layer": {
-        "app/page": "rsc"
+        "app/page": "rsc",
+        "app/projects/[id]/page": "rsc"
       },
       "filename": "src/app/actions.ts",
       "exportedName": "getProjects"
+    },
+    "409063186b6bdc5fe12c479acf9612d5d2a2f07afc": {
+      "workers": {
+        "app/page": {
+          "moduleId": 52772,
+          "async": false,
+          "exportedName": "getProject",
+          "filename": "src/app/actions.ts"
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
+          "async": false,
+          "exportedName": "getProject",
+          "filename": "src/app/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc",
+        "app/projects/[id]/page": "rsc"
+      },
+      "filename": "src/app/actions.ts",
+      "exportedName": "getProject"
+    },
+    "403fdfdd9cb536a7bd398ee80122ad33b02b959254": {
+      "workers": {
+        "app/page": {
+          "moduleId": 52772,
+          "async": false,
+          "exportedName": "createProject",
+          "filename": "src/app/actions.ts"
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
+          "async": false,
+          "exportedName": "createProject",
+          "filename": "src/app/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc",
+        "app/projects/[id]/page": "rsc"
+      },
+      "filename": "src/app/actions.ts",
+      "exportedName": "createProject"
+    },
+    "70b34d850f62074be64afa319908ab3a8b7091e396": {
+      "workers": {
+        "app/page": {
+          "moduleId": 52772,
+          "async": false,
+          "exportedName": "updateProjectStatus",
+          "filename": "src/app/actions.ts"
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
+          "async": false,
+          "exportedName": "updateProjectStatus",
+          "filename": "src/app/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc",
+        "app/projects/[id]/page": "rsc"
+      },
+      "filename": "src/app/actions.ts",
+      "exportedName": "updateProjectStatus"
     },
     "00f5db36bae3d44232eabe76eaf0f385db154ed54d": {
       "workers": {
@@ -239,10 +381,17 @@
           "async": false,
           "exportedName": "getColumns",
           "filename": "src/app/actions.ts"
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
+          "async": false,
+          "exportedName": "getColumns",
+          "filename": "src/app/actions.ts"
         }
       },
       "layer": {
-        "app/page": "rsc"
+        "app/page": "rsc",
+        "app/projects/[id]/page": "rsc"
       },
       "filename": "src/app/actions.ts",
       "exportedName": "getColumns"
@@ -254,28 +403,20 @@
           "async": false,
           "exportedName": "uploadProjectImage",
           "filename": "src/app/actions.ts"
-        }
-      },
-      "layer": {
-        "app/page": "rsc"
-      },
-      "filename": "src/app/actions.ts",
-      "exportedName": "uploadProjectImage"
-    },
-    "70b34d850f62074be64afa319908ab3a8b7091e396": {
-      "workers": {
-        "app/page": {
-          "moduleId": 52772,
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
           "async": false,
-          "exportedName": "updateProjectStatus",
+          "exportedName": "uploadProjectImage",
           "filename": "src/app/actions.ts"
         }
       },
       "layer": {
-        "app/page": "rsc"
+        "app/page": "rsc",
+        "app/projects/[id]/page": "rsc"
       },
       "filename": "src/app/actions.ts",
-      "exportedName": "updateProjectStatus"
+      "exportedName": "uploadProjectImage"
     },
     "40681629d983cbc923a2b069132ce57fc3f1200a27": {
       "workers": {

@@ -70,8 +70,8 @@ export function ClientDndWrapper({
     // Touch sensor - require press-and-hold for mobile to prevent accidental drags
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 250, // 250ms press-and-hold required
-        tolerance: 5, // Allow 5px movement during hold
+        delay: 200, // 200ms press-and-hold required (slightly shorter)
+        tolerance: 10, // Allow 10px movement during hold (more forgiving for scrolling)
       },
     }),
     useSensor(KeyboardSensor, {
