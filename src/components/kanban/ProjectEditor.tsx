@@ -572,24 +572,42 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
   // Swipe back gesture for mobile with visual feedback
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
+  const scrollTopAtStart = useRef(0);
   const [swipeProgress, setSwipeProgress] = useState(0);
   
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
+    // Track scroll position at start
+    const container = e.currentTarget as HTMLElement;
+    scrollTopAtStart.current = container.scrollTop;
   };
   
   const handleTouchMove = (e: React.TouchEvent) => {
+    const container = e.currentTarget as HTMLElement;
     const touchCurrentX = e.touches[0].clientX;
     const touchCurrentY = e.touches[0].clientY;
     const diffX = touchCurrentX - touchStartX.current;
-    const diffY = Math.abs(touchCurrentY - touchStartY.current);
+    const diffY = touchCurrentY - touchStartY.current;
     
-    // Only show progress if swiping from left edge and horizontal swipe
-    if (touchStartX.current < 50 && diffX > 0 && diffY < 50) {
+    // Only enable swipe-back if:
+    // 1. Started from left edge (< 30px)
+    // 2. Swiping right (diffX > 0)
+    // 3. At top of scroll (scrollTop === 0)
+    // 4. More horizontal than vertical movement
+    if (touchStartX.current < 30 && 
+        diffX > 0 && 
+        container.scrollTop === 0 &&
+        scrollTopAtStart.current === 0 &&
+        Math.abs(diffX) > Math.abs(diffY)) {
       // Calculate progress (0 to 1, capped at 1)
-      const progress = Math.min(diffX / 150, 1);
+      const progress = Math.min(diffX / 100, 1);
       setSwipeProgress(progress);
+      
+      // Prevent vertical scrolling while swiping back
+      if (progress > 0.1) {
+        e.preventDefault();
+      }
     }
   };
   
@@ -597,13 +615,22 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
     const touchEndX = e.changedTouches[0].clientX;
     const touchEndY = e.changedTouches[0].clientY;
     const diffX = touchEndX - touchStartX.current;
-    const diffY = Math.abs(touchEndY - touchStartY.current);
+    const diffY = touchEndY - touchStartY.current;
+    
+    const currentProgress = swipeProgress;
     
     // Reset progress
     setSwipeProgress(0);
     
-    // Trigger back if: swipe from left edge, moved right > 150px, mostly horizontal
-    if (diffX > 150 && touchStartX.current < 50 && diffY < 100) {
+    // Trigger back if:
+    // 1. Swipe from left edge (< 30px)
+    // 2. Moved right > 100px
+    // 3. More horizontal than vertical
+    // 4. At top of page
+    if (diffX > 100 && 
+        touchStartX.current < 30 && 
+        Math.abs(diffX) > Math.abs(diffY) &&
+        scrollTopAtStart.current === 0) {
       // Save before navigating back
       if (isModal && onClose) {
         await handleClose();
@@ -619,7 +646,35 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
   );
   
   return (
-    <div className={cn("flex h-full bg-background touch-pan-y", className)}>
+    <div className={cn("flex h-full bg-background relative", className)}>
+      {/* Swipe Back Indicator - Fixed position, outside scroll */}
+      {swipeProgress > 0 && (
+        <>
+          {/* Edge Indicator */}
+          <div 
+            className="fixed left-0 top-0 bottom-0 w-1 bg-primary z-50 pointer-events-none"
+            style={{ 
+              opacity: swipeProgress,
+              transform: `scaleY(${swipeProgress})`,
+              transformOrigin: 'center'
+            }}
+          />
+          {/* Text Indicator */}
+          <div 
+            className="fixed left-0 top-1/2 -translate-y-1/2 z-50 pointer-events-none"
+            style={{ 
+              opacity: swipeProgress,
+              transform: `translateX(${swipeProgress * 20 - 20}px)`
+            }}
+          >
+            <div className="bg-primary/90 backdrop-blur-sm rounded-r-full p-4 pr-8 flex items-center gap-2 shadow-lg">
+              <ChevronLeft className="h-7 w-7 text-primary-foreground" />
+              <span className="text-base font-semibold text-primary-foreground">Back</span>
+            </div>
+          </div>
+        </>
+      )}
+      
       {/* Sidebar (Desktop only) */}
       <div className="hidden md:flex w-48 flex-col gap-1 p-6 border-r pt-24 sticky top-0 h-screen shrink-0">
         <div className="font-semibold mb-4 px-2 text-sm text-muted-foreground uppercase tracking-wider">
@@ -649,22 +704,14 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
       {/* Main Content Wrapper */}
       <div 
         className="flex-1 flex flex-col h-full overflow-y-auto relative editor-scroll-container"
+        style={{
+          transform: swipeProgress > 0 ? `translateX(${swipeProgress * 50}px)` : 'none',
+          transition: swipeProgress === 0 ? 'transform 0.2s ease-out' : 'none'
+        }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Swipe Back Indicator */}
-        {swipeProgress > 0 && (
-          <div 
-            className="fixed left-0 top-1/2 -translate-y-1/2 z-50 pointer-events-none"
-            style={{ opacity: swipeProgress }}
-          >
-            <div className="bg-primary/20 backdrop-blur-sm rounded-r-full p-3 pr-6 flex items-center gap-2">
-              <ChevronLeft className="h-6 w-6 text-primary" />
-              <span className="text-sm font-medium text-primary">Back</span>
-            </div>
-          </div>
-        )}
         
         {/* Header / Cover Image */}
         <div className="relative group/cover">
