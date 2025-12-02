@@ -101,7 +101,8 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
   
   // Open attachment viewer inline
   const openAttachment = (url: string, type: string, name: string) => {
-    setViewingAttachment({ url, type, name });
+    // Open image in new tab natively
+    window.open(url, '_blank');
   };
   
   const closeAttachment = () => {
