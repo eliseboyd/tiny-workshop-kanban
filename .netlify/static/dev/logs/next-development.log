@@ -1,0 +1,3 @@
+[00:37:34.141] Browser WARN    [tiptap warn]: Duplicate extension names found: ['link']. This can lead to issues.
+[00:37:34.141] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[00:37:34.141] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.

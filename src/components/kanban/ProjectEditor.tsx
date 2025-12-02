@@ -283,17 +283,59 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
   // Materials handlers
   const handleAddMaterial = async () => {
     if (!materialsInput.trim()) return;
-    const newMaterial: Material = {
-      id: Math.random().toString(36).substr(2, 9),
-      text: materialsInput.trim(),
-      toBuy: false,
-      toBuild: false
-    };
-    const newList = [...materialsList, newMaterial];
-    setMaterialsList(newList);
-    await updateProject(project.id, { materialsList: newList });
+    
+    // Check if input contains multiple lines (bulk paste)
+    const lines = materialsInput.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    
+    if (lines.length > 1) {
+      // Bulk add multiple materials
+      const newMaterials = lines.map(line => ({
+        id: Math.random().toString(36).substr(2, 9),
+        text: line,
+        toBuy: false,
+        toBuild: false
+      }));
+      const newList = [...materialsList, ...newMaterials];
+      setMaterialsList(newList);
+      await updateProject(project.id, { materialsList: newList });
+    } else {
+      // Single material
+      const newMaterial: Material = {
+        id: Math.random().toString(36).substr(2, 9),
+        text: materialsInput.trim(),
+        toBuy: false,
+        toBuild: false
+      };
+      const newList = [...materialsList, newMaterial];
+      setMaterialsList(newList);
+      await updateProject(project.id, { materialsList: newList });
+    }
+    
     router.refresh();
     setMaterialsInput('');
+  };
+  
+  const handleMaterialsPaste = async (e: React.ClipboardEvent) => {
+    const pastedText = e.clipboardData.getData('text');
+    const lines = pastedText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    
+    // If pasting multiple lines, prevent default and bulk add
+    if (lines.length > 1) {
+      e.preventDefault();
+      
+      const newMaterials = lines.map(line => ({
+        id: Math.random().toString(36).substr(2, 9),
+        text: line,
+        toBuy: false,
+        toBuild: false
+      }));
+      const newList = [...materialsList, ...newMaterials];
+      setMaterialsList(newList);
+      await updateProject(project.id, { materialsList: newList });
+      router.refresh();
+      setMaterialsInput('');
+    }
+    // If single line, let default paste behavior work
   };
   
   const handleUpdateMaterial = async (id: string, field: 'toBuy' | 'toBuild') => {
@@ -407,11 +449,25 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
       fd.append('file', file);
       const result = await uploadFile(fd);
       setImageUrl(result.url);
-      await updateProject(project.id, { imageUrl: result.url });
+      
+      // Also add to inspiration
+      const newInspiration = [...inspiration, result];
+      setInspiration(newInspiration);
+      
+      await updateProject(project.id, { 
+        imageUrl: result.url,
+        inspiration: newInspiration 
+      });
       router.refresh();
     } catch (error) {
       console.error('Failed to upload image', error);
     }
+  };
+  
+  const handleRemoveCover = async () => {
+    setImageUrl('');
+    await updateProject(project.id, { imageUrl: null });
+    router.refresh();
   };
   
   const handleGenerateImage = async () => {
@@ -420,7 +476,24 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
     try {
       const generatedUrl = await generateProjectImage({ title, description: richContent });
       setImageUrl(generatedUrl);
-      await updateProject(project.id, { imageUrl: generatedUrl });
+      
+      // Create attachment object for generated image
+      const generatedAttachment = {
+        id: `generated-${Date.now()}`,
+        url: generatedUrl,
+        name: `${title} - AI Generated`,
+        type: 'image/png',
+        size: 0 // Size unknown for generated images
+      };
+      
+      // Also add to inspiration
+      const newInspiration = [...inspiration, generatedAttachment];
+      setInspiration(newInspiration);
+      
+      await updateProject(project.id, { 
+        imageUrl: generatedUrl,
+        inspiration: newInspiration 
+      });
       router.refresh();
     } catch (error) {
       console.error('Failed to generate image', error);
@@ -496,16 +569,41 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
     return () => container?.removeEventListener('scroll', handleScroll);
   }, []);
   
-  // Swipe back gesture for mobile
+  // Swipe back gesture for mobile with visual feedback
   const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const [swipeProgress, setSwipeProgress] = useState(0);
+  
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+  
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const touchCurrentX = e.touches[0].clientX;
+    const touchCurrentY = e.touches[0].clientY;
+    const diffX = touchCurrentX - touchStartX.current;
+    const diffY = Math.abs(touchCurrentY - touchStartY.current);
+    
+    // Only show progress if swiping from left edge and horizontal swipe
+    if (touchStartX.current < 50 && diffX > 0 && diffY < 50) {
+      // Calculate progress (0 to 1, capped at 1)
+      const progress = Math.min(diffX / 150, 1);
+      setSwipeProgress(progress);
+    }
   };
   
   const handleTouchEnd = async (e: React.TouchEvent) => {
     const touchEndX = e.changedTouches[0].clientX;
-    const diff = touchEndX - touchStartX.current;
-    if (diff > 100 && touchStartX.current < 50) {
+    const touchEndY = e.changedTouches[0].clientY;
+    const diffX = touchEndX - touchStartX.current;
+    const diffY = Math.abs(touchEndY - touchStartY.current);
+    
+    // Reset progress
+    setSwipeProgress(0);
+    
+    // Trigger back if: swipe from left edge, moved right > 150px, mostly horizontal
+    if (diffX > 150 && touchStartX.current < 50 && diffY < 100) {
       // Save before navigating back
       if (isModal && onClose) {
         await handleClose();
@@ -552,8 +650,22 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
       <div 
         className="flex-1 flex flex-col h-full overflow-y-auto relative editor-scroll-container"
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
+        {/* Swipe Back Indicator */}
+        {swipeProgress > 0 && (
+          <div 
+            className="fixed left-0 top-1/2 -translate-y-1/2 z-50 pointer-events-none"
+            style={{ opacity: swipeProgress }}
+          >
+            <div className="bg-primary/20 backdrop-blur-sm rounded-r-full p-3 pr-6 flex items-center gap-2">
+              <ChevronLeft className="h-6 w-6 text-primary" />
+              <span className="text-sm font-medium text-primary">Back</span>
+            </div>
+          </div>
+        )}
+        
         {/* Header / Cover Image */}
         <div className="relative group/cover">
           <div 
@@ -579,9 +691,14 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
               ref={fileInputRef}
               className="hidden" 
               accept="image/*"
-              onChange={(e) => {
+              onChange={async (e) => {
                 const file = e.target.files?.[0];
-                if (file) handleFileUpload(file);
+                if (file) {
+                  console.log('File selected:', file.name, file.size, file.type);
+                  await handleFileUpload(file);
+                  // Reset input so same file can be selected again
+                  e.target.value = '';
+                }
               }}
             />
             
@@ -647,8 +764,23 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
           </div>
 
           {/* Action Buttons */}
-          {/* Mobile: Two separate buttons at bottom */}
+          {/* Mobile: Buttons at bottom */}
           <div className="md:hidden absolute bottom-4 left-4 right-4 flex gap-2 z-20">
+            {imageUrl && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="h-9 bg-background/90 backdrop-blur-sm hover:bg-background"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemoveCover();
+                }}
+                title="Remove Cover"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
             <Button
               type="button"
               variant="secondary"
@@ -679,8 +811,27 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
             </Button>
           </div>
 
-          {/* Desktop: Single button at bottom right */}
-          <div className="hidden md:flex absolute bottom-4 right-4 gap-2 z-20">
+          {/* Desktop: Buttons at bottom right */}
+          <div className={cn(
+            "hidden md:flex absolute bottom-4 right-4 gap-2 z-20 transition-opacity",
+            imageUrl && "opacity-0 group-hover:opacity-100"
+          )}>
+            {imageUrl && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemoveCover();
+                }}
+                title="Remove Cover"
+              >
+                <X className="h-3 w-3" />
+                <span className="ml-2">Remove</span>
+              </Button>
+            )}
             <Button
               type="button"
               variant="secondary"
@@ -880,17 +1031,26 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
                   </div>
                 ))}
                 <div className="flex gap-2">
-                  <input
+                  <textarea
                     value={materialsInput}
                     onChange={(e) => setMaterialsInput(e.target.value)}
+                    onPaste={handleMaterialsPaste}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         handleAddMaterial();
                       }
                     }}
-                    className="flex-1 px-3 py-2 rounded-md border bg-background text-sm"
-                    placeholder="Add a material..."
+                    className="flex-1 px-3 py-2 rounded-md border bg-background text-sm resize-none"
+                    placeholder="Add material(s)... (paste list or press Shift+Enter for multiple lines)"
+                    rows={1}
+                    style={{ minHeight: '40px', maxHeight: '120px' }}
+                    onInput={(e) => {
+                      // Auto-resize textarea
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = Math.min(target.scrollHeight, 120) + 'px';
+                    }}
                   />
                   <Button onClick={handleAddMaterial} size="sm">
                     <Plus className="h-4 w-4" />
