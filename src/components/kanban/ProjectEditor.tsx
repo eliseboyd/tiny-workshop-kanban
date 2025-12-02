@@ -411,9 +411,19 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
   };
   
   const handleRemoveInspiration = async (id: string) => {
+    // Find the item being removed
+    const itemToRemove = inspiration.find(item => item.id === id);
     const newInspiration = inspiration.filter(item => item.id !== id);
     setInspiration(newInspiration);
-    await updateProject(project.id, { inspiration: newInspiration });
+    
+    // If the removed item was the cover image, remove the cover too
+    if (itemToRemove && itemToRemove.url === imageUrl) {
+      setImageUrl('');
+      await updateProject(project.id, { inspiration: newInspiration, imageUrl: null });
+    } else {
+      await updateProject(project.id, { inspiration: newInspiration });
+    }
+    
     router.refresh();
   };
   
@@ -466,8 +476,18 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
   };
   
   const handleRemoveCover = async () => {
+    const currentCoverUrl = imageUrl;
     setImageUrl('');
-    await updateProject(project.id, { imageUrl: null });
+    
+    // Also remove from inspiration if it exists there
+    const newInspiration = inspiration.filter(item => item.url !== currentCoverUrl);
+    if (newInspiration.length !== inspiration.length) {
+      setInspiration(newInspiration);
+      await updateProject(project.id, { imageUrl: null, inspiration: newInspiration });
+    } else {
+      await updateProject(project.id, { imageUrl: null });
+    }
+    
     router.refresh();
   };
   
