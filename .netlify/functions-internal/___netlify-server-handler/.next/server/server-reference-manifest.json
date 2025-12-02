@@ -132,6 +132,50 @@
       "filename": "src/app/actions.ts",
       "exportedName": "updateSettings"
     },
+    "009f6e5f7218a6d01e2ebb5f5f1490670a5525990e": {
+      "workers": {
+        "app/page": {
+          "moduleId": 52772,
+          "async": false,
+          "exportedName": "getAllMediaFiles",
+          "filename": "src/app/actions.ts"
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
+          "async": false,
+          "exportedName": "getAllMediaFiles",
+          "filename": "src/app/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc",
+        "app/projects/[id]/page": "rsc"
+      },
+      "filename": "src/app/actions.ts",
+      "exportedName": "getAllMediaFiles"
+    },
+    "40ecdc929352fd4637ef7a6fef5fb82ae2f289ae06": {
+      "workers": {
+        "app/page": {
+          "moduleId": 52772,
+          "async": false,
+          "exportedName": "deleteMediaFile",
+          "filename": "src/app/actions.ts"
+        },
+        "app/projects/[id]/page": {
+          "moduleId": 84741,
+          "async": false,
+          "exportedName": "deleteMediaFile",
+          "filename": "src/app/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc",
+        "app/projects/[id]/page": "rsc"
+      },
+      "filename": "src/app/actions.ts",
+      "exportedName": "deleteMediaFile"
+    },
     "00a2d87cc42603ba36315889402f89a909ea51bace": {
       "workers": {
         "app/login/page": {

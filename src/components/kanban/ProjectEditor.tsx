@@ -637,19 +637,14 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
   // Swipe back gesture for mobile with visual feedback
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
-  const scrollTopAtStart = useRef(0);
   const [swipeProgress, setSwipeProgress] = useState(0);
   
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
-    // Track scroll position at start
-    const container = e.currentTarget as HTMLElement;
-    scrollTopAtStart.current = container.scrollTop;
   };
   
   const handleTouchMove = (e: React.TouchEvent) => {
-    const container = e.currentTarget as HTMLElement;
     const touchCurrentX = e.touches[0].clientX;
     const touchCurrentY = e.touches[0].clientY;
     const diffX = touchCurrentX - touchStartX.current;
@@ -657,12 +652,8 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
     
     // Enable swipe-back if:
     // 1. Swiping right (diffX > 0)
-    // 2. At or near top of scroll (< 50px tolerance)
-    // 3. More horizontal than vertical movement
-    if (diffX > 0 && 
-        container.scrollTop < 50 &&
-        scrollTopAtStart.current < 50 &&
-        diffX > Math.abs(diffY) * 0.5) {
+    // 2. More horizontal than vertical movement (prevents conflict with scrolling)
+    if (diffX > 0 && diffX > Math.abs(diffY) * 1.5) {
       // Calculate progress (0 to 1, capped at 1)
       const progress = Math.min(diffX / 100, 1);
       setSwipeProgress(progress);
@@ -687,11 +678,8 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
     
     // Trigger back if:
     // 1. Swiped right > 100px
-    // 2. More horizontal than vertical (with tolerance)
-    // 3. Near top of page (< 50px scroll)
-    if (diffX > 100 && 
-        diffX > Math.abs(diffY) * 0.5 &&
-        scrollTopAtStart.current < 50) {
+    // 2. More horizontal than vertical (prevents accidental triggers while scrolling)
+    if (diffX > 100 && diffX > Math.abs(diffY) * 1.5) {
       // Save before navigating back
       if (isModal && onClose) {
         await handleClose();
