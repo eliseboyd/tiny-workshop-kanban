@@ -103,7 +103,7 @@ export function ClientDndWrapper({
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
     >
-      <div className="flex flex-1 w-full gap-4 p-4 overflow-x-auto h-full md:h-auto snap-x snap-mandatory md:snap-none">
+      <div className="flex flex-1 w-full gap-4 p-4 overflow-x-auto snap-x snap-mandatory md:snap-none">
         <SortableContext items={cols.map(c => c.id)} strategy={horizontalListSortingStrategy}>
           {cols.map((col) => (
             <KanbanColumn

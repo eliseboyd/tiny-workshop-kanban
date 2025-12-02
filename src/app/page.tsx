@@ -10,7 +10,7 @@ export default async function Home() {
   const columns = await getColumns();
 
   return (
-    <main className="flex h-screen md:min-h-screen md:h-auto flex-col bg-background overflow-auto">
+    <main className="flex min-h-screen flex-col bg-background overflow-auto">
       <KanbanBoard initialProjects={projects} initialSettings={settings} initialColumns={columns} />
     </main>
   );

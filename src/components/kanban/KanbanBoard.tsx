@@ -380,7 +380,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
 
   return (
     <>
-      <div className="flex flex-col h-full md:h-auto md:min-h-screen">
+      <div className="flex flex-col min-h-screen">
         <div className="flex flex-col border-b">
             <div className="flex items-center justify-between p-4 pb-2">
             <div className="h-9 flex items-center">
