@@ -93,11 +93,14 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [viewingAttachment, setViewingAttachment] = useState<{ url: string; type: string; name: string } | null>(null);
+  const [isHoveringCover, setIsHoveringCover] = useState(false);
+  const [isHoveringInspiration, setIsHoveringInspiration] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
   const imageAreaRef = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const inspirationSectionRef = useRef<HTMLDivElement>(null);
   
   // Open attachment viewer inline
   const openAttachment = (url: string, type: string, name: string) => {
@@ -492,48 +495,51 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
   };
   
   // Clipboard paste handlers
-  const handleCoverPaste = async (e: React.ClipboardEvent) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-    
+  const handlePasteFromClipboard = async (items: DataTransferItemList, target: 'cover' | 'inspiration') => {
     for (let i = 0; i < items.length; i++) {
       if (items[i].type.startsWith('image/')) {
-        e.preventDefault();
         const file = items[i].getAsFile();
         if (file) {
-          await handleFileUpload(file);
-        }
-        break;
-      }
-    }
-  };
-  
-  const handleInspirationPaste = async (e: React.ClipboardEvent) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-    
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.startsWith('image/')) {
-        e.preventDefault();
-        const file = items[i].getAsFile();
-        if (file) {
-          try {
-            const fd = new FormData();
-            fd.append('file', file);
-            const result = await uploadFile(fd);
-            
-            const newInspiration = [...inspiration, result];
-            setInspiration(newInspiration);
-            await updateProject(project.id, { inspiration: newInspiration });
-            router.refresh();
-          } catch (error) {
-            console.error('Failed to upload pasted image', error);
+          if (target === 'cover') {
+            await handleFileUpload(file);
+          } else {
+            try {
+              const fd = new FormData();
+              fd.append('file', file);
+              const result = await uploadFile(fd);
+              
+              const newInspiration = [...inspiration, result];
+              setInspiration(newInspiration);
+              await updateProject(project.id, { inspiration: newInspiration });
+              router.refresh();
+            } catch (error) {
+              console.error('Failed to upload pasted image', error);
+            }
           }
         }
         break;
       }
     }
   };
+  
+  // Global paste event listener
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (!e.clipboardData?.items) return;
+      
+      // Check if we're hovering over cover or inspiration sections
+      if (isHoveringCover) {
+        e.preventDefault();
+        handlePasteFromClipboard(e.clipboardData.items, 'cover');
+      } else if (isHoveringInspiration) {
+        e.preventDefault();
+        handlePasteFromClipboard(e.clipboardData.items, 'inspiration');
+      }
+    };
+    
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [isHoveringCover, isHoveringInspiration, inspiration]);
   
   const handleGenerateImage = async () => {
     if (!title) return;
@@ -766,16 +772,17 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
         <div className="relative group/cover">
           <div 
             ref={imageAreaRef}
-            tabIndex={0}
             className={cn(
-              "relative w-full h-48 bg-dots bg-muted/30 flex items-center justify-center overflow-hidden group transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary border-b",
+              "relative w-full h-48 bg-dots bg-muted/30 flex items-center justify-center overflow-hidden group transition-colors border-b",
               isDragging && "bg-muted/50 border-2 border-dashed border-primary",
-              !imageUrl && "md:hover:bg-muted/40 md:cursor-pointer"
+              !imageUrl && "md:hover:bg-muted/40 md:cursor-pointer",
+              isHoveringCover && "ring-2 ring-primary/50"
             )}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            onPaste={handleCoverPaste}
+            onMouseEnter={() => setIsHoveringCover(true)}
+            onMouseLeave={() => setIsHoveringCover(false)}
             onClick={() => {
               // Only allow click-to-upload on desktop
               if (window.innerWidth >= 768 && !isGenerating) {
@@ -822,7 +829,8 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
             ) : (
               <div className="flex flex-col items-center gap-2 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                 <ImageIcon className="h-8 w-8 opacity-50" />
-                <p className="text-sm">Add cover</p>
+                <p className="text-sm">Click to upload or drag & drop</p>
+                <p className="text-xs opacity-75 hidden md:block">Hover and paste (Ctrl+V) to upload from clipboard</p>
               </div>
             )}
           </div>
@@ -1219,8 +1227,24 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
             </div>
 
             {/* Inspiration Section */}
-            <div id="section-inspiration" className="space-y-4 pt-8 border-t" tabIndex={0} onPaste={handleInspirationPaste}>
-              <h2 className="text-2xl font-bold">Inspiration</h2>
+            <div 
+              ref={inspirationSectionRef}
+              id="section-inspiration" 
+              className={cn(
+                "space-y-4 pt-8 border-t rounded-lg transition-all",
+                isHoveringInspiration && "ring-2 ring-primary/30 bg-muted/20 p-4 -m-4"
+              )}
+              onMouseEnter={() => setIsHoveringInspiration(true)}
+              onMouseLeave={() => setIsHoveringInspiration(false)}
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">Inspiration</h2>
+                {isHoveringInspiration && (
+                  <p className="text-xs text-muted-foreground hidden md:block">
+                    Paste from clipboard (Ctrl+V)
+                  </p>
+                )}
+              </div>
               <input
                 type="file"
                 id="inspiration-upload"
