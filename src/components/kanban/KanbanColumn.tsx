@@ -82,7 +82,7 @@ export function KanbanColumn({ id, title, items, onCardClick, onTitleChange, onD
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="flex h-full w-[85vw] md:w-60 md:min-w-[240px] shrink-0 snap-center flex-col rounded-lg bg-neutral-100 p-3 dark:bg-neutral-900 relative group">
+    <div ref={setNodeRef} style={style} className="flex h-full md:h-auto w-[85vw] md:w-60 md:min-w-[240px] shrink-0 snap-center md:snap-align-none flex-col rounded-lg bg-neutral-100 p-3 dark:bg-neutral-900 relative group">
       <div 
         className="mb-3 h-6 flex items-center justify-between cursor-grab active:cursor-grabbing" 
         {...attributes} 
@@ -119,7 +119,7 @@ export function KanbanColumn({ id, title, items, onCardClick, onTitleChange, onD
             </Button>
         )}
       </div>
-      <div className="flex flex-1 flex-col gap-2 min-h-0 overflow-y-auto">
+      <div className="flex flex-1 flex-col gap-2 min-h-0 overflow-y-auto md:overflow-y-visible">
         {/* Add Project Button - Dotted Line Card - Now at Top */}
         {onAddProject && !isCreating && (
             <button

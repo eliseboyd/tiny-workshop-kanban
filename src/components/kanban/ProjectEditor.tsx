@@ -938,7 +938,7 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
                   e.target.style.height = 'auto';
                   e.target.style.height = e.target.scrollHeight + 'px';
                 }}
-                className="w-full text-5xl font-bold font-sans tracking-tight bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 overflow-hidden"
+                className="w-full text-3xl md:text-5xl font-bold font-sans tracking-tight bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 overflow-hidden"
                 placeholder="Untitled"
                 rows={1}
                 style={{ height: 'auto' }}
