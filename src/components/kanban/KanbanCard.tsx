@@ -107,7 +107,7 @@ export function KanbanCard({ project, onClick, onDelete, size = 'medium' }: Kanb
       <ContextMenu>
       <ContextMenuTrigger>
       <Card 
-        className="cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow p-0 gap-0 overflow-hidden"
+        className="cursor-grab active:cursor-grabbing hover:shadow-md transition-all p-0 gap-0 overflow-hidden active:scale-[0.98] active:shadow-lg"
         onClick={handleClick}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}

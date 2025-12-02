@@ -6,6 +6,8 @@ import {
   closestCorners,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
+  MouseSensor,
   useSensor,
   useSensors,
   DragStartEvent,
@@ -59,9 +61,17 @@ export function ClientDndWrapper({
   onCancelCreate,
 }: ClientDndWrapperProps) {
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    // Mouse sensor - instant drag for desktop (no delay)
+    useSensor(MouseSensor, {
       activationConstraint: {
         distance: 8,
+      },
+    }),
+    // Touch sensor - require press-and-hold for mobile to prevent accidental drags
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250, // 250ms press-and-hold required
+        tolerance: 5, // Allow 5px movement during hold
       },
     }),
     useSensor(KeyboardSensor, {
