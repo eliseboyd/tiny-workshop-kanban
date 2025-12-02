@@ -471,6 +471,50 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
     router.refresh();
   };
   
+  // Clipboard paste handlers
+  const handleCoverPaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (file) {
+          await handleFileUpload(file);
+        }
+        break;
+      }
+    }
+  };
+  
+  const handleInspirationPaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (file) {
+          try {
+            const fd = new FormData();
+            fd.append('file', file);
+            const result = await uploadFile(fd);
+            
+            const newInspiration = [...inspiration, result];
+            setInspiration(newInspiration);
+            await updateProject(project.id, { inspiration: newInspiration });
+            router.refresh();
+          } catch (error) {
+            console.error('Failed to upload pasted image', error);
+          }
+        }
+        break;
+      }
+    }
+  };
+  
   const handleGenerateImage = async () => {
     if (!title) return;
     setIsGenerating(true);
@@ -723,6 +767,7 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
+            onPaste={handleCoverPaste}
             onClick={() => {
               // Only allow click-to-upload on desktop
               if (window.innerWidth >= 768 && !isGenerating) {
@@ -1049,29 +1094,33 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
               <div className="space-y-2">
                 {materialsList.map(item => (
                   <div key={item.id} className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20 hover:bg-muted/30 transition-colors group">
-                    <div className="flex items-center gap-3 flex-1">
-                      <Checkbox
-                        checked={item.toBuy}
-                        onCheckedChange={() => handleUpdateMaterial(item.id, 'toBuy')}
-                      />
-                      <span className="text-xs text-muted-foreground w-16">To Buy</span>
-                      <Checkbox
-                        checked={item.toBuild}
-                        onCheckedChange={() => handleUpdateMaterial(item.id, 'toBuild')}
-                      />
-                      <span className="text-xs text-muted-foreground w-16">To Build</span>
-                      <span className={cn("flex-1", (item.toBuy || item.toBuild) && "line-through text-muted-foreground")}>
-                        {item.text}
-                      </span>
+                    <span className={cn("flex-1", item.toBuild && "line-through text-muted-foreground")}>
+                      {item.text}
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={item.toBuy}
+                          onCheckedChange={() => handleUpdateMaterial(item.id, 'toBuy')}
+                        />
+                        <span className="text-xs text-muted-foreground">Buy</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={item.toBuild}
+                          onCheckedChange={() => handleUpdateMaterial(item.id, 'toBuild')}
+                        />
+                        <span className="text-xs text-muted-foreground">Build</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0"
+                        onClick={() => handleDeleteMaterial(item.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0"
-                      onClick={() => handleDeleteMaterial(item.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </div>
                 ))}
                 <div className="flex gap-2">
@@ -1162,7 +1211,7 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
             </div>
 
             {/* Inspiration Section */}
-            <div id="section-inspiration" className="space-y-4 pt-8 border-t">
+            <div id="section-inspiration" className="space-y-4 pt-8 border-t" tabIndex={0} onPaste={handleInspirationPaste}>
               <h2 className="text-2xl font-bold">Inspiration</h2>
               <input
                 type="file"
