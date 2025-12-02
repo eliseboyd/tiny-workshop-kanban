@@ -407,3 +407,189 @@ export async function uploadImageBase64(base64Data: string, fileName: string, fi
     throw new Error(`Server upload failed: ${error.message}`);
   }
 }
+
+// --- Media Management ---
+
+export async function getAllMediaFiles() {
+  try {
+    const supabase = await createClient();
+    
+    // Get all projects with their media
+    const { data: projects, error } = await supabase
+      .from('projects')
+      .select('id, title, image_url, inspiration, plans');
+    
+    if (error) {
+      console.error('Error fetching projects for media:', error);
+      return [];
+    }
+    
+    // Collect all media URLs and track which projects use them
+    const mediaMap = new Map<string, {
+      url: string;
+      name: string;
+      type: string;
+      size: number;
+      usedBy: string[];
+    }>();
+    
+    projects.forEach(project => {
+      // Cover images
+      if (project.image_url) {
+        if (!mediaMap.has(project.image_url)) {
+          mediaMap.set(project.image_url, {
+            url: project.image_url,
+            name: extractFileName(project.image_url),
+            type: 'image/jpeg',
+            size: 0,
+            usedBy: []
+          });
+        }
+        mediaMap.get(project.image_url)!.usedBy.push(project.id);
+      }
+      
+      // Inspiration images
+      if (project.inspiration) {
+        const inspiration = typeof project.inspiration === 'string' 
+          ? JSON.parse(project.inspiration) 
+          : project.inspiration;
+        
+        if (Array.isArray(inspiration)) {
+          inspiration.forEach((item: any) => {
+            if (item.url) {
+              if (!mediaMap.has(item.url)) {
+                mediaMap.set(item.url, {
+                  url: item.url,
+                  name: item.name || extractFileName(item.url),
+                  type: item.type || 'image/jpeg',
+                  size: item.size || 0,
+                  usedBy: []
+                });
+              }
+              mediaMap.get(item.url)!.usedBy.push(project.id);
+            }
+          });
+        }
+      }
+      
+      // Plans/sketches
+      if (project.plans) {
+        const plans = typeof project.plans === 'string' 
+          ? JSON.parse(project.plans) 
+          : project.plans;
+        
+        if (Array.isArray(plans)) {
+          plans.forEach((item: any) => {
+            if (item.url) {
+              if (!mediaMap.has(item.url)) {
+                mediaMap.set(item.url, {
+                  url: item.url,
+                  name: item.name || extractFileName(item.url),
+                  type: item.type || 'image/jpeg',
+                  size: item.size || 0,
+                  usedBy: []
+                });
+              }
+              mediaMap.get(item.url)!.usedBy.push(project.id);
+            }
+          });
+        }
+      }
+    });
+    
+    return Array.from(mediaMap.values());
+  } catch (error) {
+    console.error('Error getting all media files:', error);
+    return [];
+  }
+}
+
+export async function deleteMediaFile(fileUrl: string) {
+  try {
+    const supabase = await createClient();
+    
+    // Extract the file name from the URL
+    const urlParts = fileUrl.split('/');
+    const fileName = urlParts[urlParts.length - 1];
+    
+    // Delete from Supabase Storage
+    const { error: storageError } = await supabase.storage
+      .from('board-uploads')
+      .remove([fileName]);
+    
+    if (storageError) {
+      console.error('Error deleting from storage:', storageError);
+      throw new Error('Failed to delete file from storage');
+    }
+    
+    // Get all projects that might use this file
+    const { data: projects, error: fetchError } = await supabase
+      .from('projects')
+      .select('id, image_url, inspiration, plans');
+    
+    if (fetchError) {
+      console.error('Error fetching projects:', fetchError);
+      return;
+    }
+    
+    // Remove the file URL from all projects
+    for (const project of projects) {
+      let updated = false;
+      const updates: any = {};
+      
+      // Remove from cover image
+      if (project.image_url === fileUrl) {
+        updates.image_url = null;
+        updated = true;
+      }
+      
+      // Remove from inspiration
+      if (project.inspiration) {
+        const inspiration = typeof project.inspiration === 'string'
+          ? JSON.parse(project.inspiration)
+          : project.inspiration;
+        
+        if (Array.isArray(inspiration)) {
+          const filtered = inspiration.filter((item: any) => item.url !== fileUrl);
+          if (filtered.length !== inspiration.length) {
+            updates.inspiration = JSON.stringify(filtered);
+            updated = true;
+          }
+        }
+      }
+      
+      // Remove from plans
+      if (project.plans) {
+        const plans = typeof project.plans === 'string'
+          ? JSON.parse(project.plans)
+          : project.plans;
+        
+        if (Array.isArray(plans)) {
+          const filtered = plans.filter((item: any) => item.url !== fileUrl);
+          if (filtered.length !== plans.length) {
+            updates.plans = JSON.stringify(filtered);
+            updated = true;
+          }
+        }
+      }
+      
+      // Update the project if needed
+      if (updated) {
+        await supabase
+          .from('projects')
+          .update(updates)
+          .eq('id', project.id);
+      }
+    }
+    
+    revalidatePath('/');
+  } catch (error) {
+    console.error('Error deleting media file:', error);
+    throw error;
+  }
+}
+
+function extractFileName(url: string): string {
+  const parts = url.split('/');
+  return parts[parts.length - 1] || 'unknown';
+}
