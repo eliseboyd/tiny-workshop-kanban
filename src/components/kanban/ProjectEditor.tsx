@@ -590,22 +590,20 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
     const diffX = touchCurrentX - touchStartX.current;
     const diffY = touchCurrentY - touchStartY.current;
     
-    // Only enable swipe-back if:
-    // 1. Started from left edge (< 80px - increased from 30px)
-    // 2. Swiping right (diffX > 0)
-    // 3. At top of scroll (scrollTop < 50 - added tolerance)
-    // 4. More horizontal than vertical movement (with tolerance)
-    if (touchStartX.current < 80 && 
-        diffX > 0 && 
+    // Enable swipe-back if:
+    // 1. Swiping right (diffX > 0)
+    // 2. At or near top of scroll (< 50px tolerance)
+    // 3. More horizontal than vertical movement
+    if (diffX > 0 && 
         container.scrollTop < 50 &&
         scrollTopAtStart.current < 50 &&
-        diffX > Math.abs(diffY) * 0.5) { // Relaxed: horizontal movement only needs to be 50% of vertical
+        diffX > Math.abs(diffY) * 0.5) {
       // Calculate progress (0 to 1, capped at 1)
-      const progress = Math.min(diffX / 80, 1); // Reduced from 100px to 80px
+      const progress = Math.min(diffX / 100, 1);
       setSwipeProgress(progress);
       
       // Prevent vertical scrolling while swiping back
-      if (progress > 0.15) {
+      if (progress > 0.2) {
         e.preventDefault();
       }
     }
@@ -623,12 +621,10 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
     setSwipeProgress(0);
     
     // Trigger back if:
-    // 1. Swipe from left edge (< 80px - increased from 30px)
-    // 2. Moved right > 70px (reduced from 100px)
-    // 3. More horizontal than vertical (with tolerance)
-    // 4. Near top of page (< 50px scroll)
-    if (diffX > 70 && 
-        touchStartX.current < 80 && 
+    // 1. Swiped right > 100px
+    // 2. More horizontal than vertical (with tolerance)
+    // 3. Near top of page (< 50px scroll)
+    if (diffX > 100 && 
         diffX > Math.abs(diffY) * 0.5 &&
         scrollTopAtStart.current < 50) {
       // Save before navigating back
