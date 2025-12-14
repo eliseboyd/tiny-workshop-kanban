@@ -245,6 +245,10 @@ export async function getSettings() {
         aiPromptTemplate: data.ai_prompt_template,
         boardTitle: data.board_title,
         cardSize: data.card_size,
+        visibleProjects: data.visible_projects || [],
+        visibleTags: data.visible_tags || [],
+        hiddenProjects: data.hidden_projects || [],
+        hiddenTags: data.hidden_tags || [],
     };
   }
   
@@ -297,6 +301,10 @@ export async function updateSettings(data: any) {
   if (data.aiPromptTemplate !== undefined) dbData.ai_prompt_template = data.aiPromptTemplate;
   if (data.boardTitle !== undefined) dbData.board_title = data.boardTitle;
   if (data.cardSize !== undefined) dbData.card_size = data.cardSize;
+  if (data.visibleProjects !== undefined) dbData.visible_projects = data.visibleProjects;
+  if (data.visibleTags !== undefined) dbData.visible_tags = data.visibleTags;
+  if (data.hiddenProjects !== undefined) dbData.hidden_projects = data.hiddenProjects;
+  if (data.hiddenTags !== undefined) dbData.hidden_tags = data.hiddenTags;
 
   const { error } = await supabase.from('settings').update(dbData).eq('id', current.id);
   if (error) console.error('Error updating settings:', error);
@@ -592,4 +600,156 @@ export async function deleteMediaFile(fileUrl: string) {
 function extractFileName(url: string): string {
   const parts = url.split('/');
   return parts[parts.length - 1] || 'unknown';
+}
+
+// --- Tags ---
+
+export async function getAllTags() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('tags')
+    .select('*')
+    .order('name');
+  
+  if (error) {
+    console.error('Error fetching tags:', error);
+    return [];
+  }
+  
+  return data;
+}
+
+export async function createTag(tag: { name: string; color: string; emoji?: string; icon?: string }) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('tags')
+    .insert(tag);
+  
+  if (error) {
+    console.error('Error creating tag:', error);
+    throw error;
+  }
+  
+  revalidatePath('/');
+}
+
+export async function updateTag(name: string, updates: { color?: string; emoji?: string; icon?: string }) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('tags')
+    .update(updates)
+    .eq('name', name);
+  
+  if (error) {
+    console.error('Error updating tag:', error);
+    throw error;
+  }
+  
+  revalidatePath('/');
+}
+
+export async function deleteTag(name: string) {
+  const supabase = await createClient();
+  
+  // Remove tag from all projects
+  const { data: projects } = await supabase
+    .from('projects')
+    .select('id, tags');
+  
+  if (projects) {
+    for (const project of projects) {
+      if (project.tags && project.tags.includes(name)) {
+        const newTags = project.tags.filter((t: string) => t !== name);
+        await supabase
+          .from('projects')
+          .update({ tags: newTags })
+          .eq('id', project.id);
+      }
+    }
+  }
+  
+  // Delete the tag
+  const { error } = await supabase
+    .from('tags')
+    .delete()
+    .eq('name', name);
+  
+  if (error) {
+    console.error('Error deleting tag:', error);
+    throw error;
+  }
+  
+  revalidatePath('/');
+}
+
+// --- Project Groups ---
+
+export async function getAllProjectGroups() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('project_groups')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  if (error) {
+    console.error('Error fetching project groups:', error);
+    return [];
+  }
+  
+  return data;
+}
+
+export async function createProjectGroup(group: { name: string; color: string; emoji?: string; icon?: string }) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('project_groups')
+    .insert({
+      id: uuidv4(),
+      ...group,
+    });
+  
+  if (error) {
+    console.error('Error creating project group:', error);
+    throw error;
+  }
+  
+  revalidatePath('/');
+}
+
+export async function updateProjectGroup(id: string, updates: { name?: string; color?: string; emoji?: string; icon?: string }) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('project_groups')
+    .update(updates)
+    .eq('id', id);
+  
+  if (error) {
+    console.error('Error updating project group:', error);
+    throw error;
+  }
+  
+  revalidatePath('/');
+}
+
+export async function deleteProjectGroup(id: string) {
+  const supabase = await createClient();
+  
+  // Remove parent_project_id from all projects in this group
+  await supabase
+    .from('projects')
+    .update({ parent_project_id: null })
+    .eq('parent_project_id', id);
+  
+  // Delete the project group
+  const { error } = await supabase
+    .from('project_groups')
+    .delete()
+    .eq('id', id);
+  
+  if (error) {
+    console.error('Error deleting project group:', error);
+    throw error;
+  }
+  
+  revalidatePath('/');
 }

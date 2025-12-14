@@ -13,9 +13,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getSettings, updateSettings, getAllMediaFiles, deleteMediaFile } from '@/app/actions';
+import { getSettings, updateSettings, getAllMediaFiles, deleteMediaFile, getAllTags, createTag, updateTag, deleteTag, getAllProjectGroups, createProjectGroup, updateProjectGroup, deleteProjectGroup } from '@/app/actions';
 import { logout } from '@/app/login/actions';
-import { Loader2, LogOut, Trash2, Image as ImageIcon, FileText } from 'lucide-react';
+import { Loader2, LogOut, Trash2, Image as ImageIcon, FileText, Plus, Edit2 } from 'lucide-react';
 import Image from 'next/image';
 
 type SettingsModalProps = {
@@ -31,6 +31,21 @@ type MediaFile = {
   usedBy: string[]; // Project IDs that use this file
 };
 
+type Tag = {
+  name: string;
+  color: string;
+  emoji?: string;
+  icon?: string;
+};
+
+type ProjectGroup = {
+  id: string;
+  name: string;
+  color: string;
+  emoji?: string;
+  icon?: string;
+};
+
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
@@ -38,6 +53,22 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [isLoadingMedia, setIsLoadingMedia] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
+  
+  // Tags state
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [isLoadingTags, setIsLoadingTags] = useState(false);
+  const [newTagName, setNewTagName] = useState('');
+  const [newTagColor, setNewTagColor] = useState('#64748b');
+  const [newTagEmoji, setNewTagEmoji] = useState('');
+  const [editingTag, setEditingTag] = useState<string | null>(null);
+  
+  // Project Groups state
+  const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupColor, setNewGroupColor] = useState('#64748b');
+  const [newGroupEmoji, setNewGroupEmoji] = useState('');
+  const [editingGroup, setEditingGroup] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -53,6 +84,18 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   useEffect(() => {
     if (isOpen && activeTab === 'media') {
       loadMediaFiles();
+    }
+  }, [isOpen, activeTab]);
+
+  useEffect(() => {
+    if (isOpen && activeTab === 'tags') {
+      loadTags();
+    }
+  }, [isOpen, activeTab]);
+
+  useEffect(() => {
+    if (isOpen && activeTab === 'projects') {
+      loadProjectGroups();
     }
   }, [isOpen, activeTab]);
 
@@ -82,6 +125,106 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     }
   };
 
+  // Tags handlers
+  const loadTags = async () => {
+    setIsLoadingTags(true);
+    try {
+      const allTags = await getAllTags();
+      setTags(allTags);
+    } catch (error) {
+      console.error('Failed to load tags', error);
+    } finally {
+      setIsLoadingTags(false);
+    }
+  };
+
+  const handleCreateTag = async () => {
+    if (!newTagName.trim()) return;
+    try {
+      await createTag({
+        name: newTagName.trim(),
+        color: newTagColor,
+        emoji: newTagEmoji || undefined,
+      });
+      setNewTagName('');
+      setNewTagEmoji('');
+      setNewTagColor('#64748b');
+      loadTags();
+    } catch (error) {
+      console.error('Failed to create tag', error);
+      alert('Failed to create tag');
+    }
+  };
+
+  const handleUpdateTag = async (name: string, updates: Partial<Tag>) => {
+    try {
+      await updateTag(name, updates);
+      loadTags();
+    } catch (error) {
+      console.error('Failed to update tag', error);
+    }
+  };
+
+  const handleDeleteTag = async (name: string) => {
+    if (!confirm(`Delete tag "${name}"? This will remove it from all projects.`)) return;
+    try {
+      await deleteTag(name);
+      loadTags();
+    } catch (error) {
+      console.error('Failed to delete tag', error);
+    }
+  };
+
+  // Project Groups handlers
+  const loadProjectGroups = async () => {
+    setIsLoadingGroups(true);
+    try {
+      const groups = await getAllProjectGroups();
+      setProjectGroups(groups);
+    } catch (error) {
+      console.error('Failed to load project groups', error);
+    } finally {
+      setIsLoadingGroups(false);
+    }
+  };
+
+  const handleCreateProjectGroup = async () => {
+    if (!newGroupName.trim()) return;
+    try {
+      await createProjectGroup({
+        name: newGroupName.trim(),
+        color: newGroupColor,
+        emoji: newGroupEmoji || undefined,
+      });
+      setNewGroupName('');
+      setNewGroupEmoji('');
+      setNewGroupColor('#64748b');
+      loadProjectGroups();
+    } catch (error) {
+      console.error('Failed to create project group', error);
+      alert('Failed to create project group');
+    }
+  };
+
+  const handleUpdateProjectGroup = async (id: string, updates: Partial<ProjectGroup>) => {
+    try {
+      await updateProjectGroup(id, updates);
+      loadProjectGroups();
+    } catch (error) {
+      console.error('Failed to update project group', error);
+    }
+  };
+
+  const handleDeleteProjectGroup = async (id: string, name: string) => {
+    if (!confirm(`Delete project group "${name}"? Cards in this group won't be deleted.`)) return;
+    try {
+      await deleteProjectGroup(id);
+      loadProjectGroups();
+    } catch (error) {
+      console.error('Failed to delete project group', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -106,9 +249,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="media">Media Gallery</TabsTrigger>
+            <TabsTrigger value="tags">Tags</TabsTrigger>
+            <TabsTrigger value="projects">Projects</TabsTrigger>
+            <TabsTrigger value="media">Media</TabsTrigger>
           </TabsList>
           
           <TabsContent value="general" className="flex-1 overflow-y-auto">
@@ -153,6 +298,144 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </Button>
               </DialogFooter>
             </form>
+          </TabsContent>
+          
+          <TabsContent value="tags" className="flex-1 overflow-y-auto">
+            <div className="space-y-4 py-4">
+              <div className="space-y-3">
+                <Label>Create New Tag</Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Tag name"
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleCreateTag()}
+                  />
+                  <Input
+                    type="text"
+                    placeholder="🏷️"
+                    value={newTagEmoji}
+                    onChange={(e) => setNewTagEmoji(e.target.value)}
+                    className="w-20"
+                    maxLength={2}
+                  />
+                  <Input
+                    type="color"
+                    value={newTagColor}
+                    onChange={(e) => setNewTagColor(e.target.value)}
+                    className="w-20"
+                  />
+                  <Button onClick={handleCreateTag} size="sm">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {isLoadingTags ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : tags.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No tags yet. Create one above!
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {tags.map((tag) => (
+                    <div key={tag.name} className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <span className="text-xl">{tag.emoji || '🏷️'}</span>
+                      <div
+                        className="w-4 h-4 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: tag.color }}
+                      />
+                      <span className="flex-1 font-medium">{tag.name}</span>
+                      <Input
+                        type="color"
+                        value={tag.color}
+                        onChange={(e) => handleUpdateTag(tag.name, { color: e.target.value })}
+                        className="w-16 h-8"
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteTag(tag.name)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="projects" className="flex-1 overflow-y-auto">
+            <div className="space-y-4 py-4">
+              <div className="space-y-3">
+                <Label>Create New Project Group</Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Project group name"
+                    value={newGroupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleCreateProjectGroup()}
+                  />
+                  <Input
+                    type="text"
+                    placeholder="📁"
+                    value={newGroupEmoji}
+                    onChange={(e) => setNewGroupEmoji(e.target.value)}
+                    className="w-20"
+                    maxLength={2}
+                  />
+                  <Input
+                    type="color"
+                    value={newGroupColor}
+                    onChange={(e) => setNewGroupColor(e.target.value)}
+                    className="w-20"
+                  />
+                  <Button onClick={handleCreateProjectGroup} size="sm">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {isLoadingGroups ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : projectGroups.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No project groups yet. Create one above!
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {projectGroups.map((group) => (
+                    <div key={group.id} className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <span className="text-xl">{group.emoji || '📁'}</span>
+                      <div
+                        className="w-4 h-4 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: group.color }}
+                      />
+                      <span className="flex-1 font-medium">{group.name}</span>
+                      <Input
+                        type="color"
+                        value={group.color}
+                        onChange={(e) => handleUpdateProjectGroup(group.id, { color: e.target.value })}
+                        className="w-16 h-8"
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteProjectGroup(group.id, group.name)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </TabsContent>
           
           <TabsContent value="media" className="flex-1 overflow-y-auto">

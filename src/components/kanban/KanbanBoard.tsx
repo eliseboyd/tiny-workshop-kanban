@@ -10,14 +10,14 @@ import {
 import { arrayMove } from '@dnd-kit/sortable';
 import { ProjectModal } from './ProjectModal';
 import { SettingsModal } from './SettingsModal';
+import { FilterSection } from './FilterSection';
 import { ModeToggle } from '@/components/mode-toggle';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Settings, KanbanSquareDashed, Filter, X } from 'lucide-react';
-import { updateProjectStatus, updateSettings, updateColumn, createColumn, deleteColumn, deleteProject, updateColumnsOrder, updateColumnOrder } from '@/app/actions';
-import { Badge } from '@/components/ui/badge';
+import { Plus, Settings, KanbanSquareDashed } from 'lucide-react';
+import { updateProjectStatus, updateSettings, updateColumn, createColumn, deleteColumn, deleteProject, updateColumnsOrder, updateColumnOrder, getAllTags, getAllProjectGroups } from '@/app/actions';
 
 import { ClientDndWrapper } from './ClientDndWrapper';
 
@@ -36,10 +36,27 @@ export type Project = {
     position: number;
     createdAt: Date | null;
     updatedAt: Date | null;
+    parentProjectId?: string | null;
     // Mapped from snake_case in Supabase
     rich_content?: string;
     image_url?: string;
     materials_list?: string;
+    parent_project_id?: string;
+};
+
+type Tag = {
+  name: string;
+  color: string;
+  emoji?: string;
+  icon?: string;
+};
+
+type ProjectGroup = {
+  id: string;
+  name: string;
+  color: string;
+  emoji?: string;
+  icon?: string;
 };
 
 export type SettingsData = {
@@ -47,6 +64,10 @@ export type SettingsData = {
     aiPromptTemplate: string;
     boardTitle: string;
     cardSize: string;
+    visibleProjects?: string[];
+    visibleTags?: string[];
+    hiddenProjects?: string[];
+    hiddenTags?: string[];
 };
 
 export type Column = {
@@ -73,6 +94,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
           richContent: p.rich_content || p.richContent,
           imageUrl: p.image_url || p.imageUrl,
           materialsList: p.materials_list || p.materialsList,
+          parentProjectId: p.parent_project_id || p.parentProjectId,
           plans: p.plans,
           inspiration: p.inspiration,
       }));
@@ -90,7 +112,12 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   const [isCreatingInColumn, setIsCreatingInColumn] = useState<string | null>(null);
 
   // Filter state
-  const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
+  const [activeTags, setActiveTags] = useState<string[]>([]);
+  const [activeGroups, setActiveGroups] = useState<string[]>([]);
+  const [hiddenTags, setHiddenTags] = useState<string[]>(initialSettings.hiddenTags || []);
+  const [hiddenGroups, setHiddenGroups] = useState<string[]>(initialSettings.hiddenProjects || []);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
 
   // Board title editing state
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -112,19 +139,39 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   }, [initialColumns]);
 
   // Collect all unique tags from all items
-  const allTags = useMemo(() => {
-      const tags = new Set<string>();
-      items.forEach(item => {
-          item.tags?.forEach(tag => tags.add(tag));
-      });
-      return Array.from(tags).sort();
-  }, [items]);
+  // Load tags and project groups
+  useEffect(() => {
+    const loadFilters = async () => {
+      const [tagsData, groupsData] = await Promise.all([
+        getAllTags(),
+        getAllProjectGroups(),
+      ]);
+      setTags(tagsData);
+      setProjectGroups(groupsData);
+    };
+    loadFilters();
+  }, []);
 
-  // Filter items based on active tag
+  // Filter items based on active filters
   const filteredItems = useMemo(() => {
-      if (!activeTagFilter) return items;
-      return items.filter(item => item.tags?.includes(activeTagFilter));
-  }, [items, activeTagFilter]);
+      let filtered = items;
+      
+      // Filter by tags
+      if (activeTags.length > 0) {
+          filtered = filtered.filter(item => 
+              item.tags?.some(tag => activeTags.includes(tag))
+          );
+      }
+      
+      // Filter by project groups
+      if (activeGroups.length > 0) {
+          filtered = filtered.filter(item => 
+              item.parentProjectId && activeGroups.includes(item.parentProjectId)
+          );
+      }
+      
+      return filtered;
+  }, [items, activeTags, activeGroups]);
 
   function findContainer(id: string) {
     if (cols.find(c => c.id === id)) return id;
@@ -372,6 +419,40 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
       }
   };
 
+  // Filter handlers
+  const handleTagToggle = (tag: string) => {
+      setActiveTags(prev => 
+          prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+      );
+  };
+
+  const handleGroupToggle = (groupId: string) => {
+      setActiveGroups(prev => 
+          prev.includes(groupId) ? prev.filter(g => g !== groupId) : [...prev, groupId]
+      );
+  };
+
+  const handleClearFilters = () => {
+      setActiveTags([]);
+      setActiveGroups([]);
+  };
+
+  const handleToggleTagVisibility = async (tag: string) => {
+      const newHiddenTags = hiddenTags.includes(tag) 
+          ? hiddenTags.filter(t => t !== tag) 
+          : [...hiddenTags, tag];
+      setHiddenTags(newHiddenTags);
+      await updateSettings({ hiddenTags: newHiddenTags });
+  };
+
+  const handleToggleGroupVisibility = async (groupId: string) => {
+      const newHiddenGroups = hiddenGroups.includes(groupId) 
+          ? hiddenGroups.filter(g => g !== groupId) 
+          : [...hiddenGroups, groupId];
+      setHiddenGroups(newHiddenGroups);
+      await updateSettings({ hiddenProjects: newHiddenGroups });
+  };
+
   const handleColumnTitleChange = async (colId: string, newTitle: string) => {
       // Optimistic update
       setCols(prev => prev.map(c => c.id === colId ? { ...c, title: newTitle } : c));
@@ -448,38 +529,20 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
             </div>
             </div>
 
-            {/* Filter Bar */}
-            {allTags.length > 0 && (
-                <div className="flex items-center gap-2 px-4 pb-2 overflow-x-auto">
-                    <div className="flex items-center text-xs text-muted-foreground mr-2">
-                        <Filter className="h-3 w-3 mr-1" />
-                        Filters:
-                    </div>
-                    <div className="flex gap-2">
-                        {allTags.map(tag => (
-                            <Badge 
-                                key={tag} 
-                                variant={activeTagFilter === tag ? "default" : "outline"}
-                                className="cursor-pointer hover:bg-primary/90 transition-colors"
-                                onClick={() => setActiveTagFilter(activeTagFilter === tag ? null : tag)}
-                            >
-                                {tag}
-                                {activeTagFilter === tag && <X className="ml-1 h-3 w-3" />}
-                            </Badge>
-                        ))}
-                    </div>
-                    {activeTagFilter && (
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-5 text-xs text-muted-foreground hover:text-foreground"
-                            onClick={() => setActiveTagFilter(null)}
-                        >
-                            Clear
-                        </Button>
-                    )}
-                </div>
-            )}
+            {/* Filter Section */}
+            <FilterSection
+                tags={tags}
+                projectGroups={projectGroups}
+                activeTags={activeTags}
+                activeGroups={activeGroups}
+                hiddenTags={hiddenTags}
+                hiddenGroups={hiddenGroups}
+                onTagToggle={handleTagToggle}
+                onGroupToggle={handleGroupToggle}
+                onClearFilters={handleClearFilters}
+                onToggleTagVisibility={handleToggleTagVisibility}
+                onToggleGroupVisibility={handleToggleGroupVisibility}
+            />
         </div>
 
         <ClientDndWrapper 

@@ -4,12 +4,13 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import { Project } from './KanbanBoard';
-import { updateProject, generateProjectImage, uploadImageBase64, uploadFile } from '@/app/actions';
+import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups } from '@/app/actions';
 import Image from 'next/image';
 import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -26,6 +27,13 @@ const PDFViewer = dynamic(() => import('@/components/ui/pdf-viewer').then(mod =>
 
 type Attachment = { id: string; url: string; name: string; type: string; size: number };
 type Material = { id: string; text: string; toBuy: boolean; toBuild: boolean };
+type ProjectGroup = {
+  id: string;
+  name: string;
+  color: string;
+  emoji?: string;
+  icon?: string;
+};
 
 type ProjectEditorProps = {
   project: Project;
@@ -46,6 +54,8 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
   const [imageUrl, setImageUrl] = useState(project.imageUrl || '');
   const [richContent, setRichContent] = useState(project.richContent || '');
   const [tags, setTags] = useState<string[]>(project.tags || []);
+  const [parentProjectId, setParentProjectId] = useState<string | null>(project.parentProjectId || null);
+  const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
   const [materialsList, setMaterialsList] = useState<Material[]>(() => {
     try {
       if (!project.materialsList) return [];
@@ -285,6 +295,14 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
     const newTags = tags.filter(t => t !== tag);
     setTags(newTags);
     updateProject(project.id, { tags: newTags });
+  };
+
+  // Project group handler
+  const handleProjectGroupChange = async (groupId: string) => {
+    const newGroupId = groupId === 'none' ? null : groupId;
+    setParentProjectId(newGroupId);
+    await updateProject(project.id, { parent_project_id: newGroupId });
+    router.refresh();
   };
   
   // Materials handlers
@@ -675,6 +693,15 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
       editingMaterialRef.current.select();
     }
   }, [editingMaterialId]);
+
+  // Load project groups
+  useEffect(() => {
+    const loadGroups = async () => {
+      const groups = await getAllProjectGroups();
+      setProjectGroups(groups);
+    };
+    loadGroups();
+  }, []);
   
   // Swipe back gesture for mobile with visual feedback
   const touchStartX = useRef(0);
@@ -1085,6 +1112,35 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
                 style={{ height: 'auto' }}
               />
               
+              {/* Project Group Selector */}
+              {projectGroups.length > 0 && (
+                <div className="flex items-center gap-3 pb-2">
+                  <label className="text-sm text-muted-foreground min-w-[80px]">Project:</label>
+                  <Select value={parentProjectId || 'none'} onValueChange={handleProjectGroupChange}>
+                    <SelectTrigger className="w-[200px] h-8">
+                      <SelectValue placeholder="No project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">
+                        <span className="text-muted-foreground">None</span>
+                      </SelectItem>
+                      {projectGroups.map(group => (
+                        <SelectItem key={group.id} value={group.id}>
+                          <div className="flex items-center gap-2">
+                            {group.emoji && <span>{group.emoji}</span>}
+                            <span>{group.name}</span>
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: group.color }}
+                            />
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               {/* Tags Row */}
               <div className="flex flex-wrap gap-2 items-center min-h-[32px]">
                 {tags.map(tag => (

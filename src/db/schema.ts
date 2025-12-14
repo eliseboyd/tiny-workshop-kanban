@@ -11,6 +11,7 @@ export const projects = pgTable('projects', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
   tags: text('tags').array(), 
   attachments: jsonb('attachments').$type<{ id: string; url: string; name: string; type: string; size: number }[]>().default([]),
+  parentProjectId: text('parent_project_id'), // For grouping cards under a project
 });
 
 export const columns = pgTable('columns', {
@@ -28,9 +29,24 @@ export const settings = pgTable('settings', {
   inProgressColTitle: text('in_progress_col_title').notNull().default('In Progress'),
   doneColTitle: text('done_col_title').notNull().default('Done'),
   cardSize: text('card_size').notNull().default('medium'), // compact, small, medium
+  visibleProjects: text('visible_projects').array().default([]), // Which project groups are visible by default
+  visibleTags: text('visible_tags').array().default([]), // Which tags are visible by default
+  hiddenProjects: text('hidden_projects').array().default([]), // Which project groups are hidden
+  hiddenTags: text('hidden_tags').array().default([]), // Which tags are hidden
 });
 
 export const tags = pgTable('tags', {
   name: text('name').primaryKey(),
   color: text('color').notNull().default('#64748b'),
+  emoji: text('emoji'),
+  icon: text('icon'),
+});
+
+export const projectGroups = pgTable('project_groups', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  color: text('color').notNull().default('#64748b'),
+  emoji: text('emoji'),
+  icon: text('icon'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
