@@ -95,8 +95,11 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
   const [viewingAttachment, setViewingAttachment] = useState<{ url: string; type: string; name: string } | null>(null);
   const [isHoveringCover, setIsHoveringCover] = useState(false);
   const [isHoveringInspiration, setIsHoveringInspiration] = useState(false);
+  const [editingMaterialId, setEditingMaterialId] = useState<string | null>(null);
+  const [editingMaterialText, setEditingMaterialText] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editingMaterialRef = useRef<HTMLInputElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
   const imageAreaRef = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -356,6 +359,31 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
     setMaterialsList(newList);
     await updateProject(project.id, { materialsList: newList });
     router.refresh();
+  };
+
+  const handleStartEditMaterial = (id: string, currentText: string) => {
+    setEditingMaterialId(id);
+    setEditingMaterialText(currentText);
+  };
+
+  const handleSaveEditMaterial = async () => {
+    if (!editingMaterialId || editingMaterialText.trim() === '') {
+      setEditingMaterialId(null);
+      return;
+    }
+    
+    const newList = materialsList.map(item => 
+      item.id === editingMaterialId ? { ...item, text: editingMaterialText.trim() } : item
+    );
+    setMaterialsList(newList);
+    await updateProject(project.id, { materialsList: newList });
+    router.refresh();
+    setEditingMaterialId(null);
+  };
+
+  const handleCancelEditMaterial = () => {
+    setEditingMaterialId(null);
+    setEditingMaterialText('');
   };
   
   // Plans handlers
@@ -639,6 +667,14 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
     container?.addEventListener('scroll', handleScroll);
     return () => container?.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Focus input when editing material
+  useEffect(() => {
+    if (editingMaterialId && editingMaterialRef.current) {
+      editingMaterialRef.current.focus();
+      editingMaterialRef.current.select();
+    }
+  }, [editingMaterialId]);
   
   // Swipe back gesture for mobile with visual feedback
   const touchStartX = useRef(0);
@@ -1110,9 +1146,35 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
               <div className="space-y-2">
                 {materialsList.map(item => (
                   <div key={item.id} className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20 hover:bg-muted/30 transition-colors group">
-                    <span className={cn("flex-1", item.toBuild && "line-through text-muted-foreground")}>
-                      {item.text}
-                    </span>
+                    {editingMaterialId === item.id ? (
+                      <input
+                        ref={editingMaterialRef}
+                        type="text"
+                        value={editingMaterialText}
+                        onChange={(e) => setEditingMaterialText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleSaveEditMaterial();
+                          } else if (e.key === 'Escape') {
+                            handleCancelEditMaterial();
+                          }
+                        }}
+                        onBlur={handleSaveEditMaterial}
+                        className="flex-1 bg-background px-2 py-1 rounded border border-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    ) : (
+                      <span 
+                        className={cn(
+                          "flex-1 cursor-pointer hover:bg-muted/50 px-2 py-1 rounded transition-colors",
+                          item.toBuild && "line-through text-muted-foreground"
+                        )}
+                        onClick={() => handleStartEditMaterial(item.id, item.text)}
+                        title="Click to edit"
+                      >
+                        {item.text}
+                      </span>
+                    )}
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
                         <Checkbox
