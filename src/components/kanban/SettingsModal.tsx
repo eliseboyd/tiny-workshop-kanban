@@ -418,7 +418,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleUpdateTag(tag.name, { icon: null })}
+                          onClick={() => handleUpdateTag(tag.name, { icon: undefined })}
                           title="Remove icon"
                         >
                           <X className="h-4 w-4" />
@@ -530,7 +530,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleUpdateProjectGroup(group.id, { icon: null })}
+                          onClick={() => handleUpdateProjectGroup(group.id, { icon: undefined })}
                           title="Remove icon"
                         >
                           <X className="h-4 w-4" />
