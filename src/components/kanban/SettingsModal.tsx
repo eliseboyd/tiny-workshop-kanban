@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -59,6 +60,11 @@ function TagItem({
   onIconUpload: (name: string, file: File) => void;
 }) {
   const [localColor, setLocalColor] = useState(tag.color);
+
+  // Sync local state when tag color changes
+  useEffect(() => {
+    setLocalColor(tag.color);
+  }, [tag.color]);
 
   return (
     <div className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
@@ -149,6 +155,11 @@ function ProjectGroupItem({
   onIconUpload: (id: string, file: File) => void;
 }) {
   const [localColor, setLocalColor] = useState(group.color);
+
+  // Sync local state when group color changes
+  useEffect(() => {
+    setLocalColor(group.color);
+  }, [group.color]);
 
   return (
     <div className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
