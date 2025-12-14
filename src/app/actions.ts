@@ -607,21 +607,69 @@ function extractFileName(url: string): string {
 
 export async function getAllTags() {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  
+  // Get all tags from the tags table
+  const { data: tagsData, error: tagsError } = await supabase
     .from('tags')
     .select('*')
     .order('name');
   
-  if (error) {
-    console.error('Error fetching tags:', error);
-    return [];
+  if (tagsError) {
+    console.error('Error fetching tags:', tagsError);
   }
   
-  return data;
+  // Get all unique tags from projects
+  const { data: projects, error: projectsError } = await supabase
+    .from('projects')
+    .select('tags');
+  
+  if (projectsError) {
+    console.error('Error fetching project tags:', projectsError);
+  }
+  
+  // Collect all unique tags from projects
+  const projectTagsSet = new Set<string>();
+  projects?.forEach(project => {
+    project.tags?.forEach((tag: string) => projectTagsSet.add(tag));
+  });
+  
+  // Create a map of existing tags
+  const tagsMap = new Map<string, any>();
+  tagsData?.forEach(tag => {
+    tagsMap.set(tag.name, tag);
+  });
+  
+  // Add project tags that don't exist in tags table yet
+  projectTagsSet.forEach(tagName => {
+    if (!tagsMap.has(tagName)) {
+      tagsMap.set(tagName, {
+        name: tagName,
+        color: '#64748b',
+        emoji: null,
+        icon: null,
+      });
+    }
+  });
+  
+  // Return all tags sorted by name
+  return Array.from(tagsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function createTag(tag: { name: string; color: string; emoji?: string; icon?: string }) {
   const supabase = await createClient();
+  
+  // Check if tag already exists
+  const { data: existing } = await supabase
+    .from('tags')
+    .select('name')
+    .eq('name', tag.name)
+    .single();
+  
+  if (existing) {
+    // Tag already exists, just update it
+    return updateTag(tag.name, { color: tag.color, emoji: tag.emoji, icon: tag.icon });
+  }
+  
   const { error } = await supabase
     .from('tags')
     .insert(tag);
@@ -632,6 +680,30 @@ export async function createTag(tag: { name: string; color: string; emoji?: stri
   }
   
   revalidatePath('/');
+}
+
+// Auto-create tag if it doesn't exist (called when adding tags to projects)
+export async function ensureTagExists(tagName: string) {
+  const supabase = await createClient();
+  
+  // Check if tag exists
+  const { data: existing } = await supabase
+    .from('tags')
+    .select('name')
+    .eq('name', tagName)
+    .single();
+  
+  if (!existing) {
+    // Create tag with default values
+    await supabase
+      .from('tags')
+      .insert({
+        name: tagName,
+        color: '#64748b',
+        emoji: null,
+        icon: null,
+      });
+  }
 }
 
 export async function updateTag(name: string, updates: { color?: string; emoji?: string; icon?: string }) {

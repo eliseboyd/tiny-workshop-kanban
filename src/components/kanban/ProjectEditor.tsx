@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import { Project } from './KanbanBoard';
-import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups } from '@/app/actions';
+import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists } from '@/app/actions';
 import Image from 'next/image';
 import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -35,6 +35,13 @@ type ProjectGroup = {
   icon?: string;
 };
 
+type TagMetadata = {
+  name: string;
+  color: string;
+  emoji?: string;
+  icon?: string;
+};
+
 type ProjectEditorProps = {
   project: Project;
   onClose?: () => void;
@@ -55,6 +62,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
   const [tags, setTags] = useState<string[]>(project.tags || []);
   const [parentProjectId, setParentProjectId] = useState<string | null>(project.parentProjectId || null);
   const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
+  const [allTags, setAllTags] = useState<TagMetadata[]>([]);
   const [materialsList, setMaterialsList] = useState<Material[]>(() => {
     try {
       if (!project.materialsList) return [];
@@ -280,21 +288,44 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
   };
   
   // Tags handlers
-  const handleAddTag = (tag: string) => {
+  const handleAddTag = async (tag: string) => {
     const trimmed = tag.trim().toLowerCase().replace(/^#/, '');
     if (!trimmed || tags.includes(trimmed)) return;
+    
+    // Ensure tag exists in database
+    await ensureTagExists(trimmed);
+    
     const newTags = [...tags, trimmed];
     setTags(newTags);
-    updateProject(project.id, { tags: newTags });
+    await updateProject(project.id, { tags: newTags });
     setTagInput('');
     setShowTagSuggestions(false);
+    
+    // Reload tags to get the newly created one
+    const tagsData = await getAllTags();
+    setAllTags(tagsData);
+    
+    router.refresh();
   };
   
-  const handleRemoveTag = (tag: string) => {
+  const handleRemoveTag = async (tag: string) => {
     const newTags = tags.filter(t => t !== tag);
     setTags(newTags);
-    updateProject(project.id, { tags: newTags });
+    await updateProject(project.id, { tags: newTags });
+    router.refresh();
   };
+
+  // Get tag suggestions for autocomplete
+  const tagSuggestions = useMemo(() => {
+    if (!tagInput.trim()) return [];
+    const input = tagInput.toLowerCase().replace(/^#/, '');
+    return allTags
+      .filter(tag => 
+        tag.name.toLowerCase().includes(input) && 
+        !tags.includes(tag.name)
+      )
+      .slice(0, 5);
+  }, [tagInput, allTags, tags]);
 
   // Project group handler
   const handleProjectGroupChange = async (groupId: string) => {
@@ -693,13 +724,17 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
     }
   }, [editingMaterialId]);
 
-  // Load project groups
+  // Load project groups and tags
   useEffect(() => {
-    const loadGroups = async () => {
-      const groups = await getAllProjectGroups();
+    const loadData = async () => {
+      const [groups, tagsData] = await Promise.all([
+        getAllProjectGroups(),
+        getAllTags(),
+      ]);
       setProjectGroups(groups);
+      setAllTags(tagsData);
     };
-    loadGroups();
+    loadData();
   }, []);
   
   // Swipe back gesture for mobile with visual feedback
@@ -1137,14 +1172,27 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
 
               {/* Tags Row */}
               <div className="flex flex-wrap gap-2 items-center min-h-[32px]">
-                {tags.map(tag => (
-                  <Badge key={tag} variant="outline" className="gap-1 pr-1 bg-transparent hover:bg-secondary/30 text-sm font-normal text-muted-foreground border-transparent hover:border-border transition-all">
-                    #{tag}
-                    <button onClick={() => handleRemoveTag(tag)} className="hover:text-foreground rounded-full p-0.5 ml-1 transition-colors">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
+                {tags.map(tag => {
+                  const tagMeta = allTags.find(t => t.name === tag);
+                  return (
+                    <Badge 
+                      key={tag} 
+                      variant="outline" 
+                      className="gap-1 pr-1 text-sm font-normal transition-all"
+                      style={{
+                        backgroundColor: tagMeta?.color ? `${tagMeta.color}20` : undefined,
+                        borderColor: tagMeta?.color || undefined,
+                        color: tagMeta?.color || undefined,
+                      }}
+                    >
+                      {tagMeta?.emoji && <span>{tagMeta.emoji}</span>}
+                      #{tag}
+                      <button onClick={() => handleRemoveTag(tag)} className="hover:opacity-70 rounded-full p-0.5 ml-1 transition-opacity">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
                 <div className="relative min-w-[120px]">
                   <input
                     ref={tagInputRef}
@@ -1164,6 +1212,24 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                     className="w-full text-sm bg-transparent border-none outline-none text-muted-foreground placeholder:text-muted-foreground/30"
                     placeholder="Add tag..."
                   />
+                  {showTagSuggestions && tagSuggestions.length > 0 && (
+                    <div className="absolute top-full left-0 mt-1 bg-popover border rounded-md shadow-md z-50 min-w-[200px] max-w-[300px]">
+                      {tagSuggestions.map(tag => (
+                        <button
+                          key={tag.name}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors flex items-center gap-2"
+                          onClick={() => handleAddTag(tag.name)}
+                        >
+                          {tag.emoji && <span className="text-base">{tag.emoji}</span>}
+                          <span className="flex-1">#{tag.name}</span>
+                          <div 
+                            className="w-3 h-3 rounded-full flex-shrink-0" 
+                            style={{ backgroundColor: tag.color }}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
