@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { ChevronDown, ChevronUp, Package, GripVertical } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
@@ -96,7 +95,7 @@ function SortableDashboardItem({
           }}
         >
           <div className="p-4 flex flex-col items-start gap-2">
-            <div className="flex items-center justify-between w-full">
+            <div className="w-full">
               {item.icon ? (
                 <div className="relative w-10 h-10 flex-shrink-0">
                   <Image
@@ -116,17 +115,6 @@ function SortableDashboardItem({
                   style={{ backgroundColor: item.color }}
                 />
               )}
-              <Badge 
-                variant="secondary" 
-                className="h-6 text-xs font-semibold"
-                style={{
-                  backgroundColor: `${item.color}20`,
-                  color: item.color,
-                  borderColor: item.color,
-                }}
-              >
-                {item.count}
-              </Badge>
             </div>
             <div className="w-full text-left">
               <p 
@@ -200,9 +188,10 @@ export function DashboardSection({
   onReorder,
 }: DashboardSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
+  const [items, setItems] = useState<DashboardItem[]>([]);
 
-  // Combine tags and projects into a single array
-  const [items, setItems] = useState<DashboardItem[]>(() => {
+  // Combine tags and projects into a single array with useMemo to avoid cascading renders
+  const combinedItems = useMemo(() => {
     const combined: DashboardItem[] = [
       ...projectGroups.map(g => ({
         id: `project-${g.id}`,
@@ -223,33 +212,8 @@ export function DashboardSection({
         count: t.count,
       })),
     ];
-    return combined;
-  });
-
-  // Update items when props change
-  useEffect(() => {
-    const combined: DashboardItem[] = [
-      ...projectGroups.map(g => ({
-        id: `project-${g.id}`,
-        type: 'project' as const,
-        name: g.name,
-        color: g.color,
-        emoji: g.emoji,
-        icon: g.icon,
-        count: g.count,
-      })),
-      ...tags.map(t => ({
-        id: `tag-${t.name}`,
-        type: 'tag' as const,
-        name: t.name,
-        color: t.color,
-        emoji: t.emoji,
-        icon: t.icon,
-        count: t.count,
-      })),
-    ];
-    setItems(combined);
-  }, [projectGroups, tags]);
+    return items.length > 0 ? items : combined;
+  }, [projectGroups, tags, items]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -262,22 +226,24 @@ export function DashboardSection({
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      setItems((items) => {
-        const oldIndex = items.findIndex(item => item.id === active.id);
-        const newIndex = items.findIndex(item => item.id === over.id);
-        const newItems = arrayMove(items, oldIndex, newIndex);
+      setItems((currentItems) => {
+        const oldIndex = currentItems.findIndex(item => item.id === active.id);
+        const newIndex = currentItems.findIndex(item => item.id === over.id);
+        const newItems = arrayMove(currentItems, oldIndex, newIndex);
         onReorder?.(newItems);
         return newItems;
       });
     }
   };
 
-  if (items.length === 0) {
+  const displayItems = items.length > 0 ? items : combinedItems;
+
+  if (displayItems.length === 0) {
     return null;
   }
 
-  const projectCount = items.filter(i => i.type === 'project').length;
-  const tagCount = items.filter(i => i.type === 'tag').length;
+  const projectCount = displayItems.filter(i => i.type === 'project').length;
+  const tagCount = displayItems.filter(i => i.type === 'tag').length;
 
   return (
     <div className="border-b bg-gradient-to-br from-background via-background to-muted/20">
@@ -308,9 +274,9 @@ export function DashboardSection({
               collisionDetection={closestCenter}
               onDragEnd={handleDragEnd}
             >
-              <SortableContext items={items.map(i => i.id)} strategy={rectSortingStrategy}>
+              <SortableContext items={displayItems.map(i => i.id)} strategy={rectSortingStrategy}>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                  {items.map(item => (
+                  {displayItems.map(item => (
                     <SortableDashboardItem
                       key={item.id}
                       item={item}
@@ -327,6 +293,17 @@ export function DashboardSection({
               </SortableContext>
             </DndContext>
 
+            {/* Quick Stats */}
+            <div className="flex items-center gap-4 pt-2 border-t text-xs text-muted-foreground">
+              <span>{projectCount} projects</span>
+              <span>•</span>
+              <span>{tagCount} tags</span>
+              <span>•</span>
+              <span className="flex items-center gap-1">
+                <Package className="h-3 w-3" />
+                {displayItems.filter(i => i.type === 'project').reduce((acc, i) => acc + i.count, 0)} cards total
+              </span>
+            </div>
           </div>
         )}
       </div>
