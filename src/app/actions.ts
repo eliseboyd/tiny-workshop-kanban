@@ -106,6 +106,7 @@ export async function updateProject(id: string, data: any) {
   if (data.attachments !== undefined) dbData.attachments = data.attachments;
   if (data.status !== undefined) dbData.status = data.status;
   if (data.position !== undefined) dbData.position = data.position;
+  if (data.parent_project_id !== undefined) dbData.parent_project_id = data.parent_project_id;
 
   console.log('[Server] Updating project', id, 'with data:', dbData);
 
