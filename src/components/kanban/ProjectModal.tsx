@@ -8,10 +8,9 @@ type ProjectModalProps = {
   project: Project;
   isOpen: boolean;
   onClose: () => void;
-  existingTags?: string[];
 };
 
-export function ProjectModal({ project, isOpen, onClose, existingTags = [] }: ProjectModalProps) {
+export function ProjectModal({ project, isOpen, onClose }: ProjectModalProps) {
   if (!project) return null;
   
   return (
@@ -20,7 +19,6 @@ export function ProjectModal({ project, isOpen, onClose, existingTags = [] }: Pr
         <DialogTitle className="sr-only">Edit Project</DialogTitle>
         <ProjectEditor
             project={project}
-            existingTags={existingTags}
             onClose={onClose}
             isModal={true}
         />

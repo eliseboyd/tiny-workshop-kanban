@@ -37,13 +37,12 @@ type ProjectGroup = {
 
 type ProjectEditorProps = {
   project: Project;
-  existingTags?: string[];
   onClose?: () => void;
   isModal?: boolean;
   className?: string;
 };
 
-export function ProjectEditor({ project, existingTags = [], onClose, isModal = false, className }: ProjectEditorProps) {
+export function ProjectEditor({ project, onClose, isModal = false, className }: ProjectEditorProps) {
   const router = useRouter();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -758,11 +757,6 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
     }
   };
   
-  // Tag suggestions
-  const filteredSuggestions = existingTags.filter(
-    tag => tag.toLowerCase().includes(tagInput.toLowerCase()) && !tags.includes(tag)
-  );
-  
   return (
     <div className={cn("flex h-full bg-background relative", className)}>
       {/* Swipe Back Indicator - Fixed position, outside scroll */}
@@ -1170,19 +1164,6 @@ export function ProjectEditor({ project, existingTags = [], onClose, isModal = f
                     className="w-full text-sm bg-transparent border-none outline-none text-muted-foreground placeholder:text-muted-foreground/30"
                     placeholder="Add tag..."
                   />
-                  {showTagSuggestions && filteredSuggestions.length > 0 && (
-                    <div className="absolute top-full left-0 mt-1 bg-popover border rounded-md shadow-md z-50 min-w-[150px]">
-                      {filteredSuggestions.slice(0, 5).map(tag => (
-                        <button
-                          key={tag}
-                          className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent transition-colors"
-                          onClick={() => handleAddTag(tag)}
-                        >
-                          #{tag}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
             </div>

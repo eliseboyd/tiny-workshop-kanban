@@ -569,7 +569,6 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
           project={editingProject}
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          existingTags={allTags}
         />
       )}
       <SettingsModal
