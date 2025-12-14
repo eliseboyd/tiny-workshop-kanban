@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Package, GripVertical } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -187,7 +188,7 @@ export function DashboardSection({
   onProjectClick,
   onReorder,
 }: DashboardSectionProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useLocalStorage('dashboard-expanded', true);
   const [items, setItems] = useState<DashboardItem[]>([]);
 
   // Combine tags and projects into a single array with useMemo to avoid cascading renders
