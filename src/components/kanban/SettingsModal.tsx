@@ -370,7 +370,21 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <div className="space-y-2">
                   {tags.map((tag) => (
                     <div key={tag.name} className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                      <span className="text-xl">{tag.emoji || '🏷️'}</span>
+                      {/* Icon or Emoji Display */}
+                      {tag.icon ? (
+                        <div className="relative w-8 h-8 flex-shrink-0">
+                          <Image
+                            src={tag.icon}
+                            alt={tag.name}
+                            width={32}
+                            height={32}
+                            className="rounded object-cover"
+                            unoptimized
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-xl">{tag.emoji || '🏷️'}</span>
+                      )}
                       <div
                         className="w-4 h-4 rounded-full flex-shrink-0"
                         style={{ backgroundColor: tag.color }}
@@ -382,10 +396,39 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         onChange={(e) => handleUpdateTag(tag.name, { color: e.target.value })}
                         className="w-16 h-8"
                       />
+                      {/* Icon Upload */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.accept = 'image/*';
+                          input.onchange = (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0];
+                            if (file) handleTagIconUpload(tag.name, file);
+                          };
+                          input.click();
+                        }}
+                        title="Upload icon"
+                      >
+                        <Upload className="h-4 w-4" />
+                      </Button>
+                      {tag.icon && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleUpdateTag(tag.name, { icon: null })}
+                          title="Remove icon"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => handleDeleteTag(tag.name)}
+                        title="Delete tag"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -439,7 +482,21 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <div className="space-y-2">
                   {projectGroups.map((group) => (
                     <div key={group.id} className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                      <span className="text-xl">{group.emoji || '📁'}</span>
+                      {/* Icon or Emoji Display */}
+                      {group.icon ? (
+                        <div className="relative w-8 h-8 flex-shrink-0">
+                          <Image
+                            src={group.icon}
+                            alt={group.name}
+                            width={32}
+                            height={32}
+                            className="rounded object-cover"
+                            unoptimized
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-xl">{group.emoji || '📁'}</span>
+                      )}
                       <div
                         className="w-4 h-4 rounded-full flex-shrink-0"
                         style={{ backgroundColor: group.color }}
@@ -451,10 +508,39 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         onChange={(e) => handleUpdateProjectGroup(group.id, { color: e.target.value })}
                         className="w-16 h-8"
                       />
+                      {/* Icon Upload */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.accept = 'image/*';
+                          input.onchange = (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0];
+                            if (file) handleProjectGroupIconUpload(group.id, file);
+                          };
+                          input.click();
+                        }}
+                        title="Upload icon"
+                      >
+                        <Upload className="h-4 w-4" />
+                      </Button>
+                      {group.icon && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleUpdateProjectGroup(group.id, { icon: null })}
+                          title="Remove icon"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => handleDeleteProjectGroup(group.id, group.name)}
+                        title="Delete project group"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

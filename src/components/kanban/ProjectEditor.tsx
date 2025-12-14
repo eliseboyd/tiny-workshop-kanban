@@ -1185,7 +1185,20 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                         color: tagMeta?.color || undefined,
                       }}
                     >
-                      {tagMeta?.emoji && <span>{tagMeta.emoji}</span>}
+                      {tagMeta?.icon ? (
+                        <div className="relative w-4 h-4 flex-shrink-0">
+                          <Image
+                            src={tagMeta.icon}
+                            alt={tag}
+                            width={16}
+                            height={16}
+                            className="rounded object-cover"
+                            unoptimized
+                          />
+                        </div>
+                      ) : tagMeta?.emoji ? (
+                        <span>{tagMeta.emoji}</span>
+                      ) : null}
                       #{tag}
                       <button onClick={() => handleRemoveTag(tag)} className="hover:opacity-70 rounded-full p-0.5 ml-1 transition-opacity">
                         <X className="h-3 w-3" />

@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Package, Tag as TagIcon, Hash } from 'lucide-re
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 type Tag = {
   name: string;
@@ -91,11 +92,22 @@ export function DashboardSection({
                     >
                       <div className="p-4 flex flex-col items-start gap-2">
                         <div className="flex items-center justify-between w-full">
-                          {group.emoji ? (
+                          {group.icon ? (
+                            <div className="relative w-10 h-10 flex-shrink-0">
+                              <Image
+                                src={group.icon}
+                                alt={group.name}
+                                width={40}
+                                height={40}
+                                className="rounded-lg object-cover"
+                                unoptimized
+                              />
+                            </div>
+                          ) : group.emoji ? (
                             <span className="text-3xl">{group.emoji}</span>
                           ) : (
                             <div 
-                              className="w-8 h-8 rounded-lg"
+                              className="w-10 h-10 rounded-lg"
                               style={{ backgroundColor: group.color }}
                             />
                           )}
@@ -155,9 +167,20 @@ export function DashboardSection({
                       }}
                     >
                       <div className="flex items-center gap-2">
-                        {tag.emoji && (
+                        {tag.icon ? (
+                          <div className="relative w-5 h-5 flex-shrink-0">
+                            <Image
+                              src={tag.icon}
+                              alt={tag.name}
+                              width={20}
+                              height={20}
+                              className="rounded object-cover"
+                              unoptimized
+                            />
+                          </div>
+                        ) : tag.emoji ? (
                           <span className="text-base">{tag.emoji}</span>
-                        )}
+                        ) : null}
                         <span 
                           className="font-medium text-sm"
                           style={{ color: tag.color }}
