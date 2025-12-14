@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Package, GripVertical } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -227,7 +227,7 @@ export function DashboardSection({
   });
 
   // Update items when props change
-  useState(() => {
+  useEffect(() => {
     const combined: DashboardItem[] = [
       ...projectGroups.map(g => ({
         id: `project-${g.id}`,
@@ -249,7 +249,7 @@ export function DashboardSection({
       })),
     ];
     setItems(combined);
-  });
+  }, [projectGroups, tags]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
