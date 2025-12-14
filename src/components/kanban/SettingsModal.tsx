@@ -390,12 +390,30 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         style={{ backgroundColor: tag.color }}
                       />
                       <span className="flex-1 font-medium">{tag.name}</span>
-                      <Input
-                        type="color"
-                        value={tag.color}
-                        onBlur={(e) => handleUpdateTag(tag.name, { color: e.target.value })}
-                        className="w-16 h-8"
-                      />
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-8 h-8 rounded border flex-shrink-0"
+                          style={{ backgroundColor: tag.color }}
+                        />
+                        <Input
+                          type="text"
+                          value={tag.color}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                              handleUpdateTag(tag.name, { color: value });
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const value = e.target.value;
+                            if (!/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                              e.target.value = tag.color;
+                            }
+                          }}
+                          placeholder="#64748b"
+                          className="w-24 h-8 font-mono text-xs"
+                        />
+                      </div>
                       {/* Icon Upload */}
                       <Button
                         size="sm"
@@ -502,12 +520,30 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         style={{ backgroundColor: group.color }}
                       />
                       <span className="flex-1 font-medium">{group.name}</span>
-                      <Input
-                        type="color"
-                        value={group.color}
-                        onBlur={(e) => handleUpdateProjectGroup(group.id, { color: e.target.value })}
-                        className="w-16 h-8"
-                      />
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-8 h-8 rounded border flex-shrink-0"
+                          style={{ backgroundColor: group.color }}
+                        />
+                        <Input
+                          type="text"
+                          value={group.color}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                              handleUpdateProjectGroup(group.id, { color: value });
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const value = e.target.value;
+                            if (!/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                              e.target.value = group.color;
+                            }
+                          }}
+                          placeholder="#64748b"
+                          className="w-24 h-8 font-mono text-xs"
+                        />
+                      </div>
                       {/* Icon Upload */}
                       <Button
                         size="sm"

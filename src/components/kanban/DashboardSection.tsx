@@ -289,12 +289,7 @@ export function DashboardSection({
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <Package className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-bold">Overview</h2>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>{projectCount} projects</span>
-              <span>•</span>
-              <span>{tagCount} tags</span>
+              <h2 className="text-lg font-bold">Dashboard</h2>
             </div>
           </div>
           {isExpanded ? (
@@ -306,9 +301,6 @@ export function DashboardSection({
 
         {isExpanded && (
           <div className="mt-4 space-y-4">
-            <p className="text-xs text-muted-foreground">
-              💡 Drag cards to reorder • Mixed projects and tags
-            </p>
 
             {/* Unified Draggable Grid */}
             <DndContext
@@ -335,18 +327,6 @@ export function DashboardSection({
               </SortableContext>
             </DndContext>
 
-            {/* Quick Stats */}
-            <div className="flex items-center gap-4 pt-2 border-t text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Package className="h-3 w-3" />
-                {items.filter(i => i.type === 'project').reduce((acc, i) => acc + i.count, 0)} cards in projects
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1">
-                <Package className="h-3 w-3" />
-                {items.filter(i => i.type === 'tag').reduce((acc, i) => acc + i.count, 0)} tag uses
-              </span>
-            </div>
           </div>
         )}
       </div>
