@@ -46,6 +46,186 @@ type ProjectGroup = {
   icon?: string;
 };
 
+// Tag item component with local color state
+function TagItem({ 
+  tag, 
+  onUpdate, 
+  onDelete, 
+  onIconUpload 
+}: { 
+  tag: Tag; 
+  onUpdate: (name: string, updates: Partial<Tag>) => void;
+  onDelete: (name: string) => void;
+  onIconUpload: (name: string, file: File) => void;
+}) {
+  const [localColor, setLocalColor] = useState(tag.color);
+
+  return (
+    <div className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+      {tag.icon ? (
+        <div className="relative w-8 h-8 flex-shrink-0">
+          <Image
+            src={tag.icon}
+            alt={tag.name}
+            width={32}
+            height={32}
+            className="rounded object-cover"
+            unoptimized
+          />
+        </div>
+      ) : (
+        <span className="text-xl">{tag.emoji || '🏷️'}</span>
+      )}
+      <span className="flex-1 font-medium">{tag.name}</span>
+      <div className="flex items-center gap-2">
+        <div 
+          className="w-8 h-8 rounded border flex-shrink-0"
+          style={{ backgroundColor: /^#[0-9A-Fa-f]{6}$/.test(localColor) ? localColor : tag.color }}
+        />
+        <Input
+          type="text"
+          value={localColor}
+          onChange={(e) => setLocalColor(e.target.value)}
+          onBlur={() => {
+            if (/^#[0-9A-Fa-f]{6}$/.test(localColor) && localColor !== tag.color) {
+              onUpdate(tag.name, { color: localColor });
+            } else if (!/^#[0-9A-Fa-f]{6}$/.test(localColor)) {
+              setLocalColor(tag.color);
+            }
+          }}
+          placeholder="#64748b"
+          className="w-24 h-8 font-mono text-xs"
+        />
+      </div>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = 'image/*';
+          input.onchange = (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) onIconUpload(tag.name, file);
+          };
+          input.click();
+        }}
+        title="Upload icon"
+      >
+        <Upload className="h-4 w-4" />
+      </Button>
+      {tag.icon && (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onUpdate(tag.name, { icon: undefined })}
+          title="Remove icon"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      )}
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => onDelete(tag.name)}
+        title="Delete tag"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
+// Project group item component with local color state
+function ProjectGroupItem({ 
+  group, 
+  onUpdate, 
+  onDelete, 
+  onIconUpload 
+}: { 
+  group: ProjectGroup; 
+  onUpdate: (id: string, updates: Partial<ProjectGroup>) => void;
+  onDelete: (id: string, name: string) => void;
+  onIconUpload: (id: string, file: File) => void;
+}) {
+  const [localColor, setLocalColor] = useState(group.color);
+
+  return (
+    <div className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+      {group.icon ? (
+        <div className="relative w-8 h-8 flex-shrink-0">
+          <Image
+            src={group.icon}
+            alt={group.name}
+            width={32}
+            height={32}
+            className="rounded object-cover"
+            unoptimized
+          />
+        </div>
+      ) : (
+        <span className="text-xl">{group.emoji || '📁'}</span>
+      )}
+      <span className="flex-1 font-medium">{group.name}</span>
+      <div className="flex items-center gap-2">
+        <div 
+          className="w-8 h-8 rounded border flex-shrink-0"
+          style={{ backgroundColor: /^#[0-9A-Fa-f]{6}$/.test(localColor) ? localColor : group.color }}
+        />
+        <Input
+          type="text"
+          value={localColor}
+          onChange={(e) => setLocalColor(e.target.value)}
+          onBlur={() => {
+            if (/^#[0-9A-Fa-f]{6}$/.test(localColor) && localColor !== group.color) {
+              onUpdate(group.id, { color: localColor });
+            } else if (!/^#[0-9A-Fa-f]{6}$/.test(localColor)) {
+              setLocalColor(group.color);
+            }
+          }}
+          placeholder="#64748b"
+          className="w-24 h-8 font-mono text-xs"
+        />
+      </div>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = 'image/*';
+          input.onchange = (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) onIconUpload(group.id, file);
+          };
+          input.click();
+        }}
+        title="Upload icon"
+      >
+        <Upload className="h-4 w-4" />
+      </Button>
+      {group.icon && (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onUpdate(group.id, { icon: undefined })}
+          title="Remove icon"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      )}
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => onDelete(group.id, group.name)}
+        title="Delete project group"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
@@ -368,83 +548,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {tags.map((tag) => {
-                    const [localColor, setLocalColor] = useState(tag.color);
-                    return (
-                      <div key={tag.name} className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                        {/* Icon or Emoji Display */}
-                        {tag.icon ? (
-                          <div className="relative w-8 h-8 flex-shrink-0">
-                            <Image
-                              src={tag.icon}
-                              alt={tag.name}
-                              width={32}
-                              height={32}
-                              className="rounded object-cover"
-                              unoptimized
-                            />
-                          </div>
-                        ) : (
-                          <span className="text-xl">{tag.emoji || '🏷️'}</span>
-                        )}
-                        <span className="flex-1 font-medium">{tag.name}</span>
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-8 h-8 rounded border flex-shrink-0"
-                            style={{ backgroundColor: /^#[0-9A-Fa-f]{6}$/.test(localColor) ? localColor : tag.color }}
-                          />
-                          <Input
-                            type="text"
-                            value={localColor}
-                            onChange={(e) => setLocalColor(e.target.value)}
-                            onBlur={() => {
-                              if (/^#[0-9A-Fa-f]{6}$/.test(localColor) && localColor !== tag.color) {
-                                handleUpdateTag(tag.name, { color: localColor });
-                              } else if (!/^#[0-9A-Fa-f]{6}$/.test(localColor)) {
-                                setLocalColor(tag.color);
-                              }
-                            }}
-                            placeholder="#64748b"
-                            className="w-24 h-8 font-mono text-xs"
-                          />
-                        </div>
-                      {/* Icon Upload */}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          const input = document.createElement('input');
-                          input.type = 'file';
-                          input.accept = 'image/*';
-                          input.onchange = (e) => {
-                            const file = (e.target as HTMLInputElement).files?.[0];
-                            if (file) handleTagIconUpload(tag.name, file);
-                          };
-                          input.click();
-                        }}
-                        title="Upload icon"
-                      >
-                        <Upload className="h-4 w-4" />
-                      </Button>
-                      {tag.icon && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleUpdateTag(tag.name, { icon: undefined })}
-                          title="Remove icon"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDeleteTag(tag.name)}
-                        title="Delete tag"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                  {tags.map((tag) => (
+                    <TagItem
+                      key={tag.name}
+                      tag={tag}
+                      onUpdate={handleUpdateTag}
+                      onDelete={handleDeleteTag}
+                      onIconUpload={handleTagIconUpload}
+                    />
                   ))}
                 </div>
               )}
@@ -492,83 +603,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {projectGroups.map((group) => {
-                    const [localColor, setLocalColor] = useState(group.color);
-                    return (
-                      <div key={group.id} className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                        {/* Icon or Emoji Display */}
-                        {group.icon ? (
-                          <div className="relative w-8 h-8 flex-shrink-0">
-                            <Image
-                              src={group.icon}
-                              alt={group.name}
-                              width={32}
-                              height={32}
-                              className="rounded object-cover"
-                              unoptimized
-                            />
-                          </div>
-                        ) : (
-                          <span className="text-xl">{group.emoji || '📁'}</span>
-                        )}
-                        <span className="flex-1 font-medium">{group.name}</span>
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-8 h-8 rounded border flex-shrink-0"
-                            style={{ backgroundColor: /^#[0-9A-Fa-f]{6}$/.test(localColor) ? localColor : group.color }}
-                          />
-                          <Input
-                            type="text"
-                            value={localColor}
-                            onChange={(e) => setLocalColor(e.target.value)}
-                            onBlur={() => {
-                              if (/^#[0-9A-Fa-f]{6}$/.test(localColor) && localColor !== group.color) {
-                                handleUpdateProjectGroup(group.id, { color: localColor });
-                              } else if (!/^#[0-9A-Fa-f]{6}$/.test(localColor)) {
-                                setLocalColor(group.color);
-                              }
-                            }}
-                            placeholder="#64748b"
-                            className="w-24 h-8 font-mono text-xs"
-                          />
-                        </div>
-                      {/* Icon Upload */}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          const input = document.createElement('input');
-                          input.type = 'file';
-                          input.accept = 'image/*';
-                          input.onchange = (e) => {
-                            const file = (e.target as HTMLInputElement).files?.[0];
-                            if (file) handleProjectGroupIconUpload(group.id, file);
-                          };
-                          input.click();
-                        }}
-                        title="Upload icon"
-                      >
-                        <Upload className="h-4 w-4" />
-                      </Button>
-                      {group.icon && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleUpdateProjectGroup(group.id, { icon: undefined })}
-                          title="Remove icon"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDeleteProjectGroup(group.id, group.name)}
-                        title="Delete project group"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                  {projectGroups.map((group) => (
+                    <ProjectGroupItem
+                      key={group.id}
+                      group={group}
+                      onUpdate={handleUpdateProjectGroup}
+                      onDelete={handleDeleteProjectGroup}
+                      onIconUpload={handleProjectGroupIconUpload}
+                    />
                   ))}
                 </div>
               )}
