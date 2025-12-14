@@ -471,17 +471,31 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
       setShowUngrouped(false);
   };
 
-  // Dashboard click handlers
+  // Dashboard click handlers - replace filters, don't add
   const handleDashboardTagClick = (tag: string) => {
-      setActiveTags(prev => 
-          prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
-      );
+      // If this tag is the only active filter, clear it
+      if (activeTags.length === 1 && activeTags[0] === tag && activeGroups.length === 0) {
+          setActiveTags([]);
+      } else {
+          // Otherwise, clear all filters and show only this tag
+          setActiveTags([tag]);
+          setActiveGroups([]);
+          setShowUntagged(false);
+          setShowUngrouped(false);
+      }
   };
 
   const handleDashboardProjectClick = (groupId: string) => {
-      setActiveGroups(prev => 
-          prev.includes(groupId) ? prev.filter(g => g !== groupId) : [...prev, groupId]
-      );
+      // If this project is the only active filter, clear it
+      if (activeGroups.length === 1 && activeGroups[0] === groupId && activeTags.length === 0) {
+          setActiveGroups([]);
+      } else {
+          // Otherwise, clear all filters and show only this project
+          setActiveGroups([groupId]);
+          setActiveTags([]);
+          setShowUntagged(false);
+          setShowUngrouped(false);
+      }
   };
 
   const handleToggleUntagged = () => {
