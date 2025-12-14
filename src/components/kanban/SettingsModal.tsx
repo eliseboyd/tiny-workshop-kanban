@@ -393,7 +393,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <Input
                         type="color"
                         value={tag.color}
-                        onChange={(e) => handleUpdateTag(tag.name, { color: e.target.value })}
+                        onBlur={(e) => handleUpdateTag(tag.name, { color: e.target.value })}
                         className="w-16 h-8"
                       />
                       {/* Icon Upload */}
@@ -505,7 +505,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <Input
                         type="color"
                         value={group.color}
-                        onChange={(e) => handleUpdateProjectGroup(group.id, { color: e.target.value })}
+                        onBlur={(e) => handleUpdateProjectGroup(group.id, { color: e.target.value })}
                         className="w-16 h-8"
                       />
                       {/* Icon Upload */}

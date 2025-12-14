@@ -1142,18 +1142,22 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
               />
               
               {/* Project Group Selector */}
-              {projectGroups.length > 0 && (
-                <div className="flex items-center gap-3 pb-2">
-                  <label className="text-sm text-muted-foreground min-w-[80px]">Project:</label>
-                  <Select value={parentProjectId || 'none'} onValueChange={handleProjectGroupChange}>
-                    <SelectTrigger className="w-[200px] h-8">
-                      <SelectValue placeholder="No project" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">
-                        <span className="text-muted-foreground">None</span>
-                      </SelectItem>
-                      {projectGroups.map(group => (
+              <div className="flex items-center gap-3 pb-2">
+                <label className="text-sm text-muted-foreground min-w-[80px]">Project:</label>
+                <Select value={parentProjectId || 'none'} onValueChange={handleProjectGroupChange}>
+                  <SelectTrigger className="w-[200px] h-8">
+                    <SelectValue placeholder="No project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">
+                      <span className="text-muted-foreground">None</span>
+                    </SelectItem>
+                    {projectGroups.length === 0 ? (
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                        Create project groups in Settings
+                      </div>
+                    ) : (
+                      projectGroups.map(group => (
                         <SelectItem key={group.id} value={group.id}>
                           <div className="flex items-center gap-2">
                             {group.emoji && <span>{group.emoji}</span>}
@@ -1164,11 +1168,11 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                             />
                           </div>
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
 
               {/* Tags Row */}
               <div className="flex flex-wrap gap-2 items-center min-h-[32px]">
