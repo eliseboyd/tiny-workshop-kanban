@@ -15,7 +15,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getSettings, updateSettings, getAllMediaFiles, deleteMediaFile, getAllTags, createTag, updateTag, deleteTag, getAllProjectGroups, createProjectGroup, updateProjectGroup, deleteProjectGroup, uploadFile } from '@/app/actions';
 import { logout } from '@/app/login/actions';
-import { Loader2, LogOut, Trash2, Image as ImageIcon, FileText, Plus, Edit2, Upload } from 'lucide-react';
+import { Loader2, LogOut, Trash2, Image as ImageIcon, FileText, Plus, Edit2, Upload, X } from 'lucide-react';
 import Image from 'next/image';
 
 type SettingsModalProps = {
