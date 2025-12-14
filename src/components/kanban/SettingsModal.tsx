@@ -13,9 +13,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getSettings, updateSettings, getAllMediaFiles, deleteMediaFile, getAllTags, createTag, updateTag, deleteTag, getAllProjectGroups, createProjectGroup, updateProjectGroup, deleteProjectGroup } from '@/app/actions';
+import { getSettings, updateSettings, getAllMediaFiles, deleteMediaFile, getAllTags, createTag, updateTag, deleteTag, getAllProjectGroups, createProjectGroup, updateProjectGroup, deleteProjectGroup, uploadFile } from '@/app/actions';
 import { logout } from '@/app/login/actions';
-import { Loader2, LogOut, Trash2, Image as ImageIcon, FileText, Plus, Edit2 } from 'lucide-react';
+import { Loader2, LogOut, Trash2, Image as ImageIcon, FileText, Plus, Edit2, Upload } from 'lucide-react';
 import Image from 'next/image';
 
 type SettingsModalProps = {
@@ -222,6 +222,33 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       loadProjectGroups();
     } catch (error) {
       console.error('Failed to delete project group', error);
+    }
+  };
+
+  // Icon upload handlers
+  const handleTagIconUpload = async (tagName: string, file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const result = await uploadFile(formData);
+      await updateTag(tagName, { icon: result.url });
+      loadTags();
+    } catch (error) {
+      console.error('Failed to upload tag icon', error);
+      alert('Failed to upload icon');
+    }
+  };
+
+  const handleProjectGroupIconUpload = async (groupId: string, file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const result = await uploadFile(formData);
+      await updateProjectGroup(groupId, { icon: result.url });
+      loadProjectGroups();
+    } catch (error) {
+      console.error('Failed to upload project group icon', error);
+      alert('Failed to upload icon');
     }
   };
 

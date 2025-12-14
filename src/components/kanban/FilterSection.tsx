@@ -28,11 +28,15 @@ type FilterSectionProps = {
   activeGroups: string[];
   hiddenTags: string[];
   hiddenGroups: string[];
+  showUntagged: boolean;
+  showUngrouped: boolean;
   onTagToggle: (tag: string) => void;
   onGroupToggle: (groupId: string) => void;
   onClearFilters: () => void;
   onToggleTagVisibility: (tag: string) => void;
   onToggleGroupVisibility: (groupId: string) => void;
+  onToggleUntagged: () => void;
+  onToggleUngrouped: () => void;
 };
 
 export function FilterSection({
@@ -42,17 +46,21 @@ export function FilterSection({
   activeGroups,
   hiddenTags,
   hiddenGroups,
+  showUntagged,
+  showUngrouped,
   onTagToggle,
   onGroupToggle,
   onClearFilters,
   onToggleTagVisibility,
   onToggleGroupVisibility,
+  onToggleUntagged,
+  onToggleUngrouped,
 }: FilterSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const visibleTags = tags.filter(tag => !hiddenTags.includes(tag.name));
   const visibleGroups = projectGroups.filter(group => !hiddenGroups.includes(group.id));
-  const hasActiveFilters = activeTags.length > 0 || activeGroups.length > 0;
+  const hasActiveFilters = activeTags.length > 0 || activeGroups.length > 0 || showUntagged || showUngrouped;
 
   if (tags.length === 0 && projectGroups.length === 0) {
     return null;
@@ -97,6 +105,34 @@ export function FilterSection({
 
         {isExpanded && (
           <div className="mt-3 space-y-4">
+            {/* Special Filters */}
+            <div className="flex flex-wrap gap-2 pb-2 border-b">
+              <Badge
+                variant={showUngrouped ? "default" : "outline"}
+                className={cn(
+                  "cursor-pointer transition-all hover:scale-105",
+                  showUngrouped && "ring-2 ring-offset-1 ring-offset-background ring-primary"
+                )}
+                onClick={onToggleUngrouped}
+              >
+                <span className="mr-1">📋</span>
+                Ungrouped
+                {showUngrouped && <X className="ml-1 h-3 w-3" />}
+              </Badge>
+              <Badge
+                variant={showUntagged ? "default" : "outline"}
+                className={cn(
+                  "cursor-pointer transition-all hover:scale-105",
+                  showUntagged && "ring-2 ring-offset-1 ring-offset-background ring-primary"
+                )}
+                onClick={onToggleUntagged}
+              >
+                <span className="mr-1">🏷️</span>
+                Untagged
+                {showUntagged && <X className="ml-1 h-3 w-3" />}
+              </Badge>
+            </div>
+
             {/* Project Groups */}
             {projectGroups.length > 0 && (
               <div className="space-y-2">

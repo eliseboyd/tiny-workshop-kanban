@@ -117,6 +117,8 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   const [activeGroups, setActiveGroups] = useState<string[]>([]);
   const [hiddenTags, setHiddenTags] = useState<string[]>(initialSettings.hiddenTags || []);
   const [hiddenGroups, setHiddenGroups] = useState<string[]>(initialSettings.hiddenProjects || []);
+  const [showUntagged, setShowUntagged] = useState(false);
+  const [showUngrouped, setShowUngrouped] = useState(false);
   const [tags, setTags] = useState<Tag[]>([]);
   const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
 
@@ -186,8 +188,22 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
           );
       }
       
+      // Filter untagged
+      if (showUntagged) {
+          filtered = filtered.filter(item => 
+              !item.tags || item.tags.length === 0
+          );
+      }
+      
+      // Filter ungrouped
+      if (showUngrouped) {
+          filtered = filtered.filter(item => 
+              !item.parentProjectId
+          );
+      }
+      
       return filtered;
-  }, [items, activeTags, activeGroups]);
+  }, [items, activeTags, activeGroups, showUntagged, showUngrouped]);
 
   function findContainer(id: string) {
     if (cols.find(c => c.id === id)) return id;
@@ -451,6 +467,8 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   const handleClearFilters = () => {
       setActiveTags([]);
       setActiveGroups([]);
+      setShowUntagged(false);
+      setShowUngrouped(false);
   };
 
   // Dashboard click handlers
@@ -464,6 +482,14 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
       setActiveGroups(prev => 
           prev.includes(groupId) ? prev.filter(g => g !== groupId) : [...prev, groupId]
       );
+  };
+
+  const handleToggleUntagged = () => {
+      setShowUntagged(prev => !prev);
+  };
+
+  const handleToggleUngrouped = () => {
+      setShowUngrouped(prev => !prev);
   };
 
   const handleToggleTagVisibility = async (tag: string) => {
@@ -574,11 +600,15 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
                 activeGroups={activeGroups}
                 hiddenTags={hiddenTags}
                 hiddenGroups={hiddenGroups}
+                showUntagged={showUntagged}
+                showUngrouped={showUngrouped}
                 onTagToggle={handleTagToggle}
                 onGroupToggle={handleGroupToggle}
                 onClearFilters={handleClearFilters}
                 onToggleTagVisibility={handleToggleTagVisibility}
                 onToggleGroupVisibility={handleToggleGroupVisibility}
+                onToggleUntagged={handleToggleUntagged}
+                onToggleUngrouped={handleToggleUngrouped}
             />
         </div>
 
