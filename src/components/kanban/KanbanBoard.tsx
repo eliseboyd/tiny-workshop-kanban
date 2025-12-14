@@ -11,6 +11,7 @@ import { arrayMove } from '@dnd-kit/sortable';
 import { ProjectModal } from './ProjectModal';
 import { SettingsModal } from './SettingsModal';
 import { FilterSection } from './FilterSection';
+import { DashboardSection } from './DashboardSection';
 import { ModeToggle } from '@/components/mode-toggle';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Menu } from 'lucide-react';
@@ -151,6 +152,21 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
     };
     loadFilters();
   }, []);
+
+  // Calculate counts for dashboard
+  const dashboardTags = useMemo(() => {
+    return tags.map(tag => ({
+      ...tag,
+      count: items.filter(item => item.tags?.includes(tag.name)).length,
+    })).filter(tag => tag.count > 0);
+  }, [tags, items]);
+
+  const dashboardProjectGroups = useMemo(() => {
+    return projectGroups.map(group => ({
+      ...group,
+      count: items.filter(item => item.parentProjectId === group.id).length,
+    })).filter(group => group.count > 0);
+  }, [projectGroups, items]);
 
   // Filter items based on active filters
   const filteredItems = useMemo(() => {
@@ -437,6 +453,19 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
       setActiveGroups([]);
   };
 
+  // Dashboard click handlers
+  const handleDashboardTagClick = (tag: string) => {
+      setActiveTags(prev => 
+          prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+      );
+  };
+
+  const handleDashboardProjectClick = (groupId: string) => {
+      setActiveGroups(prev => 
+          prev.includes(groupId) ? prev.filter(g => g !== groupId) : [...prev, groupId]
+      );
+  };
+
   const handleToggleTagVisibility = async (tag: string) => {
       const newHiddenTags = hiddenTags.includes(tag) 
           ? hiddenTags.filter(t => t !== tag) 
@@ -528,6 +557,14 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
                 </Button>
             </div>
             </div>
+
+            {/* Dashboard Section */}
+            <DashboardSection
+                tags={dashboardTags}
+                projectGroups={dashboardProjectGroups}
+                onTagClick={handleDashboardTagClick}
+                onProjectClick={handleDashboardProjectClick}
+            />
 
             {/* Filter Section */}
             <FilterSection
