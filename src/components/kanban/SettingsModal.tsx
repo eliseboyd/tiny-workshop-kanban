@@ -368,52 +368,46 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {tags.map((tag) => (
-                    <div key={tag.name} className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                      {/* Icon or Emoji Display */}
-                      {tag.icon ? (
-                        <div className="relative w-8 h-8 flex-shrink-0">
-                          <Image
-                            src={tag.icon}
-                            alt={tag.name}
-                            width={32}
-                            height={32}
-                            className="rounded object-cover"
-                            unoptimized
+                  {tags.map((tag) => {
+                    const [localColor, setLocalColor] = useState(tag.color);
+                    return (
+                      <div key={tag.name} className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                        {/* Icon or Emoji Display */}
+                        {tag.icon ? (
+                          <div className="relative w-8 h-8 flex-shrink-0">
+                            <Image
+                              src={tag.icon}
+                              alt={tag.name}
+                              width={32}
+                              height={32}
+                              className="rounded object-cover"
+                              unoptimized
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-xl">{tag.emoji || '🏷️'}</span>
+                        )}
+                        <span className="flex-1 font-medium">{tag.name}</span>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-8 h-8 rounded border flex-shrink-0"
+                            style={{ backgroundColor: /^#[0-9A-Fa-f]{6}$/.test(localColor) ? localColor : tag.color }}
+                          />
+                          <Input
+                            type="text"
+                            value={localColor}
+                            onChange={(e) => setLocalColor(e.target.value)}
+                            onBlur={() => {
+                              if (/^#[0-9A-Fa-f]{6}$/.test(localColor) && localColor !== tag.color) {
+                                handleUpdateTag(tag.name, { color: localColor });
+                              } else if (!/^#[0-9A-Fa-f]{6}$/.test(localColor)) {
+                                setLocalColor(tag.color);
+                              }
+                            }}
+                            placeholder="#64748b"
+                            className="w-24 h-8 font-mono text-xs"
                           />
                         </div>
-                      ) : (
-                        <span className="text-xl">{tag.emoji || '🏷️'}</span>
-                      )}
-                      <div
-                        className="w-4 h-4 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: tag.color }}
-                      />
-                      <span className="flex-1 font-medium">{tag.name}</span>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-8 h-8 rounded border flex-shrink-0"
-                          style={{ backgroundColor: tag.color }}
-                        />
-                        <Input
-                          type="text"
-                          value={tag.color}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
-                              handleUpdateTag(tag.name, { color: value });
-                            }
-                          }}
-                          onBlur={(e) => {
-                            const value = e.target.value;
-                            if (!/^#[0-9A-Fa-f]{6}$/.test(value)) {
-                              e.target.value = tag.color;
-                            }
-                          }}
-                          placeholder="#64748b"
-                          className="w-24 h-8 font-mono text-xs"
-                        />
-                      </div>
                       {/* Icon Upload */}
                       <Button
                         size="sm"
@@ -498,52 +492,46 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {projectGroups.map((group) => (
-                    <div key={group.id} className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                      {/* Icon or Emoji Display */}
-                      {group.icon ? (
-                        <div className="relative w-8 h-8 flex-shrink-0">
-                          <Image
-                            src={group.icon}
-                            alt={group.name}
-                            width={32}
-                            height={32}
-                            className="rounded object-cover"
-                            unoptimized
+                  {projectGroups.map((group) => {
+                    const [localColor, setLocalColor] = useState(group.color);
+                    return (
+                      <div key={group.id} className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                        {/* Icon or Emoji Display */}
+                        {group.icon ? (
+                          <div className="relative w-8 h-8 flex-shrink-0">
+                            <Image
+                              src={group.icon}
+                              alt={group.name}
+                              width={32}
+                              height={32}
+                              className="rounded object-cover"
+                              unoptimized
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-xl">{group.emoji || '📁'}</span>
+                        )}
+                        <span className="flex-1 font-medium">{group.name}</span>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-8 h-8 rounded border flex-shrink-0"
+                            style={{ backgroundColor: /^#[0-9A-Fa-f]{6}$/.test(localColor) ? localColor : group.color }}
+                          />
+                          <Input
+                            type="text"
+                            value={localColor}
+                            onChange={(e) => setLocalColor(e.target.value)}
+                            onBlur={() => {
+                              if (/^#[0-9A-Fa-f]{6}$/.test(localColor) && localColor !== group.color) {
+                                handleUpdateProjectGroup(group.id, { color: localColor });
+                              } else if (!/^#[0-9A-Fa-f]{6}$/.test(localColor)) {
+                                setLocalColor(group.color);
+                              }
+                            }}
+                            placeholder="#64748b"
+                            className="w-24 h-8 font-mono text-xs"
                           />
                         </div>
-                      ) : (
-                        <span className="text-xl">{group.emoji || '📁'}</span>
-                      )}
-                      <div
-                        className="w-4 h-4 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: group.color }}
-                      />
-                      <span className="flex-1 font-medium">{group.name}</span>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-8 h-8 rounded border flex-shrink-0"
-                          style={{ backgroundColor: group.color }}
-                        />
-                        <Input
-                          type="text"
-                          value={group.color}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
-                              handleUpdateProjectGroup(group.id, { color: value });
-                            }
-                          }}
-                          onBlur={(e) => {
-                            const value = e.target.value;
-                            if (!/^#[0-9A-Fa-f]{6}$/.test(value)) {
-                              e.target.value = group.color;
-                            }
-                          }}
-                          placeholder="#64748b"
-                          className="w-24 h-8 font-mono text-xs"
-                        />
-                      </div>
                       {/* Icon Upload */}
                       <Button
                         size="sm"
