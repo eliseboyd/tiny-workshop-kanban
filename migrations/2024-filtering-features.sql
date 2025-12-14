@@ -4,9 +4,22 @@
 -- Add parent_project_id to projects table
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS parent_project_id text;
 
--- Add emoji and icon to tags table
-ALTER TABLE tags ADD COLUMN IF NOT EXISTS emoji text;
-ALTER TABLE tags ADD COLUMN IF NOT EXISTS icon text;
+-- Create tags table if it doesn't exist
+CREATE TABLE IF NOT EXISTS tags (
+  name text PRIMARY KEY,
+  color text NOT NULL DEFAULT '#64748b',
+  emoji text,
+  icon text
+);
+
+-- If tags table already exists, add columns
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE tablename = 'tags') THEN
+    ALTER TABLE tags ADD COLUMN IF NOT EXISTS emoji text;
+    ALTER TABLE tags ADD COLUMN IF NOT EXISTS icon text;
+  END IF;
+END $$;
 
 -- Create project_groups table
 CREATE TABLE IF NOT EXISTS project_groups (
