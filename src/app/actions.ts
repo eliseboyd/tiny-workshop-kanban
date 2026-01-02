@@ -1,6 +1,5 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
 import { createServiceRoleClient } from '@/utils/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
@@ -11,7 +10,8 @@ import path from 'path';
 // --- Projects ---
 
 export async function getProjects() {
-  const supabase = await createClient();
+  // Use service role client to bypass RLS for server-side reads
+  const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from('projects')
     .select('*')
@@ -31,7 +31,7 @@ export async function getProjects() {
 }
 
 export async function getProject(id: string) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from('projects')
     .select('*')
@@ -66,7 +66,7 @@ export async function createProject(data: {
   position?: number;
   attachments?: { id: string; url: string; name: string; type: string; size: number }[];
 }) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   const { error } = await supabase
     .from('projects')
     .insert({
@@ -89,7 +89,7 @@ export async function createProject(data: {
 }
 
 export async function updateProject(id: string, data: any) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   // Convert camelCase to snake_case for DB
   const dbData: any = {};
   if (data.title !== undefined) dbData.title = data.title;
@@ -124,7 +124,7 @@ export async function updateProject(id: string, data: any) {
 }
 
 export async function updateProjectStatus(id: string, status: string, position: number) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   const safePosition = Math.max(0, position);
   
   // Debug log
@@ -144,8 +144,142 @@ export async function updateProjectStatus(id: string, status: string, position: 
   revalidatePath('/');
 }
 
+// Toggle project completion - moves to Done column or back to first column
+// Move project from Done to In Progress when new unchecked todos are added
+export async function moveProjectFromDoneIfNeeded(projectId: string) {
+  const supabase = createServiceRoleClient();
+  
+  // Get the project's current status
+  const { data: project, error: projectError } = await supabase
+    .from('projects')
+    .select('status')
+    .eq('id', projectId)
+    .single();
+  
+  if (projectError || !project) {
+    console.error('Error fetching project:', projectError);
+    return;
+  }
+  
+  // Get all columns
+  const { data: columns, error: colError } = await supabase
+    .from('columns')
+    .select('*')
+    .order('order', { ascending: true });
+  
+  if (colError || !columns || columns.length === 0) {
+    console.error('Error fetching columns:', colError);
+    return;
+  }
+  
+  // Find the Done column
+  const doneColumn = columns.find(c => 
+    c.title.toLowerCase() === 'done' || 
+    c.title.toLowerCase() === 'completed'
+  );
+  
+  // Check if project is in Done column
+  if (!doneColumn || project.status !== doneColumn.id) {
+    return; // Project is not in Done, no need to move
+  }
+  
+  // Find "In Progress" or similar column
+  const inProgressColumn = columns.find(c => 
+    c.title.toLowerCase() === 'in progress' || 
+    c.title.toLowerCase() === 'in-progress' ||
+    c.title.toLowerCase() === 'doing' ||
+    c.title.toLowerCase() === 'working'
+  );
+  
+  // If no In Progress column, use the second column, or first if only one column
+  const targetColumn = inProgressColumn || columns[Math.min(1, columns.length - 1)];
+  
+  // Get max position in target column
+  const { data: projectsInColumn } = await supabase
+    .from('projects')
+    .select('position')
+    .eq('status', targetColumn.id)
+    .order('position', { ascending: false })
+    .limit(1);
+  
+  const newPosition = projectsInColumn && projectsInColumn.length > 0 
+    ? projectsInColumn[0].position + 1 
+    : 0;
+  
+  console.log(`[moveProjectFromDone] Moving project ${projectId} from Done to ${targetColumn.title} at position ${newPosition}`);
+  
+  const { error } = await supabase
+    .from('projects')
+    .update({ status: targetColumn.id, position: newPosition })
+    .eq('id', projectId);
+  
+  if (error) {
+    console.error('Error moving project from Done:', error);
+  }
+  
+  revalidatePath('/');
+}
+
+export async function toggleProjectCompletion(projectId: string, currentStatus: string) {
+  const supabase = createServiceRoleClient();
+  
+  // Get all columns to find Done column and first column
+  const { data: columns, error: colError } = await supabase
+    .from('columns')
+    .select('*')
+    .order('order', { ascending: true });
+  
+  if (colError || !columns || columns.length === 0) {
+    console.error('Error fetching columns:', colError);
+    return;
+  }
+  
+  // Find the Done column (case-insensitive)
+  const doneColumn = columns.find(c => 
+    c.title.toLowerCase() === 'done' || 
+    c.title.toLowerCase() === 'completed'
+  );
+  
+  // First column as fallback for uncompleting
+  const firstColumn = columns[0];
+  
+  // Check if project is currently in the Done column
+  const isCurrentlyDone = doneColumn && currentStatus === doneColumn.id;
+  
+  let targetColumnId: string;
+  
+  if (isCurrentlyDone) {
+    // Move back to first column (uncomplete)
+    targetColumnId = firstColumn.id;
+  } else {
+    // Move to Done column (or first column if no Done column exists)
+    targetColumnId = doneColumn?.id || firstColumn.id;
+  }
+  
+  // Get count of projects in target column to set position at end
+  const { count } = await supabase
+    .from('projects')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', targetColumnId);
+  
+  const newPosition = count || 0;
+  
+  console.log(`[toggleProjectCompletion] Moving project ${projectId} to column ${targetColumnId} at position ${newPosition}`);
+  
+  const { error } = await supabase
+    .from('projects')
+    .update({ status: targetColumnId, position: newPosition })
+    .eq('id', projectId);
+  
+  if (error) {
+    console.error('Error toggling project completion:', error);
+  }
+  
+  revalidatePath('/');
+}
+
 export async function updateColumnOrder(columnId: string, projectIds: string[]) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   // Batch update all projects in the column to ensure strict ordering and correct status
   for (let i = 0; i < projectIds.length; i++) {
     await supabase
@@ -157,7 +291,7 @@ export async function updateColumnOrder(columnId: string, projectIds: string[]) 
 }
 
 export async function deleteProject(id: string) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   const { error } = await supabase.from('projects').delete().eq('id', id);
   if (error) console.error('Error deleting project:', error);
   revalidatePath('/');
@@ -166,7 +300,8 @@ export async function deleteProject(id: string) {
 // --- Columns ---
 
 export async function getColumns() {
-  const supabase = await createClient();
+  // Use service role client to bypass RLS for server-side reads
+  const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from('columns')
     .select('*')
@@ -192,7 +327,7 @@ export async function getColumns() {
 }
 
 export async function createColumn(title: string) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   const { count } = await supabase.from('columns').select('*', { count: 'exact', head: true });
   const { error } = await supabase.from('columns').insert({
     id: uuidv4(),
@@ -205,21 +340,21 @@ export async function createColumn(title: string) {
 }
 
 export async function updateColumn(id: string, title: string) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   const { error } = await supabase.from('columns').update({ title }).eq('id', id);
   if (error) console.error('Error updating column:', error);
   revalidatePath('/');
 }
 
 export async function deleteColumn(id: string) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   const { error } = await supabase.from('columns').delete().eq('id', id);
   if (error) console.error('Error deleting column:', error);
   revalidatePath('/');
 }
 
 export async function updateColumnsOrder(newOrder: { id: string; order: number }[]) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   for (const col of newOrder) {
     await supabase.from('columns').update({ order: col.order }).eq('id', col.id);
   }
@@ -229,13 +364,8 @@ export async function updateColumnsOrder(newOrder: { id: string; order: number }
 // --- Settings ---
 
 export async function getSettings() {
-  const supabase = await createClient();
-  
-  // Debug auth state
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-      console.warn("getSettings: No authenticated user found. Auth Error:", authError?.message || "No user session");
-  }
+  // Use service role client to bypass RLS for server-side reads
+  const supabase = createServiceRoleClient();
 
   const { data, error } = await supabase.from('settings').select('*').limit(1).single();
   
@@ -293,7 +423,7 @@ export async function getSettings() {
 }
 
 export async function updateSettings(data: any) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   // Get current settings ID
   const { data: current } = await supabase.from('settings').select('id').limit(1).single();
   if (!current) return;
@@ -338,7 +468,7 @@ export async function generateProjectImage(projectData: { title: string; descrip
 }
 
 export async function uploadFile(formData: FormData) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   const file = formData.get('file') as File;
   
   if (!file) {
@@ -382,7 +512,7 @@ export async function uploadProjectImage(formData: FormData) {
 }
 
 export async function uploadImageBase64(base64Data: string, fileName: string, fileType: string) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   try {
     if (!base64Data || !base64Data.includes(',')) {
         throw new Error('Invalid base64 data received');
@@ -421,7 +551,7 @@ export async function uploadImageBase64(base64Data: string, fileName: string, fi
 
 export async function getAllMediaFiles() {
   try {
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
     
     // Get all projects with their media
     const { data: projects, error } = await supabase
@@ -515,7 +645,7 @@ export async function getAllMediaFiles() {
 
 export async function deleteMediaFile(fileUrl: string) {
   try {
-    const supabase = await createClient();
+    const supabase = createServiceRoleClient();
     
     // Extract the file name from the URL
     const urlParts = fileUrl.split('/');
@@ -606,7 +736,8 @@ function extractFileName(url: string): string {
 // --- Tags ---
 
 export async function getAllTags() {
-  const supabase = await createClient();
+  // Use service role client to bypass RLS for server-side reads
+  const supabase = createServiceRoleClient();
   
   // Get all tags from the tags table
   const { data: tagsData, error: tagsError } = await supabase
@@ -656,7 +787,7 @@ export async function getAllTags() {
 }
 
 export async function createTag(tag: { name: string; color: string; emoji?: string; icon?: string }) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   
   // Check if tag already exists
   const { data: existing } = await supabase
@@ -684,7 +815,7 @@ export async function createTag(tag: { name: string; color: string; emoji?: stri
 
 // Auto-create tag if it doesn't exist (called when adding tags to projects)
 export async function ensureTagExists(tagName: string) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   
   // Check if tag exists
   const { data: existing } = await supabase
@@ -707,7 +838,7 @@ export async function ensureTagExists(tagName: string) {
 }
 
 export async function updateTag(name: string, updates: { color?: string; emoji?: string; icon?: string }) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   const { error } = await supabase
     .from('tags')
     .update(updates)
@@ -722,7 +853,7 @@ export async function updateTag(name: string, updates: { color?: string; emoji?:
 }
 
 export async function deleteTag(name: string) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   
   // Remove tag from all projects
   const { data: projects } = await supabase
@@ -758,7 +889,8 @@ export async function deleteTag(name: string) {
 // --- Project Groups ---
 
 export async function getAllProjectGroups() {
-  const supabase = await createClient();
+  // Use service role client to bypass RLS for server-side reads
+  const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from('project_groups')
     .select('*')
@@ -773,7 +905,7 @@ export async function getAllProjectGroups() {
 }
 
 export async function createProjectGroup(group: { name: string; color: string; emoji?: string; icon?: string }) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   const { error } = await supabase
     .from('project_groups')
     .insert({
@@ -790,7 +922,7 @@ export async function createProjectGroup(group: { name: string; color: string; e
 }
 
 export async function updateProjectGroup(id: string, updates: { name?: string; color?: string; emoji?: string; icon?: string }) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   const { error } = await supabase
     .from('project_groups')
     .update(updates)
@@ -805,7 +937,7 @@ export async function updateProjectGroup(id: string, updates: { name?: string; c
 }
 
 export async function deleteProjectGroup(id: string) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   
   // Remove parent_project_id from all projects in this group
   await supabase
@@ -825,4 +957,353 @@ export async function deleteProjectGroup(id: string) {
   }
   
   revalidatePath('/');
+}
+
+// --- Dashboard Widgets ---
+
+export async function getAllWidgets() {
+  // Use service role client to bypass RLS for server-side reads
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from('widgets')
+    .select('*')
+    .order('position', { ascending: true });
+  
+  if (error) {
+    console.error('Error fetching widgets:', error);
+    return [];
+  }
+  
+  return data;
+}
+
+export async function createWidget(widget: { 
+  type: string; 
+  title: string; 
+  config: Record<string, any>;
+  position?: number;
+}) {
+  const supabase = createServiceRoleClient();
+  
+  // Get the highest position
+  const { data: existing } = await supabase
+    .from('widgets')
+    .select('position')
+    .order('position', { ascending: false })
+    .limit(1);
+  
+  const nextPosition = existing && existing.length > 0 ? existing[0].position + 1 : 0;
+  
+  const { error } = await supabase
+    .from('widgets')
+    .insert({
+      id: uuidv4(),
+      type: widget.type,
+      title: widget.title,
+      config: widget.config,
+      position: widget.position ?? nextPosition,
+    });
+  
+  if (error) {
+    console.error('Error creating widget:', error);
+    throw error;
+  }
+  
+  revalidatePath('/');
+}
+
+export async function updateWidget(id: string, updates: { 
+  title?: string; 
+  config?: Record<string, any>;
+  position?: number;
+}) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from('widgets')
+    .update(updates)
+    .eq('id', id);
+  
+  if (error) {
+    console.error('Error updating widget:', error);
+    throw error;
+  }
+  
+  revalidatePath('/');
+}
+
+export async function deleteWidget(id: string) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from('widgets')
+    .delete()
+    .eq('id', id);
+  
+  if (error) {
+    console.error('Error deleting widget:', error);
+    throw error;
+  }
+  
+  revalidatePath('/');
+}
+
+export async function reorderWidgets(widgetIds: string[]) {
+  const supabase = createServiceRoleClient();
+  
+  for (let i = 0; i < widgetIds.length; i++) {
+    await supabase
+      .from('widgets')
+      .update({ position: i })
+      .eq('id', widgetIds[i]);
+  }
+  
+  revalidatePath('/');
+}
+
+// Get all materials across all projects (for shopping widget)
+export async function getAllMaterials() {
+  // Use service role client to bypass RLS for server-side reads
+  const supabase = createServiceRoleClient();
+  const { data: projects, error } = await supabase
+    .from('projects')
+    .select('id, title, tags, parent_project_id, materials_list');
+  
+  if (error) {
+    console.error('Error fetching projects for materials:', error);
+    return [];
+  }
+  
+  const materials: Array<{
+    id: string;
+    text: string;
+    toBuy: boolean;
+    toBuild: boolean;
+    projectId: string;
+    projectTitle: string;
+    projectTags: string[];
+    parentProjectId: string | null;
+  }> = [];
+  
+  projects.forEach(project => {
+    let materialsList: any[] = [];
+    
+    try {
+      if (project.materials_list) {
+        materialsList = typeof project.materials_list === 'string'
+          ? JSON.parse(project.materials_list)
+          : project.materials_list;
+      }
+    } catch (e) {
+      console.error('Failed to parse materials_list for project:', project.id);
+    }
+    
+    if (Array.isArray(materialsList)) {
+      materialsList.forEach(material => {
+        materials.push({
+          id: material.id,
+          text: material.text,
+          toBuy: material.toBuy || false,
+          toBuild: material.toBuild || false,
+          projectId: project.id,
+          projectTitle: project.title,
+          projectTags: project.tags || [],
+          parentProjectId: project.parent_project_id,
+        });
+      });
+    }
+  });
+  
+  return materials;
+}
+
+// --- Standalone Plans ---
+
+export type StandalonePlan = {
+  id: string;
+  url: string;
+  name: string;
+  type: string;
+  size: number;
+  projectId: string | null;
+  projectTitle?: string;
+  notes: string | null;
+  createdAt: Date;
+};
+
+export async function getStandalonePlans(): Promise<StandalonePlan[]> {
+  const supabase = createServiceRoleClient();
+  
+  // Get standalone plans with project info
+  const { data, error } = await supabase
+    .from('standalone_plans')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  if (error) {
+    console.error('Error fetching standalone plans:', error);
+    return [];
+  }
+  
+  // Get project titles for assigned plans
+  const projectIds = [...new Set(data.filter(p => p.project_id).map(p => p.project_id))];
+  let projectTitles: Record<string, string> = {};
+  
+  if (projectIds.length > 0) {
+    const { data: projects } = await supabase
+      .from('projects')
+      .select('id, title')
+      .in('id', projectIds);
+    
+    if (projects) {
+      projectTitles = Object.fromEntries(projects.map(p => [p.id, p.title]));
+    }
+  }
+  
+  return data.map(plan => ({
+    id: plan.id,
+    url: plan.url,
+    name: plan.name,
+    type: plan.type,
+    size: plan.size,
+    projectId: plan.project_id,
+    projectTitle: plan.project_id ? projectTitles[plan.project_id] : undefined,
+    notes: plan.notes,
+    createdAt: new Date(plan.created_at),
+  }));
+}
+
+export async function createStandalonePlan(data: {
+  url: string;
+  name: string;
+  type: string;
+  size: number;
+  projectId?: string | null;
+  notes?: string;
+}) {
+  const supabase = createServiceRoleClient();
+  const id = uuidv4();
+  
+  const { error } = await supabase
+    .from('standalone_plans')
+    .insert({
+      id,
+      url: data.url,
+      name: data.name,
+      type: data.type,
+      size: data.size,
+      project_id: data.projectId || null,
+      notes: data.notes || null,
+    });
+  
+  if (error) {
+    console.error('Error creating standalone plan:', error);
+    throw new Error('Failed to create plan');
+  }
+  
+  revalidatePath('/');
+  return { id };
+}
+
+export async function updateStandalonePlan(id: string, data: {
+  projectId?: string | null;
+  notes?: string | null;
+}) {
+  const supabase = createServiceRoleClient();
+  
+  const updateData: any = {};
+  if (data.projectId !== undefined) updateData.project_id = data.projectId;
+  if (data.notes !== undefined) updateData.notes = data.notes;
+  
+  const { error } = await supabase
+    .from('standalone_plans')
+    .update(updateData)
+    .eq('id', id);
+  
+  if (error) {
+    console.error('Error updating standalone plan:', error);
+    throw new Error('Failed to update plan');
+  }
+  
+  revalidatePath('/');
+}
+
+export async function deleteStandalonePlan(id: string) {
+  const supabase = createServiceRoleClient();
+  
+  const { error } = await supabase
+    .from('standalone_plans')
+    .delete()
+    .eq('id', id);
+  
+  if (error) {
+    console.error('Error deleting standalone plan:', error);
+    throw new Error('Failed to delete plan');
+  }
+  
+  revalidatePath('/');
+}
+
+// Get all plans from both standalone_plans table AND from projects' plans field
+export async function getAllPlans(): Promise<Array<StandalonePlan & { source: 'standalone' | 'project' }>> {
+  const supabase = createServiceRoleClient();
+  
+  // Get standalone plans
+  const standalonePlans = await getStandalonePlans();
+  console.log('[getAllPlans] Standalone plans count:', standalonePlans.length);
+  
+  // Get plans from projects
+  const { data: projects, error } = await supabase
+    .from('projects')
+    .select('id, title, plans');
+  
+  if (error) {
+    console.error('Error fetching project plans:', error);
+    return standalonePlans.map(p => ({ ...p, source: 'standalone' as const }));
+  }
+  
+  console.log('[getAllPlans] Projects with plans field:', projects?.length);
+  
+  const projectPlans: Array<StandalonePlan & { source: 'project' }> = [];
+  
+  projects.forEach(project => {
+    let plansList: any[] = [];
+    
+    try {
+      if (project.plans) {
+        console.log('[getAllPlans] Project', project.id, 'plans type:', typeof project.plans, 'value:', project.plans);
+        plansList = typeof project.plans === 'string'
+          ? JSON.parse(project.plans)
+          : project.plans;
+      }
+    } catch (e) {
+      console.error('Failed to parse plans for project:', project.id, e);
+    }
+    
+    if (Array.isArray(plansList) && plansList.length > 0) {
+      console.log('[getAllPlans] Project', project.title, 'has', plansList.length, 'plans');
+      plansList.forEach(plan => {
+        projectPlans.push({
+          id: plan.id,
+          url: plan.url,
+          name: plan.name,
+          type: plan.type,
+          size: plan.size || 0,
+          projectId: project.id,
+          projectTitle: project.title,
+          notes: null,
+          createdAt: new Date(),
+          source: 'project',
+        });
+      });
+    }
+  });
+  
+  console.log('[getAllPlans] Total project plans found:', projectPlans.length);
+  
+  // Combine and sort by date (standalone plans have dates, project plans don't)
+  const allPlans = [
+    ...standalonePlans.map(p => ({ ...p, source: 'standalone' as const })),
+    ...projectPlans,
+  ];
+  
+  return allPlans;
 }

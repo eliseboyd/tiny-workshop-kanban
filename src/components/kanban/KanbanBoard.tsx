@@ -14,11 +14,14 @@ import { FilterSection } from './FilterSection';
 import { DashboardSection } from './DashboardSection';
 import { ModeToggle } from '@/components/mode-toggle';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Menu } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Menu, LayoutDashboard, Columns3, LayoutGrid, FileStack } from 'lucide-react';
+import { PlansView } from './PlansView';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Settings, KanbanSquareDashed } from 'lucide-react';
-import { updateProjectStatus, updateSettings, updateColumn, createColumn, deleteColumn, deleteProject, updateColumnsOrder, updateColumnOrder, getAllTags, getAllProjectGroups } from '@/app/actions';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import { updateProjectStatus, updateSettings, updateColumn, createColumn, deleteColumn, deleteProject, updateColumnsOrder, updateColumnOrder, getAllTags, getAllProjectGroups, getAllWidgets, getAllMaterials, getProjects, getAllPlans, StandalonePlan } from '@/app/actions';
 
 import { ClientDndWrapper } from './ClientDndWrapper';
 
@@ -121,11 +124,17 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   const [showUngrouped, setShowUngrouped] = useState(false);
   const [tags, setTags] = useState<Tag[]>([]);
   const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
+  const [widgets, setWidgets] = useState<any[]>([]);
+  const [materials, setMaterials] = useState<any[]>([]);
 
   // Board title editing state
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState(initialSettings.boardTitle);
   const titleInputRef = useRef<HTMLInputElement>(null);
+
+  // View state: 'overview' (both), 'dashboard', 'kanban', 'plans'
+  const [activeView, setActiveView] = useLocalStorage<'overview' | 'dashboard' | 'kanban' | 'plans'>('kanban-view', 'overview');
+  const [allPlans, setAllPlans] = useState<Array<StandalonePlan & { source: 'standalone' | 'project' }>>([]);
 
   // Sync items when props change
   useEffect(() => {
@@ -141,18 +150,29 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
     setCols(initialColumns);
   }, [initialColumns]);
 
+  // Dashboard loading state
+  const [isDashboardLoading, setIsDashboardLoading] = useState(true);
+
   // Collect all unique tags from all items
-  // Load tags and project groups
+  // Load tags, project groups, widgets, materials, and plans
+  const loadDashboardData = async () => {
+    const [tagsData, groupsData, widgetsData, materialsData, plansData] = await Promise.all([
+      getAllTags(),
+      getAllProjectGroups(),
+      getAllWidgets(),
+      getAllMaterials(),
+      getAllPlans(),
+    ]);
+    setTags(tagsData);
+    setProjectGroups(groupsData);
+    setWidgets(widgetsData);
+    setMaterials(materialsData);
+    setAllPlans(plansData);
+    setIsDashboardLoading(false);
+  };
+
   useEffect(() => {
-    const loadFilters = async () => {
-      const [tagsData, groupsData] = await Promise.all([
-        getAllTags(),
-        getAllProjectGroups(),
-      ]);
-      setTags(tagsData);
-      setProjectGroups(groupsData);
-    };
-    loadFilters();
+    loadDashboardData();
   }, []);
 
   // Calculate counts for dashboard
@@ -574,12 +594,6 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
                             <Button variant="outline" className="justify-start" onClick={() => setIsSettingsOpen(true)}>
                                 <Settings className="mr-2 h-4 w-4" /> Settings
                             </Button>
-                            <Button variant="outline" className="justify-start" onClick={handleCreateColumn}>
-                                <KanbanSquareDashed className="mr-2 h-4 w-4" /> Add Column
-                            </Button>
-                            <Button className="justify-start" onClick={handleCreateProject}>
-                                <Plus className="mr-2 h-4 w-4" /> New Project
-                            </Button>
                         </div>
                     </SheetContent>
                 </Sheet>
@@ -587,69 +601,139 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
             <div className="hidden md:flex gap-2">
                 <ModeToggle />
                 <Button variant="outline" size="icon" onClick={() => setIsSettingsOpen(true)}>
-                <Settings className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" onClick={handleCreateColumn}>
-                    <KanbanSquareDashed className="mr-2 h-4 w-4" /> Add Column
-                </Button>
-                <Button onClick={handleCreateProject}>
-                <Plus className="mr-2 h-4 w-4" /> New Project
+                  <Settings className="h-4 w-4" />
                 </Button>
             </div>
             </div>
 
-            {/* Dashboard Section */}
-            <DashboardSection
-                tags={dashboardTags}
-                projectGroups={dashboardProjectGroups}
-                onTagClick={handleDashboardTagClick}
-                onProjectClick={handleDashboardProjectClick}
-            />
+            {/* View Tabs */}
+            <div className="px-4 py-2 border-b bg-muted/30">
+              <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'overview' | 'dashboard' | 'kanban' | 'plans')}>
+                <TabsList>
+                  <TabsTrigger value="overview" className="gap-1.5">
+                    <LayoutGrid className="h-4 w-4" />
+                    <span className="hidden sm:inline">Overview</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="dashboard" className="gap-1.5">
+                    <LayoutDashboard className="h-4 w-4" />
+                    <span className="hidden sm:inline">Dashboard</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="kanban" className="gap-1.5">
+                    <Columns3 className="h-4 w-4" />
+                    <span className="hidden sm:inline">Kanban</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="plans" className="gap-1.5">
+                    <FileStack className="h-4 w-4" />
+                    <span className="hidden sm:inline">Plans</span>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
 
-            {/* Filter Section */}
-            <FilterSection
-                tags={tags}
-                projectGroups={projectGroups}
-                activeTags={activeTags}
-                activeGroups={activeGroups}
-                hiddenTags={hiddenTags}
-                hiddenGroups={hiddenGroups}
-                showUntagged={showUntagged}
-                showUngrouped={showUngrouped}
-                onTagToggle={handleTagToggle}
-                onGroupToggle={handleGroupToggle}
-                onClearFilters={handleClearFilters}
-                onToggleTagVisibility={handleToggleTagVisibility}
-                onToggleGroupVisibility={handleToggleGroupVisibility}
-                onToggleUntagged={handleToggleUntagged}
-                onToggleUngrouped={handleToggleUngrouped}
-            />
+            {/* Dashboard Section - shown in overview and dashboard views */}
+            {(activeView === 'overview' || activeView === 'dashboard') && (
+              <DashboardSection
+                  tags={dashboardTags}
+                  projectGroups={dashboardProjectGroups}
+                  columns={cols}
+                  onTagClick={handleDashboardTagClick}
+                  onProjectClick={handleDashboardProjectClick}
+                  widgets={widgets}
+                  materials={materials}
+                  projects={items}
+                  onProjectCardClick={handleEditProject}
+                  onRefreshWidgets={loadDashboardData}
+                  isLoading={isDashboardLoading}
+                  isDashboardOnly={activeView === 'dashboard'}
+              />
+            )}
+
+            {/* Filter Section - shown in overview and kanban views */}
+            {(activeView === 'overview' || activeView === 'kanban') && (
+              <FilterSection
+                  tags={tags}
+                  projectGroups={projectGroups}
+                  activeTags={activeTags}
+                  activeGroups={activeGroups}
+                  hiddenTags={hiddenTags}
+                  hiddenGroups={hiddenGroups}
+                  showUntagged={showUntagged}
+                  showUngrouped={showUngrouped}
+                  onTagToggle={handleTagToggle}
+                  onGroupToggle={handleGroupToggle}
+                  onClearFilters={handleClearFilters}
+                  onToggleTagVisibility={handleToggleTagVisibility}
+                  onToggleGroupVisibility={handleToggleGroupVisibility}
+                  onToggleUntagged={handleToggleUntagged}
+                  onToggleUngrouped={handleToggleUngrouped}
+              />
+            )}
         </div>
 
-        <ClientDndWrapper 
-            items={items}
-            cols={cols}
-            filteredItems={filteredItems}
-            activeId={activeId}
-            settingsState={settingsState}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragEnd={handleDragEnd}
-            handleEditProject={handleEditProject}
-            handleColumnTitleChange={handleColumnTitleChange}
-            handleDeleteColumn={handleDeleteColumn}
-            handleDeleteProject={handleDeleteProject}
-            handleAddProjectToColumn={handleAddProjectToColumn}
-            isCreatingInColumn={isCreatingInColumn}
-            onConfirmCreate={handleConfirmCreate}
-            onCancelCreate={handleCancelCreate}
-        />
+        {/* Kanban Board - shown in overview and kanban views */}
+        {(activeView === 'overview' || activeView === 'kanban') && (
+          <div className="flex flex-col flex-1 min-h-0">
+            {/* Kanban Toolbar */}
+            <div className="flex items-center justify-end gap-2 px-4 py-2 border-b bg-muted/20">
+              <Button variant="outline" size="sm" onClick={handleCreateColumn}>
+                <KanbanSquareDashed className="mr-2 h-4 w-4" /> Add Column
+              </Button>
+              <Button size="sm" onClick={handleCreateProject}>
+                <Plus className="mr-2 h-4 w-4" /> New Project
+              </Button>
+            </div>
+            <ClientDndWrapper 
+                items={items}
+                cols={cols}
+                filteredItems={filteredItems}
+                activeId={activeId}
+                settingsState={settingsState}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragEnd={handleDragEnd}
+                handleEditProject={handleEditProject}
+                handleColumnTitleChange={handleColumnTitleChange}
+                handleDeleteColumn={handleDeleteColumn}
+                handleDeleteProject={handleDeleteProject}
+                handleAddProjectToColumn={handleAddProjectToColumn}
+                isCreatingInColumn={isCreatingInColumn}
+                onConfirmCreate={handleConfirmCreate}
+                onCancelCreate={handleCancelCreate}
+            />
+          </div>
+        )}
+
+        {/* Plans View - shown only in plans view */}
+        {activeView === 'plans' && (
+          <PlansView
+            initialPlans={allPlans}
+            projects={items.map(p => ({ id: p.id, title: p.title }))}
+            onPlanClick={(plan) => {
+              // If plan is assigned to a project, open that project
+              if (plan.projectId) {
+                const project = items.find(p => p.id === plan.projectId);
+                if (project) {
+                  handleEditProject(project);
+                }
+              } else {
+                // Otherwise just open the file
+                window.open(plan.url, '_blank');
+              }
+            }}
+          />
+        )}
       </div>
       {editingProject && (
         <ProjectModal
           project={editingProject}
           isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
+          onClose={async () => {
+            setIsModalOpen(false);
+            // Refresh projects and dashboard data when modal closes
+            const freshProjects = await getProjects();
+            setItems(mapProjects(freshProjects));
+            loadDashboardData();
+          }}
         />
       )}
       <SettingsModal

@@ -50,3 +50,23 @@ export const projectGroups = pgTable('project_groups', {
   icon: text('icon'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
+
+export const widgets = pgTable('widgets', {
+  id: text('id').primaryKey(),
+  type: text('type').notNull(), // 'todo-list' | 'materials-shopping'
+  title: text('title').notNull(),
+  config: jsonb('config').$type<Record<string, any>>().notNull().default({}),
+  position: integer('position').notNull().default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const standalonePlans = pgTable('standalone_plans', {
+  id: text('id').primaryKey(),
+  url: text('url').notNull(),
+  name: text('name').notNull(),
+  type: text('type').notNull(), // mime type
+  size: integer('size').notNull(),
+  projectId: text('project_id'), // nullable - null means unassigned
+  notes: text('notes'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});

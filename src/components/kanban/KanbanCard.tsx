@@ -22,9 +22,10 @@ type KanbanCardProps = {
   onClick?: () => void;
   onDelete?: () => void;
   size?: string; // compact, small, medium
+  columnTitle?: string;
 };
 
-export function KanbanCard({ project, onClick, onDelete, size = 'medium' }: KanbanCardProps) {
+export function KanbanCard({ project, onClick, onDelete, size = 'medium', columnTitle }: KanbanCardProps) {
   // Touch handling to distinguish between scroll and tap
   const touchStartPos = useRef<{ x: number; y: number; time: number } | null>(null);
   const isTouchDevice = useRef(false);
@@ -111,6 +112,11 @@ export function KanbanCard({ project, onClick, onDelete, size = 'medium' }: Kanb
         onClick={handleClick}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
+        draggable={true}
+        onDragStart={(e) => {
+          e.dataTransfer.setData('application/project-card', project.id);
+          e.dataTransfer.effectAllowed = 'copy';
+        }}
       >
         {project.imageUrl && !isCompact && (
           <div className={cn("relative w-full bg-muted/20", imageHeight)}>
@@ -123,7 +129,11 @@ export function KanbanCard({ project, onClick, onDelete, size = 'medium' }: Kanb
             </div>
           )}
         <CardHeader className={cn(contentPadding, "pb-2 space-y-0")}>
-          <CardTitle className={cn(titleSize, "font-medium leading-tight")}>
+          <CardTitle className={cn(
+            titleSize, 
+            "font-medium leading-tight",
+            columnTitle?.toLowerCase() === 'done' && "line-through text-muted-foreground"
+          )}>
             {project.title}
           </CardTitle>
           {/* Tags */}

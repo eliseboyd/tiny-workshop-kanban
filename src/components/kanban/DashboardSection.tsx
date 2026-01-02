@@ -9,6 +9,8 @@ import { useLocalStorage } from '@/hooks/use-local-storage';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { WidgetsSection } from '@/components/widgets';
+import type { Project } from './KanbanBoard';
 
 type Tag = {
   name: string;
@@ -37,12 +39,45 @@ type DashboardItem = {
   count: number;
 };
 
+type Widget = {
+  id: string;
+  type: 'todo-list' | 'materials-shopping' | 'project-todos';
+  title: string;
+  config: Record<string, any>;
+  position: number;
+};
+
+type MaterialItem = {
+  id: string;
+  text: string;
+  toBuy: boolean;
+  toBuild: boolean;
+  projectId: string;
+  projectTitle: string;
+  projectTags: string[];
+  parentProjectId: string | null;
+};
+
+type Column = {
+  id: string;
+  title: string;
+  order: number;
+};
+
 type DashboardSectionProps = {
   tags: Tag[];
   projectGroups: ProjectGroup[];
+  columns?: Column[];
   onTagClick: (tag: string) => void;
   onProjectClick: (projectId: string) => void;
   onReorder?: (items: DashboardItem[]) => void;
+  widgets?: Widget[];
+  materials?: MaterialItem[];
+  projects?: Project[];
+  onProjectCardClick?: (project: Project) => void;
+  onRefreshWidgets?: () => void;
+  isLoading?: boolean;
+  isDashboardOnly?: boolean;
 };
 
 // Sortable item component
@@ -184,9 +219,17 @@ function SortableDashboardItem({
 export function DashboardSection({
   tags,
   projectGroups,
+  columns = [],
   onTagClick,
   onProjectClick,
   onReorder,
+  widgets = [],
+  materials = [],
+  projects = [],
+  onProjectCardClick,
+  onRefreshWidgets,
+  isLoading = false,
+  isDashboardOnly = false,
 }: DashboardSectionProps) {
   const [isExpanded, setIsExpanded] = useLocalStorage('dashboard-expanded', true);
   const [items, setItems] = useState<DashboardItem[]>([]);
@@ -239,71 +282,90 @@ export function DashboardSection({
 
   const displayItems = items.length > 0 ? items : combinedItems;
 
-  if (displayItems.length === 0) {
-    return null;
-  }
-
-  const projectCount = displayItems.filter(i => i.type === 'project').length;
-  const tagCount = displayItems.filter(i => i.type === 'tag').length;
-
+  // Always render the container to prevent layout shift
   return (
     <div className="border-b bg-gradient-to-br from-background via-background to-muted/20">
       <div className="px-4 py-3">
-        <div 
-          className="flex items-center justify-between cursor-pointer hover:bg-muted/30 rounded-lg px-3 py-2 -mx-3 transition-colors group"
-          onClick={() => setIsExpanded(!isExpanded)}
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-bold">Dashboard</h2>
+        {/* Only show header in overview mode */}
+        {!isDashboardOnly && (
+          <div 
+            className="flex items-center justify-between cursor-pointer hover:bg-muted/30 rounded-lg px-3 py-2 -mx-3 transition-colors group"
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-bold">Dashboard</h2>
+              </div>
             </div>
+            {isExpanded ? (
+              <ChevronUp className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+            ) : (
+              <ChevronDown className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+            )}
           </div>
-          {isExpanded ? (
-            <ChevronUp className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-          ) : (
-            <ChevronDown className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-          )}
-        </div>
+        )}
 
-        {isExpanded && (
-          <div className="mt-4 space-y-4">
+        {(isDashboardOnly || isExpanded) && (
+          <div className={cn("space-y-4", !isDashboardOnly && "mt-4")}>
 
-            {/* Unified Draggable Grid */}
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext items={displayItems.map(i => i.id)} strategy={rectSortingStrategy}>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                  {displayItems.map(item => (
-                    <SortableDashboardItem
-                      key={item.id}
-                      item={item}
-                      onClick={() => {
-                        if (item.type === 'project') {
-                          onProjectClick(item.id.replace('project-', ''));
-                        } else {
-                          onTagClick(item.name);
-                        }
-                      }}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
+            {/* Tags/Projects Grid - Hidden for now */}
+            {/* {isLoading ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                {[...Array(5)].map((_, i) => (
+                  <div 
+                    key={i}
+                    className="rounded-xl border-2 border-muted bg-muted/20 animate-pulse"
+                  >
+                    <div className="p-4 flex flex-col items-start gap-2">
+                      <div className="w-10 h-10 rounded-lg bg-muted" />
+                      <div className="w-full space-y-2">
+                        <div className="h-4 w-3/4 rounded bg-muted" />
+                        <div className="h-3 w-1/2 rounded bg-muted" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : displayItems.length > 0 ? (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext items={displayItems.map(i => i.id)} strategy={rectSortingStrategy}>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                    {displayItems.map(item => (
+                      <SortableDashboardItem
+                        key={item.id}
+                        item={item}
+                        onClick={() => {
+                          if (item.type === 'project') {
+                            onProjectClick(item.id.replace('project-', ''));
+                          } else {
+                            onTagClick(item.name);
+                          }
+                        }}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            ) : null} */}
 
-            {/* Quick Stats */}
-            <div className="flex items-center gap-4 pt-2 border-t text-xs text-muted-foreground">
-              <span>{projectCount} projects</span>
-              <span>•</span>
-              <span>{tagCount} tags</span>
-              <span>•</span>
-              <span className="flex items-center gap-1">
-                <Package className="h-3 w-3" />
-                {displayItems.filter(i => i.type === 'project').reduce((acc, i) => acc + i.count, 0)} cards total
-              </span>
+            {/* Widgets Section */}
+            <div className={cn(!isDashboardOnly && displayItems.length > 0 && "pt-4 border-t mt-4")}>
+              <WidgetsSection
+                widgets={widgets}
+                projects={projects}
+                columns={columns}
+                materials={materials}
+                tags={tags.map(t => ({ name: t.name, color: t.color, emoji: t.emoji }))}
+                projectGroups={projectGroups.map(g => ({ id: g.id, name: g.name, color: g.color, emoji: g.emoji }))}
+                onProjectClick={onProjectCardClick || (() => {})}
+                onRefresh={onRefreshWidgets}
+                isLoading={isLoading}
+              />
             </div>
           </div>
         )}

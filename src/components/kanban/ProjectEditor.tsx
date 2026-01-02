@@ -4,9 +4,9 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import { Project } from './KanbanBoard';
-import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists } from '@/app/actions';
+import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded } from '@/app/actions';
 import Image from 'next/image';
-import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images } from 'lucide-react';
+import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images, ExternalLink, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -27,6 +27,31 @@ const PDFViewer = dynamic(() => import('@/components/ui/pdf-viewer').then(mod =>
 
 type Attachment = { id: string; url: string; name: string; type: string; size: number };
 type Material = { id: string; text: string; toBuy: boolean; toBuild: boolean };
+
+// Helper to render text with clickable links
+function renderTextWithLinks(text: string, className?: string) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  
+  return parts.map((part, index) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="text-primary hover:underline inline-flex items-center gap-0.5 break-all"
+        >
+          {part.length > 50 ? part.slice(0, 50) + '...' : part}
+          <ExternalLink className="h-3 w-3 inline flex-shrink-0" />
+        </a>
+      );
+    }
+    return <span key={index}>{part}</span>;
+  });
+}
 type ProjectGroup = {
   id: string;
   name: string;
@@ -53,6 +78,8 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
   const router = useRouter();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isDraggingPlans, setIsDraggingPlans] = useState(false);
+  const [showInspirationPicker, setShowInspirationPicker] = useState(false);
   const [activeSection, setActiveSection] = useState('overview');
   
   // Simple local state for immediate UI updates
@@ -179,6 +206,12 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
     try {
       await updateProject(project.id, data);
       pendingChangesRef.current = null;
+      
+      // If richContent was saved and has unchecked todos, move project from Done
+      if (data.richContent && hasUncheckedTodos(data.richContent)) {
+        await moveProjectFromDoneIfNeeded(project.id);
+      }
+      
       return true;
     } catch (error) {
       console.error('Save failed:', error);
@@ -199,6 +232,12 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
       try {
         await updateProject(project.id, data);
         pendingChangesRef.current = null;
+        
+        // If richContent was saved and has unchecked todos, move project from Done
+        if (data.richContent && hasUncheckedTodos(data.richContent)) {
+          await moveProjectFromDoneIfNeeded(project.id);
+        }
+        
         router.refresh();
       } catch (error) {
         console.error('Save failed:', error);
@@ -281,6 +320,20 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
     debouncedSave({ title: newTitle });
   };
   
+  // Helper to check if content has unchecked todos
+  const hasUncheckedTodos = (html: string): boolean => {
+    const matches = html.match(/<li[^>]*data-type=["']?taskItem["']?[^>]*>/gi);
+    if (!matches) return false;
+    
+    for (const match of matches) {
+      const checkedMatch = match.match(/data-checked=["']?(true|false)["']?/i);
+      if (checkedMatch && checkedMatch[1].toLowerCase() === 'false') {
+        return true;
+      }
+    }
+    return false;
+  };
+
   // Rich content handler
   const handleContentChange = (content: string) => {
     setRichContent(content);
@@ -691,6 +744,49 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
     }
   };
   
+  // Plans drag and drop
+  const handlePlansDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingPlans(true);
+  };
+  
+  const handlePlansDragLeave = (e: React.DragEvent) => {
+    e.stopPropagation();
+    setIsDraggingPlans(false);
+  };
+  
+  const handlePlansDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingPlans(false);
+    
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+    
+    try {
+      const newAttachments: Attachment[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        // Accept images and PDFs
+        if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+          const fd = new FormData();
+          fd.append('file', file);
+          const result = await uploadFile(fd);
+          newAttachments.push(result);
+        }
+      }
+      if (newAttachments.length > 0) {
+        const newPlans = [...plans, ...newAttachments];
+        setPlans(newPlans);
+        await updateProject(project.id, { plans: newPlans });
+        router.refresh();
+      }
+    } catch (error) {
+      console.error('Failed to upload plans via drag and drop', error);
+    }
+  };
+  
   // Section navigation
   const scrollToSection = (section: string) => {
     setActiveSection(section);
@@ -1006,6 +1102,20 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
               {isGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
               Create with AI
             </Button>
+            {inspiration.length > 0 && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="h-9 bg-background/90 backdrop-blur-sm hover:bg-background"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowInspirationPicker(!showInspirationPicker);
+                }}
+              >
+                <Images className="h-4 w-4" />
+              </Button>
+            )}
           </div>
 
           {/* Desktop: Buttons at bottom right */}
@@ -1044,7 +1154,90 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
               {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
               <span className="ml-2">Generate Cover</span>
             </Button>
+            {inspiration.length > 0 && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowInspirationPicker(!showInspirationPicker);
+                }}
+                title="Choose from Inspiration"
+              >
+                <Images className="h-3 w-3" />
+                <span className="ml-2">From Inspiration</span>
+              </Button>
+            )}
           </div>
+
+          {/* Inspiration Picker */}
+          {showInspirationPicker && inspiration.length > 0 && (
+            <div 
+              className="absolute inset-0 z-30 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowInspirationPicker(false);
+              }}
+            >
+              <div 
+                className="bg-background rounded-lg p-4 max-w-md w-full max-h-[80%] overflow-auto shadow-xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-sm">Choose from Inspiration</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={() => setShowInspirationPicker(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {inspiration.filter(item => item.type.startsWith('image/')).map(item => (
+                    <button
+                      key={item.id}
+                      className={cn(
+                        "relative aspect-square rounded-md overflow-hidden border-2 transition-all hover:border-primary",
+                        imageUrl === item.url ? "border-primary ring-2 ring-primary/30" : "border-transparent"
+                      )}
+                      onClick={async () => {
+                        setImageUrl(item.url);
+                        await updateProject(project.id, { imageUrl: item.url });
+                        setShowInspirationPicker(false);
+                        router.refresh();
+                      }}
+                    >
+                      <Image
+                        src={item.url}
+                        alt={item.name}
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                      {imageUrl === item.url && (
+                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                          <div className="bg-primary text-primary-foreground rounded-full p-1">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                {inspiration.filter(item => item.type.startsWith('image/')).length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No images in inspiration yet
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="p-8 sm:p-10">
@@ -1286,13 +1479,13 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                     ) : (
                       <span 
                         className={cn(
-                          "flex-1 cursor-pointer hover:bg-muted/50 px-2 py-1 rounded transition-colors",
+                          "flex-1 cursor-text px-2 py-1 rounded transition-colors",
                           item.toBuild && "line-through text-muted-foreground"
                         )}
-                        onClick={() => handleStartEditMaterial(item.id, item.text)}
-                        title="Click to edit"
+                        onDoubleClick={() => handleStartEditMaterial(item.id, item.text)}
+                        title="Double-click to edit"
                       >
-                        {item.text}
+                        {renderTextWithLinks(item.text)}
                       </span>
                     )}
                     <div className="flex items-center gap-3">
@@ -1300,24 +1493,38 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                         <Checkbox
                           checked={item.toBuy}
                           onCheckedChange={() => handleUpdateMaterial(item.id, 'toBuy')}
+                          className="data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
                         />
-                        <span className="text-xs text-muted-foreground">Buy</span>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">Need to buy</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Checkbox
                           checked={item.toBuild}
                           onCheckedChange={() => handleUpdateMaterial(item.id, 'toBuild')}
+                          className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
                         />
-                        <span className="text-xs text-muted-foreground">Build</span>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">Already own</span>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0"
-                        onClick={() => handleDeleteMaterial(item.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0"
+                          onClick={() => handleStartEditMaterial(item.id, item.text)}
+                          title="Edit"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0 hover:text-destructive"
+                          onClick={() => handleDeleteMaterial(item.id)}
+                          title="Delete"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1351,8 +1558,24 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
             </div>
 
             {/* Plans Section */}
-            <div id="section-plans" className="space-y-4 pt-8 border-t">
-              <h2 className="text-2xl font-bold">Plans & Sketches</h2>
+            <div 
+              id="section-plans" 
+              className={cn(
+                "space-y-4 pt-8 border-t rounded-lg transition-all",
+                isDraggingPlans && "ring-2 ring-primary/50 bg-primary/5 p-4 -m-4"
+              )}
+              onDragOver={handlePlansDragOver}
+              onDragLeave={handlePlansDragLeave}
+              onDrop={handlePlansDrop}
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">Plans & Sketches</h2>
+                {isDraggingPlans && (
+                  <p className="text-xs text-primary font-medium">
+                    Drop files here
+                  </p>
+                )}
+              </div>
               <input
                 type="file"
                 id="plans-upload"
@@ -1362,15 +1585,21 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                 onChange={handlePlansUpload}
               />
               {plans.length === 0 ? (
-                <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground flex flex-col items-center gap-2 hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => document.getElementById('plans-upload')?.click()}>
-                  <Upload className="h-8 w-8 opacity-50" />
-                  <p>Upload plans, sketches, or PDFs</p>
+                <div 
+                  className={cn(
+                    "border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground flex flex-col items-center gap-2 hover:bg-muted/10 transition-colors cursor-pointer",
+                    isDraggingPlans && "border-primary bg-primary/10"
+                  )}
+                  onClick={() => document.getElementById('plans-upload')?.click()}
+                >
+                  <Upload className={cn("h-8 w-8 opacity-50", isDraggingPlans && "text-primary opacity-100")} />
+                  <p>{isDraggingPlans ? "Drop to upload" : "Upload or drag & drop plans, sketches, or PDFs"}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {plans.map(item => (
                     <div key={item.id} className="group relative border rounded-lg overflow-hidden bg-background hover:shadow-md transition-all cursor-pointer" onClick={() => openAttachment(item.url, item.type, item.name)}>
-                      <div className="aspect-[3/2] relative bg-muted/20">
+                      <div className="aspect-[3/2] relative bg-muted/20 overflow-hidden">
                         {item.type.startsWith('image/') ? (
                           <Image 
                             src={item.url} 
@@ -1379,6 +1608,19 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                             className="object-contain p-2" 
                             unoptimized 
                           />
+                        ) : item.type === 'application/pdf' ? (
+                          <div className="w-full h-full relative">
+                            <embed
+                              src={`${item.url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                              type="application/pdf"
+                              className="w-full h-full pointer-events-none"
+                            />
+                            <div className="absolute bottom-2 right-2">
+                              <span className="text-[10px] uppercase font-bold tracking-wider bg-red-600 text-white px-2 py-0.5 rounded">
+                                PDF
+                              </span>
+                            </div>
+                          </div>
                         ) : (
                           <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground p-4">
                             <FileText className="h-12 w-12 mb-2 opacity-50" />
@@ -1400,9 +1642,15 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                       </div>
                     </div>
                   ))}
-                  <div className="border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/10 cursor-pointer min-h-[200px]" onClick={() => document.getElementById('plans-upload')?.click()}>
-                    <Plus className="h-8 w-8 opacity-50 mb-2" />
-                    <span className="text-sm">Add more</span>
+                  <div 
+                    className={cn(
+                      "border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/10 cursor-pointer min-h-[200px]",
+                      isDraggingPlans && "border-primary bg-primary/10"
+                    )}
+                    onClick={() => document.getElementById('plans-upload')?.click()}
+                  >
+                    <Plus className={cn("h-8 w-8 opacity-50 mb-2", isDraggingPlans && "text-primary opacity-100")} />
+                    <span className="text-sm">{isDraggingPlans ? "Drop here" : "Add more"}</span>
                   </div>
                 </div>
               )}

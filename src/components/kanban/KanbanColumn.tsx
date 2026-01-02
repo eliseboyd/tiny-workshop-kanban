@@ -173,6 +173,7 @@ export function KanbanColumn({ id, title, items, onCardClick, onTitleChange, onD
                 onClick={() => onCardClick?.(project)} 
                 onDelete={() => onDeleteProject?.(project.id)}
                 size={cardSize || "small"}
+                columnTitle={title}
             />
           ))}
         </SortableContext>
