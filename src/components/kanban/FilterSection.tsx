@@ -50,6 +50,7 @@ export function FilterSection({
   onTagToggle,
   onGroupToggle,
   onClearFilters,
+  onToggleUntagged,
 }: FilterSectionProps) {
   const visibleTags = tags.filter(tag => !hiddenTags.includes(tag.name));
   const visibleGroups = projectGroups.filter(group => !hiddenGroups.includes(group.id));
@@ -115,6 +116,23 @@ export function FilterSection({
               )}
             </Badge>
           ))}
+
+          {/* Untagged filter */}
+          {tags.length > 0 && (
+            <Badge
+              variant={showUntagged ? "default" : "outline"}
+              className={cn(
+                "cursor-pointer transition-all hover:scale-105",
+                showUntagged && "ring-2 ring-offset-1 ring-offset-background"
+              )}
+              onClick={() => onToggleUntagged()}
+            >
+              Untagged
+              {showUntagged && (
+                <X className="ml-1 h-3 w-3" />
+              )}
+            </Badge>
+          )}
 
           {/* Clear button */}
           {hasActiveFilters && (

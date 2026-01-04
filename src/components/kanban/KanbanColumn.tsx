@@ -9,16 +9,19 @@ import { Project } from './KanbanBoard';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, Eye } from 'lucide-react';
 
 type KanbanColumnProps = {
   id: string;
   title: string;
   items: Project[];
+  isHidden?: boolean;
+  onToggleVisibility?: () => void;
   onCardClick?: (project: Project) => void;
   onTitleChange?: (id: string, newTitle: string) => void;
   onDeleteColumn?: (id: string) => void;
   onDeleteProject?: (id: string) => void;
+  onTogglePin?: (id: string, pinned: boolean) => void;
   onAddProject?: (columnId: string) => void;
   cardSize?: string;
   isCreating?: boolean;
@@ -26,7 +29,7 @@ type KanbanColumnProps = {
   onCancelCreate?: () => void;
 };
 
-export function KanbanColumn({ id, title, items, onCardClick, onTitleChange, onDeleteColumn, onDeleteProject, onAddProject, cardSize, isCreating, onConfirmCreate, onCancelCreate }: KanbanColumnProps) {
+export function KanbanColumn({ id, title, items, isHidden, onToggleVisibility, onCardClick, onTitleChange, onDeleteColumn, onDeleteProject, onTogglePin, onAddProject, cardSize, isCreating, onConfirmCreate, onCancelCreate }: KanbanColumnProps) {
   const {
     setNodeRef,
     attributes,
@@ -76,6 +79,9 @@ export function KanbanColumn({ id, title, items, onCardClick, onTitleChange, onD
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Prevent drag-and-drop keyboard events from interfering
+    e.stopPropagation();
+    
     if (e.key === 'Enter') {
       inputRef.current?.blur();
     }
@@ -95,6 +101,7 @@ export function KanbanColumn({ id, title, items, onCardClick, onTitleChange, onD
                 onChange={(e) => setInternalTitle(e.target.value)}
                 onBlur={handleTitleBlur}
                 onKeyDown={handleKeyDown}
+                onPointerDown={(e) => e.stopPropagation()}
                 className="h-6 py-0 px-1 text-sm font-semibold bg-transparent border-none focus-visible:ring-1"
                 onClick={(e) => e.stopPropagation()}
              />
@@ -107,17 +114,36 @@ export function KanbanColumn({ id, title, items, onCardClick, onTitleChange, onD
             </h3>
         )}
         
-        {items.length === 0 && onDeleteColumn && (
-            <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-neutral-400 hover:text-destructive"
-                onClick={() => onDeleteColumn(id)}
-                title="Delete empty column"
+        <div className="flex items-center gap-1">
+          {/* Hide column button */}
+          {onToggleVisibility && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleVisibility();
+              }}
+              title="Hide column"
             >
-                <Trash2 className="h-3 w-3" />
+              <Eye className="h-3 w-3" />
             </Button>
-        )}
+          )}
+          
+          {/* Delete column button */}
+          {items.length === 0 && onDeleteColumn && (
+              <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-neutral-400 hover:text-destructive"
+                  onClick={() => onDeleteColumn(id)}
+                  title="Delete empty column"
+              >
+                  <Trash2 className="h-3 w-3" />
+              </Button>
+          )}
+        </div>
       </div>
       <div className="flex flex-1 flex-col gap-2 min-h-0 overflow-y-visible">
         {/* Add Project Button - Dotted Line Card - Now at Top */}
@@ -172,6 +198,7 @@ export function KanbanColumn({ id, title, items, onCardClick, onTitleChange, onD
                 project={project} 
                 onClick={() => onCardClick?.(project)} 
                 onDelete={() => onDeleteProject?.(project.id)}
+                onTogglePin={(pinned) => onTogglePin?.(project.id, pinned)}
                 size={cardSize || "small"}
                 columnTitle={title}
             />

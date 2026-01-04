@@ -15,17 +15,18 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pin } from 'lucide-react';
 
 type KanbanCardProps = {
   project: Project;
   onClick?: () => void;
   onDelete?: () => void;
+  onTogglePin?: (pinned: boolean) => void;
   size?: string; // compact, small, medium
   columnTitle?: string;
 };
 
-export function KanbanCard({ project, onClick, onDelete, size = 'medium', columnTitle }: KanbanCardProps) {
+export function KanbanCard({ project, onClick, onDelete, onTogglePin, size = 'medium', columnTitle }: KanbanCardProps) {
   // Touch handling to distinguish between scroll and tap
   const touchStartPos = useRef<{ x: number; y: number; time: number } | null>(null);
   const isTouchDevice = useRef(false);
@@ -108,7 +109,10 @@ export function KanbanCard({ project, onClick, onDelete, size = 'medium', column
       <ContextMenu>
       <ContextMenuTrigger>
       <Card 
-        className="cursor-grab active:cursor-grabbing hover:shadow-md transition-all p-0 gap-0 overflow-hidden active:scale-[0.98] active:shadow-lg"
+        className={cn(
+          "cursor-grab active:cursor-grabbing hover:shadow-md transition-all p-0 gap-0 overflow-hidden active:scale-[0.98] active:shadow-lg",
+          project.pinned && "border-l-2 border-l-primary/30"
+        )}
         onClick={handleClick}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -128,10 +132,14 @@ export function KanbanCard({ project, onClick, onDelete, size = 'medium', column
               />
             </div>
           )}
-        <CardHeader className={cn(contentPadding, "pb-2 space-y-0")}>
+        <CardHeader className={cn(contentPadding, "pb-2 space-y-0 relative")}>
+          {project.pinned && (
+            <Pin className="absolute top-2 right-2 h-3 w-3 text-muted-foreground/40 fill-current" />
+          )}
           <CardTitle className={cn(
             titleSize, 
             "font-medium leading-tight",
+            project.pinned && "pr-6",
             columnTitle?.toLowerCase() === 'done' && "line-through text-muted-foreground"
           )}>
             {project.title}
@@ -160,6 +168,13 @@ export function KanbanCard({ project, onClick, onDelete, size = 'medium', column
       </Card>
       </ContextMenuTrigger>
       <ContextMenuContent>
+        <ContextMenuItem onClick={(e) => {
+            e.stopPropagation();
+            onTogglePin?.(!project.pinned);
+        }}>
+          <Pin className="mr-2 h-4 w-4" />
+          {project.pinned ? 'Unpin' : 'Pin to Top'}
+        </ContextMenuItem>
         <ContextMenuItem className="text-destructive focus:text-destructive" onClick={(e) => {
             e.stopPropagation();
             onDelete?.();

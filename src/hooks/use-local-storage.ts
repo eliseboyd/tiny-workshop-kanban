@@ -1,28 +1,41 @@
 import { useState, useEffect } from 'react';
 
 export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => void] {
-  // State to store our value
-  const [storedValue, setStoredValue] = useState<T>(initialValue);
-
-  // Load from localStorage on mount
-  useEffect(() => {
+  // State to store our value - initialize with value from localStorage if available
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    if (typeof window === 'undefined') {
+      return initialValue;
+    }
     try {
       const item = window.localStorage.getItem(key);
-      if (item) {
-        setStoredValue(JSON.parse(item));
+      if (item && item !== 'undefined' && item !== 'null') {
+        return JSON.parse(item);
       }
+      return initialValue;
     } catch (error) {
       console.error('Error loading from localStorage:', error);
+      return initialValue;
     }
-  }, [key]);
+  });
 
-  // Return a wrapped version of useState's setter function that persists to localStorage
+  // Update localStorage whenever the value changes
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    try {
+      window.localStorage.setItem(key, JSON.stringify(storedValue));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  }, [key, storedValue]);
+
+  // Return a wrapped version of useState's setter function
   const setValue = (value: T) => {
     try {
       setStoredValue(value);
-      window.localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
-      console.error('Error saving to localStorage:', error);
+      console.error('Error setting value:', error);
     }
   };
 

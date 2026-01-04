@@ -29,6 +29,8 @@ type ClientDndWrapperProps = {
   filteredItems: Project[];
   activeId: string | null;
   settingsState: SettingsData;
+  hiddenColumns: string[];
+  onToggleColumnVisibility: (columnId: string) => void;
   onDragStart: (event: DragStartEvent) => void;
   onDragOver: (event: DragOverEvent) => void;
   onDragEnd: (event: DragEndEvent) => void;
@@ -36,6 +38,7 @@ type ClientDndWrapperProps = {
   handleColumnTitleChange: (colId: string, newTitle: string) => void;
   handleDeleteColumn: (id: string) => void;
   handleDeleteProject: (id: string) => void;
+  handleTogglePin: (id: string, pinned: boolean) => void;
   handleAddProjectToColumn: (columnId: string) => void;
   isCreatingInColumn: string | null;
   onConfirmCreate: (columnId: string, title: string) => void;
@@ -48,6 +51,8 @@ export function ClientDndWrapper({
   filteredItems,
   activeId,
   settingsState,
+  hiddenColumns,
+  onToggleColumnVisibility,
   onDragStart,
   onDragOver,
   onDragEnd,
@@ -55,6 +60,7 @@ export function ClientDndWrapper({
   handleColumnTitleChange,
   handleDeleteColumn,
   handleDeleteProject,
+  handleTogglePin,
   handleAddProjectToColumn,
   isCreatingInColumn,
   onConfirmCreate,
@@ -105,23 +111,64 @@ export function ClientDndWrapper({
     >
       <div className="flex flex-1 w-full gap-4 p-4 overflow-x-auto snap-x snap-mandatory md:snap-none">
         <SortableContext items={cols.map(c => c.id)} strategy={horizontalListSortingStrategy}>
-          {cols.map((col) => (
-            <KanbanColumn
-              key={col.id}
-              id={col.id}
-              title={col.title}
-              items={filteredItems.filter((i) => i.status === col.id).sort((a, b) => a.position - b.position)}
-              onCardClick={handleEditProject}
-              onTitleChange={handleColumnTitleChange}
-              onDeleteColumn={handleDeleteColumn}
-              onDeleteProject={handleDeleteProject}
-              onAddProject={handleAddProjectToColumn}
-              cardSize={settingsState.cardSize}
-              isCreating={isCreatingInColumn === col.id}
-              onConfirmCreate={onConfirmCreate}
-              onCancelCreate={onCancelCreate}
-            />
-          ))}
+          {cols.map((col) => {
+            const isHidden = hiddenColumns.includes(col.id);
+            
+            // Render slim column indicator when hidden
+            if (isHidden) {
+              const itemCount = filteredItems.filter((i) => i.status === col.id).length;
+              return (
+                <button
+                  key={col.id}
+                  onClick={() => onToggleColumnVisibility(col.id)}
+                  className="flex-shrink-0 w-12 h-32 bg-muted/30 hover:bg-muted/50 border-2 border-dashed border-muted-foreground/20 hover:border-muted-foreground/40 rounded-lg transition-all cursor-pointer group relative"
+                  title={`Show ${col.title} (${itemCount} items)`}
+                >
+                  <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground/60 group-hover:text-muted-foreground/80 px-1">
+                    <span className="text-xs font-medium tracking-wider rotate-0 text-center break-words w-full leading-tight">
+                      {col.title}
+                    </span>
+                    {itemCount > 0 && (
+                      <span className="text-xs font-bold bg-muted px-1.5 py-0.5 rounded">
+                        {itemCount}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            }
+            
+            // Render normal column when visible
+            return (
+              <KanbanColumn
+                key={col.id}
+                id={col.id}
+                title={col.title}
+                isHidden={false}
+                onToggleVisibility={() => onToggleColumnVisibility(col.id)}
+                items={filteredItems
+                  .filter((i) => i.status === col.id)
+                  .sort((a, b) => {
+                    // Pinned items always come first
+                    if (a.pinned && !b.pinned) return -1;
+                    if (!a.pinned && b.pinned) return 1;
+                    // Within pinned or unpinned, sort by position
+                    return a.position - b.position;
+                  })
+                }
+                onCardClick={handleEditProject}
+                onTitleChange={handleColumnTitleChange}
+                onDeleteColumn={handleDeleteColumn}
+                onDeleteProject={handleDeleteProject}
+                onTogglePin={handleTogglePin}
+                onAddProject={handleAddProjectToColumn}
+                cardSize={settingsState.cardSize}
+                isCreating={isCreatingInColumn === col.id}
+                onConfirmCreate={onConfirmCreate}
+                onCancelCreate={onCancelCreate}
+              />
+            );
+          })}
         </SortableContext>
       </div>
       <DragOverlay>

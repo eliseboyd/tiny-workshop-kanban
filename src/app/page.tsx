@@ -1,4 +1,4 @@
-import { KanbanBoard } from '@/components/kanban/KanbanBoard';
+import { KanbanBoardClient } from '@/components/kanban/KanbanBoardClient';
 import { getProjects, getSettings, getColumns } from '@/app/actions';
 
 // Ensure dynamic rendering so we get fresh data from Supabase on every load
@@ -11,7 +11,7 @@ export default async function Home() {
 
   return (
     <main className="flex min-h-screen flex-col bg-background overflow-auto">
-      <KanbanBoard initialProjects={projects} initialSettings={settings} initialColumns={columns} />
+      <KanbanBoardClient initialProjects={projects} initialSettings={settings} initialColumns={columns} />
     </main>
   );
 }

@@ -15,13 +15,13 @@ import { DashboardSection } from './DashboardSection';
 import { ModeToggle } from '@/components/mode-toggle';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Menu, LayoutDashboard, Columns3, LayoutGrid, FileStack, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { Menu, LayoutDashboard, Columns3, LayoutGrid, FileStack } from 'lucide-react';
 import { PlansView } from './PlansView';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Settings, KanbanSquareDashed } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/use-local-storage';
-import { updateProjectStatus, updateSettings, updateColumn, createColumn, deleteColumn, deleteProject, updateColumnsOrder, updateColumnOrder, getAllTags, getAllProjectGroups, getAllWidgets, getAllMaterials, getProjects, getAllPlans, StandalonePlan } from '@/app/actions';
+import { updateProjectStatus, updateSettings, updateColumn, createColumn, deleteColumn, deleteProject, updateColumnsOrder, updateColumnOrder, getAllTags, getAllProjectGroups, getAllWidgets, getAllMaterials, getProjects, getAllPlans, StandalonePlan, toggleProjectPinned } from '@/app/actions';
 
 import { ClientDndWrapper } from './ClientDndWrapper';
 
@@ -38,6 +38,7 @@ export type Project = {
     attachments: any | null;
     status: string;
     position: number;
+    pinned?: boolean;
     createdAt: Date | null;
     updatedAt: Date | null;
     parentProjectId?: string | null;
@@ -136,8 +137,8 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   const [activeView, setActiveView] = useLocalStorage<'overview' | 'dashboard' | 'kanban' | 'plans'>('kanban-view', 'overview');
   const [allPlans, setAllPlans] = useState<Array<StandalonePlan & { source: 'standalone' | 'project' }>>([]);
   
-  // Hide Done column state
-  const [isDoneColumnHidden, setIsDoneColumnHidden] = useLocalStorage<boolean>('hide-done-column', false);
+  // Hidden columns state (array of column IDs)
+  const [hiddenColumns, setHiddenColumns] = useLocalStorage<string[]>('hidden-columns', []);
 
   // Sync items when props change
   useEffect(() => {
@@ -159,24 +160,36 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   // Collect all unique tags from all items
   // Load tags, project groups, widgets, materials, and plans
   const loadDashboardData = async () => {
-    const [tagsData, groupsData, widgetsData, materialsData, plansData] = await Promise.all([
+    // Always load tags and groups (needed for filtering)
+    const [tagsData, groupsData] = await Promise.all([
       getAllTags(),
       getAllProjectGroups(),
-      getAllWidgets(),
-      getAllMaterials(),
-      getAllPlans(),
     ]);
     setTags(tagsData);
     setProjectGroups(groupsData);
-    setWidgets(widgetsData);
-    setMaterials(materialsData);
-    setAllPlans(plansData);
+    
+    // Only load widgets, materials, and plans if in overview or dashboard view
+    if (activeView === 'overview' || activeView === 'dashboard') {
+      const [widgetsData, materialsData, plansData] = await Promise.all([
+        getAllWidgets(),
+        getAllMaterials(),
+        getAllPlans(),
+      ]);
+      setWidgets(widgetsData);
+      setMaterials(materialsData);
+      setAllPlans(plansData);
+    } else if (activeView === 'plans') {
+      // Only load plans if in plans view
+      const plansData = await getAllPlans();
+      setAllPlans(plansData);
+    }
+    
     setIsDashboardLoading(false);
   };
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [activeView]);
 
   // Calculate counts for dashboard
   const dashboardTags = useMemo(() => {
@@ -460,6 +473,23 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
       }
   };
 
+  const handleTogglePin = async (id: string, pinned: boolean) => {
+      // Optimistically update UI
+      setItems(prev => prev.map(item => 
+          item.id === id ? { ...item, pinned } : item
+      ));
+      await toggleProjectPinned(id, pinned);
+      router.refresh();
+  };
+
+  const handleToggleColumnVisibility = (columnId: string) => {
+      setHiddenColumns(prev => 
+          prev.includes(columnId) 
+              ? prev.filter(id => id !== columnId)
+              : [...prev, columnId]
+      );
+  };
+
   const handleBoardTitleClick = () => {
       setIsEditingTitle(true);
       setTimeout(() => titleInputRef.current?.focus(), 0);
@@ -677,45 +707,22 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
         {(activeView === 'overview' || activeView === 'kanban') && (
           <div className="flex flex-col flex-1 min-h-0">
             {/* Kanban Toolbar */}
-            <div className="flex items-center justify-between gap-2 px-4 py-2 border-b bg-muted/20">
-              <div className="flex items-center gap-2">
-                {/* Toggle Done Column Button */}
-                <Button 
-                  variant={isDoneColumnHidden ? "outline" : "ghost"} 
-                  size="sm"
-                  onClick={() => setIsDoneColumnHidden(!isDoneColumnHidden)}
-                  className={isDoneColumnHidden ? "border-dashed" : ""}
-                >
-                  {isDoneColumnHidden ? (
-                    <>
-                      <EyeOff className="mr-2 h-4 w-4" />
-                      <span className="hidden sm:inline">Done Hidden</span>
-                      <span className="sm:hidden">Done</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                      <span className="hidden sm:inline">Hide Done</span>
-                      <span className="sm:hidden">Done</span>
-                    </>
-                  )}
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleCreateColumn}>
-                  <KanbanSquareDashed className="mr-2 h-4 w-4" /> Add Column
-                </Button>
-                <Button size="sm" onClick={handleCreateProject}>
-                  <Plus className="mr-2 h-4 w-4" /> New Project
-                </Button>
-              </div>
+            <div className="flex items-center justify-end gap-2 px-4 py-2 border-b bg-muted/20">
+              <Button variant="outline" size="sm" onClick={handleCreateColumn}>
+                <KanbanSquareDashed className="mr-2 h-4 w-4" /> Add Column
+              </Button>
+              <Button size="sm" onClick={handleCreateProject}>
+                <Plus className="mr-2 h-4 w-4" /> New Project
+              </Button>
             </div>
             <ClientDndWrapper 
                 items={items}
-                cols={isDoneColumnHidden ? cols.filter(col => col.title.toLowerCase() !== 'done') : cols}
+                cols={cols}
                 filteredItems={filteredItems}
                 activeId={activeId}
                 settingsState={settingsState}
+                hiddenColumns={hiddenColumns}
+                onToggleColumnVisibility={handleToggleColumnVisibility}
                 onDragStart={handleDragStart}
                 onDragOver={handleDragOver}
                 onDragEnd={handleDragEnd}
@@ -723,6 +730,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
                 handleColumnTitleChange={handleColumnTitleChange}
                 handleDeleteColumn={handleDeleteColumn}
                 handleDeleteProject={handleDeleteProject}
+                handleTogglePin={handleTogglePin}
                 handleAddProjectToColumn={handleAddProjectToColumn}
                 isCreatingInColumn={isCreatingInColumn}
                 onConfirmCreate={handleConfirmCreate}

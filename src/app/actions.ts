@@ -509,6 +509,21 @@ export async function updateProjectStatus(id: string, status: string, position: 
   revalidatePath('/');
 }
 
+export async function toggleProjectPinned(id: string, pinned: boolean) {
+  const supabase = createServiceRoleClient();
+  
+  const { error } = await supabase
+    .from('projects')
+    .update({ pinned })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error toggling project pinned:', error);
+  }
+  
+  revalidatePath('/');
+}
+
 // Toggle project completion - moves to Done column or back to first column
 // Move project from Done to In Progress when new unchecked todos are added
 export async function moveProjectFromDoneIfNeeded(projectId: string) {
