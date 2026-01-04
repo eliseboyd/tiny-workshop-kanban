@@ -15,7 +15,7 @@ import { DashboardSection } from './DashboardSection';
 import { ModeToggle } from '@/components/mode-toggle';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Menu, LayoutDashboard, Columns3, LayoutGrid, FileStack } from 'lucide-react';
+import { Menu, LayoutDashboard, Columns3, LayoutGrid, FileStack, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { PlansView } from './PlansView';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -135,6 +135,9 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   // View state: 'overview' (both), 'dashboard', 'kanban', 'plans'
   const [activeView, setActiveView] = useLocalStorage<'overview' | 'dashboard' | 'kanban' | 'plans'>('kanban-view', 'overview');
   const [allPlans, setAllPlans] = useState<Array<StandalonePlan & { source: 'standalone' | 'project' }>>([]);
+  
+  // Hide Done column state
+  const [isDoneColumnHidden, setIsDoneColumnHidden] = useLocalStorage<boolean>('hide-done-column', false);
 
   // Sync items when props change
   useEffect(() => {
@@ -674,17 +677,42 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
         {(activeView === 'overview' || activeView === 'kanban') && (
           <div className="flex flex-col flex-1 min-h-0">
             {/* Kanban Toolbar */}
-            <div className="flex items-center justify-end gap-2 px-4 py-2 border-b bg-muted/20">
-              <Button variant="outline" size="sm" onClick={handleCreateColumn}>
-                <KanbanSquareDashed className="mr-2 h-4 w-4" /> Add Column
-              </Button>
-              <Button size="sm" onClick={handleCreateProject}>
-                <Plus className="mr-2 h-4 w-4" /> New Project
-              </Button>
+            <div className="flex items-center justify-between gap-2 px-4 py-2 border-b bg-muted/20">
+              <div className="flex items-center gap-2">
+                {/* Toggle Done Column Button */}
+                <Button 
+                  variant={isDoneColumnHidden ? "outline" : "ghost"} 
+                  size="sm"
+                  onClick={() => setIsDoneColumnHidden(!isDoneColumnHidden)}
+                  className={isDoneColumnHidden ? "border-dashed" : ""}
+                >
+                  {isDoneColumnHidden ? (
+                    <>
+                      <EyeOff className="mr-2 h-4 w-4" />
+                      <span className="hidden sm:inline">Done Hidden</span>
+                      <span className="sm:hidden">Done</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      <span className="hidden sm:inline">Hide Done</span>
+                      <span className="sm:hidden">Done</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleCreateColumn}>
+                  <KanbanSquareDashed className="mr-2 h-4 w-4" /> Add Column
+                </Button>
+                <Button size="sm" onClick={handleCreateProject}>
+                  <Plus className="mr-2 h-4 w-4" /> New Project
+                </Button>
+              </div>
             </div>
             <ClientDndWrapper 
                 items={items}
-                cols={cols}
+                cols={isDoneColumnHidden ? cols.filter(col => col.title.toLowerCase() !== 'done') : cols}
                 filteredItems={filteredItems}
                 activeId={activeId}
                 settingsState={settingsState}

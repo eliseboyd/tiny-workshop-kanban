@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import { Project } from './KanbanBoard';
-import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded } from '@/app/actions';
+import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage } from '@/app/actions';
 import Image from 'next/image';
 import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images, ExternalLink, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -77,9 +77,11 @@ type ProjectEditorProps = {
 export function ProjectEditor({ project, onClose, isModal = false, className }: ProjectEditorProps) {
   const router = useRouter();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isFetchingOgImage, setIsFetchingOgImage] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isDraggingPlans, setIsDraggingPlans] = useState(false);
   const [showInspirationPicker, setShowInspirationPicker] = useState(false);
+  const [isCoverPickerOpen, setIsCoverPickerOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('overview');
   
   // Simple local state for immediate UI updates
@@ -701,6 +703,24 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
       setIsGenerating(false);
     }
   };
+
+  const handleFetchOgImage = async () => {
+    setIsFetchingOgImage(true);
+    try {
+      const result = await fetchAndSetOgImage(project.id);
+      if (result.success && result.imageUrl) {
+        setImageUrl(result.imageUrl);
+        router.refresh();
+      } else {
+        alert(result.error || 'Could not find an image from the links in your project');
+      }
+    } catch (err) {
+      console.error('Failed to fetch OG image:', err);
+      alert('Failed to fetch image from link');
+    } finally {
+      setIsFetchingOgImage(false);
+    }
+  };
   
   // Inline image upload for rich text editor
   const handleContentImageUpload = async (file: File): Promise<string> => {
@@ -1102,6 +1122,21 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
               {isGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
               Create with AI
             </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="flex-1 h-9 bg-background/90 backdrop-blur-sm hover:bg-background"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleFetchOgImage();
+              }}
+              disabled={isFetchingOgImage}
+              title="Fetch image from links in project"
+            >
+              {isFetchingOgImage ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ExternalLink className="h-4 w-4 mr-2" />}
+              From Link
+            </Button>
             {inspiration.length > 0 && (
               <Button
                 type="button"
@@ -1153,6 +1188,21 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
             >
               {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
               <span className="ml-2">Generate Cover</span>
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleFetchOgImage();
+              }}
+              disabled={isFetchingOgImage}
+              title="Fetch image from links in project"
+            >
+              {isFetchingOgImage ? <Loader2 className="h-3 w-3 animate-spin" /> : <ExternalLink className="h-3 w-3" />}
+              <span className="ml-2">From Link</span>
             </Button>
             {inspiration.length > 0 && (
               <Button
@@ -1328,7 +1378,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                   e.target.style.height = 'auto';
                   e.target.style.height = e.target.scrollHeight + 'px';
                 }}
-                className="w-full text-3xl md:text-5xl font-bold font-sans tracking-tight bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 overflow-hidden"
+                className="w-full text-xl md:text-2xl font-bold font-sans tracking-tight bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 overflow-hidden leading-tight"
                 placeholder="Untitled"
                 rows={1}
                 style={{ height: 'auto' }}

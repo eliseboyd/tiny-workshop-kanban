@@ -7,6 +7,258 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
+// Helper function to download image from URL and upload to Supabase
+async function downloadAndUploadImage(imageUrl: string): Promise<string | null> {
+  try {
+    // Fetch the image
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      return null;
+    }
+    
+    // Get the image as a buffer
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
+    // Determine file extension from content-type or URL
+    const contentType = response.headers.get('content-type');
+    let fileExt = '.jpg';
+    if (contentType?.includes('png')) fileExt = '.png';
+    else if (contentType?.includes('webp')) fileExt = '.webp';
+    else if (contentType?.includes('gif')) fileExt = '.gif';
+    else if (contentType?.includes('jpeg') || contentType?.includes('jpg')) fileExt = '.jpg';
+    
+    const fileName = `og-${uuidv4()}${fileExt}`;
+    
+    // Upload to Supabase Storage
+    const supabase = createServiceRoleClient();
+    const { error: uploadError } = await supabase.storage
+      .from('board-uploads')
+      .upload(fileName, buffer, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: contentType || 'image/jpeg'
+      });
+    
+    if (uploadError) {
+      return null;
+    }
+    
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('board-uploads')
+      .getPublicUrl(fileName);
+    
+    return publicUrl;
+  } catch (error) {
+    return null;
+  }
+}
+
+// Helper function to clean URLs by removing unnecessary query parameters
+function cleanUrl(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    
+    // List of query parameters to remove (tracking, tokens, etc.)
+    const paramsToRemove = [
+      'mcp_token',       // MakerWorld authentication token
+      'utm_source',      // UTM tracking
+      'utm_medium',
+      'utm_campaign',
+      'utm_term',
+      'utm_content',
+      'ref',             // Referral tracking
+      'referrer',
+      'source',
+      'fbclid',          // Facebook tracking
+      'gclid',           // Google tracking
+      'msclkid',         // Microsoft tracking
+    ];
+    
+    // Remove specified parameters
+    paramsToRemove.forEach(param => {
+      urlObj.searchParams.delete(param);
+    });
+    
+    // Return cleaned URL (keep hash fragments like #profileId-312104)
+    return urlObj.toString();
+  } catch (error) {
+    // If URL parsing fails, return original
+    return url;
+  }
+}
+
+// Helper function to clean URLs in HTML content
+function cleanUrlsInHtml(html: string): string {
+  // Clean href attributes
+  html = html.replace(/href=["']([^"']+)["']/gi, (match, url) => {
+    if (url.startsWith('http')) {
+      const cleanedUrl = cleanUrl(url);
+      return `href="${cleanedUrl}"`;
+    }
+    return match;
+  });
+  
+  // Clean plain text URLs
+  html = html.replace(/(https?:\/\/[^\s<>"']+)/gi, (url) => {
+    return cleanUrl(url);
+  });
+  
+  return html;
+}
+
+// Helper function to extract Open Graph image from a URL
+async function fetchOpenGraphImage(url: string): Promise<string | null> {
+  try {
+    // Clean the URL before fetching
+    const cleanedUrl = cleanUrl(url);
+    
+    // Special handling for MakerWorld - they have strong bot protection
+    if (cleanedUrl.includes('makerworld.com')) {
+      return null;
+    }
+    
+    // Use native https module with increased header size limit
+    const https = require('https');
+    const urlObj = new URL(cleanedUrl);
+    
+    const html = await new Promise<string>((resolve, reject) => {
+      const req = https.get({
+        hostname: urlObj.hostname,
+        path: urlObj.pathname + urlObj.search,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'DNT': '1',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1',
+          'Referer': urlObj.origin,
+        },
+        maxHeaderSize: 32768, // Increase to 32KB to handle large headers
+      }, (res: any) => {
+        // Handle redirects
+        if (res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307 || res.statusCode === 308) {
+          reject(new Error(`Redirect not followed: ${res.statusCode}`));
+          return;
+        }
+        
+        // Some sites may block server requests - fail gracefully
+        if (res.statusCode === 403) {
+          resolve(''); // Return empty string instead of error
+          return;
+        }
+        
+        if (res.statusCode !== 200) {
+          reject(new Error(`HTTP ${res.statusCode}`));
+          return;
+        }
+        
+        let data = '';
+        res.on('data', (chunk: any) => data += chunk);
+        res.on('end', () => resolve(data));
+      });
+      
+      req.on('error', reject);
+      req.end();
+    });
+    
+    if (!html) {
+      return null;
+    }
+    
+    // Check if there's ANY og:image meta tag
+    const hasOgImage = html.includes('og:image');
+    const hasTwitterImage = html.includes('twitter:image');
+    
+    if (!hasOgImage && !hasTwitterImage) {
+      return null;
+    }
+    
+    // Try multiple meta tag patterns
+    const patterns = [
+      // Standard og:image with property
+      /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["'][^>]*>/i,
+      /<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["'][^>]*>/i,
+      // og:image with name (Printables uses this)
+      /<meta[^>]*name=["']og:image["'][^>]*content=["']([^"']+)["'][^>]*>/i,
+      /<meta[^>]*content=["']([^"']+)["'][^>]*name=["']og:image["'][^>]*>/i,
+      // Twitter image
+      /<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']+)["'][^>]*>/i,
+      /<meta[^>]*content=["']([^"']+)["'][^>]*name=["']twitter:image["'][^>]*>/i,
+      // og:image:secure_url
+      /<meta[^>]*property=["']og:image:secure_url["'][^>]*content=["']([^"']+)["'][^>]*>/i,
+      /<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image:secure_url["'][^>]*>/i,
+    ];
+    
+    for (const pattern of patterns) {
+      const match = html.match(pattern);
+      if (match && match[1]) {
+        let imageUrl = match[1];
+        
+        // Handle relative URLs
+        if (imageUrl.startsWith('//')) {
+          imageUrl = 'https:' + imageUrl;
+        } else if (imageUrl.startsWith('/')) {
+          const urlObj = new URL(url);
+          imageUrl = urlObj.origin + imageUrl;
+        }
+        
+        return imageUrl;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
+
+// Helper function to extract URLs from text
+function extractUrls(text: string): string[] {
+  const urlRegex = /(https?:\/\/[^\s<>"']+)/gi;
+  const urls = text.match(urlRegex) || [];
+  // Clean URLs before returning
+  return urls.map(url => cleanUrl(url));
+}
+
+// Helper function to extract URLs from HTML content
+function extractUrlsFromHtml(html: string): string[] {
+  // Extract from href attributes
+  const hrefRegex = /href=["']([^"']+)["']/gi;
+  const matches = [...html.matchAll(hrefRegex)];
+  const urls = matches.map(m => m[1]).filter(url => url.startsWith('http'));
+  
+  // Also extract plain URLs from text content
+  const textUrls = extractUrls(html);
+  
+  // Combine and clean all URLs
+  const allUrls = [...new Set([...urls, ...textUrls])];
+  return allUrls.map(url => cleanUrl(url));
+}
+
+// Helper function to extract image URL from specific platforms
+function extractPlatformImage(url: string): string | null {
+  try {
+    // YouTube - extract video ID and get thumbnail
+    const youtubeMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (youtubeMatch) {
+      return `https://img.youtube.com/vi/${youtubeMatch[1]}/maxresdefault.jpg`;
+    }
+    
+    // MakerWorld - Since they block scraping, return null and let user manually set image
+    // We could potentially add API support or image URL construction in the future
+    // For now, the "From Link" button can be used to manually trigger image fetch
+    
+    // For other platforms, rely on OG tag fetching
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
+
 // --- Projects ---
 
 export async function getProjects() {
@@ -20,11 +272,6 @@ export async function getProjects() {
   if (error) {
     console.error('Error fetching projects:', JSON.stringify(error, null, 2));
     return [];
-  }
-  
-  // Debug: Log what we're getting from the database
-  if (data && data.length > 0) {
-    console.log('[Server] Fetched projects. Sample materials_list:', data[0]?.materials_list);
   }
   
   return data;
@@ -42,13 +289,6 @@ export async function getProject(id: string) {
     console.error('Error fetching project:', error);
     return null;
   }
-  
-  console.log('[Server] Fetched single project:', {
-    id: data?.id,
-    title: data?.title,
-    materials_list: data?.materials_list,
-    materials_list_type: typeof data?.materials_list
-  });
   
   return data;
 }
@@ -73,7 +313,7 @@ export async function createProject(data: {
         id: uuidv4(),
         title: data.title,
         description: data.description,
-        rich_content: data.richContent,
+        rich_content: data.richContent ? cleanUrlsInHtml(data.richContent) : data.richContent,
         materials_list: JSON.stringify(data.materialsList || []), 
         plans: JSON.stringify(data.plans || []), // Convert to JSON
         inspiration: JSON.stringify(data.inspiration || []), // Convert to JSON
@@ -90,14 +330,52 @@ export async function createProject(data: {
 
 export async function updateProject(id: string, data: any) {
   const supabase = createServiceRoleClient();
+  
+  // Check if we should fetch an Open Graph image
+  let shouldFetchOgImage = false;
+  let urlsToCheck: string[] = [];
+  
+  // Get current project to check if it has a cover image
+  const { data: currentProject } = await supabase
+    .from('projects')
+    .select('image_url, title, rich_content')
+    .eq('id', id)
+    .single();
+  
+  const hasNoCoverImage = !currentProject?.image_url && data.imageUrl === undefined;
+  
+  if (hasNoCoverImage) {
+    // Check if title or richContent has been updated with a URL
+    if (data.title !== undefined) {
+      urlsToCheck.push(...extractUrls(data.title));
+    }
+    if (data.richContent !== undefined) {
+      urlsToCheck.push(...extractUrlsFromHtml(data.richContent));
+    }
+    
+    // If no new URLs, check existing content
+    if (urlsToCheck.length === 0) {
+      if (currentProject?.title) {
+        urlsToCheck.push(...extractUrls(currentProject.title));
+      }
+      if (currentProject?.rich_content) {
+        urlsToCheck.push(...extractUrlsFromHtml(currentProject.rich_content));
+      }
+    }
+    
+    shouldFetchOgImage = urlsToCheck.length > 0;
+  }
+  
   // Convert camelCase to snake_case for DB
   const dbData: any = {};
   if (data.title !== undefined) dbData.title = data.title;
   if (data.description !== undefined) dbData.description = data.description;
-  if (data.richContent !== undefined) dbData.rich_content = data.richContent;
+  if (data.richContent !== undefined) {
+    // Clean URLs in rich content before saving
+    dbData.rich_content = cleanUrlsInHtml(data.richContent);
+  }
   if (data.materialsList !== undefined) {
     dbData.materials_list = JSON.stringify(data.materialsList);
-    console.log('[Server] Saving materialsList:', data.materialsList, '-> JSON:', dbData.materials_list);
   }
   if (data.plans !== undefined) dbData.plans = JSON.stringify(data.plans);
   if (data.inspiration !== undefined) dbData.inspiration = JSON.stringify(data.inspiration);
@@ -107,8 +385,31 @@ export async function updateProject(id: string, data: any) {
   if (data.status !== undefined) dbData.status = data.status;
   if (data.position !== undefined) dbData.position = data.position;
   if (data.parent_project_id !== undefined) dbData.parent_project_id = data.parent_project_id;
-
-  console.log('[Server] Updating project', id, 'with data:', dbData);
+  
+  // Try to fetch Open Graph image if needed
+  if (shouldFetchOgImage && urlsToCheck.length > 0) {
+    for (const url of urlsToCheck) {
+      // First try platform-specific extraction
+      const platformImage = extractPlatformImage(url);
+      if (platformImage) {
+        const uploadedUrl = await downloadAndUploadImage(platformImage);
+        if (uploadedUrl) {
+          dbData.image_url = uploadedUrl;
+          break;
+        }
+      }
+      
+      // Fall back to OG tag extraction
+      const ogImage = await fetchOpenGraphImage(url);
+      if (ogImage) {
+        const uploadedUrl = await downloadAndUploadImage(ogImage);
+        if (uploadedUrl) {
+          dbData.image_url = uploadedUrl;
+          break; // Use the first successful OG image found
+        }
+      }
+    }
+  }
 
   const { error } = await supabase
     .from('projects')
@@ -117,18 +418,84 @@ export async function updateProject(id: string, data: any) {
 
   if (error) {
     console.error('Error updating project:', error);
-  } else {
-    console.log('[Server] Project updated successfully');
   }
   revalidatePath('/');
+}
+
+// Manual action to fetch OG image from project content
+export async function fetchAndSetOgImage(projectId: string): Promise<{ success: boolean; imageUrl?: string; error?: string }> {
+  try {
+    const supabase = createServiceRoleClient();
+    
+    // Get project
+    const { data: project } = await supabase
+      .from('projects')
+      .select('title, rich_content')
+      .eq('id', projectId)
+      .single();
+    
+    if (!project) {
+      return { success: false, error: 'Project not found' };
+    }
+    
+    // Extract URLs from title and content
+    const urlsToCheck: string[] = [];
+    if (project.title) {
+      const titleUrls = extractUrls(project.title);
+      urlsToCheck.push(...titleUrls);
+    }
+    if (project.rich_content) {
+      const contentUrls = extractUrlsFromHtml(project.rich_content);
+      urlsToCheck.push(...contentUrls);
+    }
+    
+    if (urlsToCheck.length === 0) {
+      return { success: false, error: 'No URLs found in project' };
+    }
+    
+    // Try to fetch OG image
+    for (const url of urlsToCheck) {
+      // Try platform-specific first
+      const platformImage = extractPlatformImage(url);
+      if (platformImage) {
+        const uploadedUrl = await downloadAndUploadImage(platformImage);
+        if (uploadedUrl) {
+          await supabase
+            .from('projects')
+            .update({ image_url: uploadedUrl })
+            .eq('id', projectId);
+          
+          revalidatePath('/');
+          return { success: true, imageUrl: uploadedUrl };
+        }
+      }
+      
+      // Try OG tags
+      const ogImage = await fetchOpenGraphImage(url);
+      if (ogImage) {
+        const uploadedUrl = await downloadAndUploadImage(ogImage);
+        if (uploadedUrl) {
+          await supabase
+            .from('projects')
+            .update({ image_url: uploadedUrl })
+            .eq('id', projectId);
+          
+          revalidatePath('/');
+          return { success: true, imageUrl: uploadedUrl };
+        }
+      }
+    }
+    
+    return { success: false, error: 'No OG image found' };
+  } catch (error) {
+    console.error('[fetchAndSetOgImage] Error:', error);
+    return { success: false, error: 'Failed to fetch OG image' };
+  }
 }
 
 export async function updateProjectStatus(id: string, status: string, position: number) {
   const supabase = createServiceRoleClient();
   const safePosition = Math.max(0, position);
-  
-  // Debug log
-  console.log(`[updateProjectStatus] ID: ${id}, Status: ${status}, Position: ${safePosition}`);
   
   const { error } = await supabase
     .from('projects')
@@ -136,9 +503,7 @@ export async function updateProjectStatus(id: string, status: string, position: 
     .eq('id', id);
 
   if (error) {
-      console.error('Error updating project status:', JSON.stringify(error, null, 2));
-  } else {
-      console.log(`[updateProjectStatus] Success for ${id}`);
+    console.error('Error updating project status:', JSON.stringify(error, null, 2));
   }
   
   revalidatePath('/');
@@ -206,8 +571,6 @@ export async function moveProjectFromDoneIfNeeded(projectId: string) {
     ? projectsInColumn[0].position + 1 
     : 0;
   
-  console.log(`[moveProjectFromDone] Moving project ${projectId} from Done to ${targetColumn.title} at position ${newPosition}`);
-  
   const { error } = await supabase
     .from('projects')
     .update({ status: targetColumn.id, position: newPosition })
@@ -263,8 +626,6 @@ export async function toggleProjectCompletion(projectId: string, currentStatus: 
     .eq('status', targetColumnId);
   
   const newPosition = count || 0;
-  
-  console.log(`[toggleProjectCompletion] Moving project ${projectId} to column ${targetColumnId} at position ${newPosition}`);
   
   const { error } = await supabase
     .from('projects')
@@ -1248,7 +1609,6 @@ export async function getAllPlans(): Promise<Array<StandalonePlan & { source: 's
   
   // Get standalone plans
   const standalonePlans = await getStandalonePlans();
-  console.log('[getAllPlans] Standalone plans count:', standalonePlans.length);
   
   // Get plans from projects
   const { data: projects, error } = await supabase
@@ -1260,8 +1620,6 @@ export async function getAllPlans(): Promise<Array<StandalonePlan & { source: 's
     return standalonePlans.map(p => ({ ...p, source: 'standalone' as const }));
   }
   
-  console.log('[getAllPlans] Projects with plans field:', projects?.length);
-  
   const projectPlans: Array<StandalonePlan & { source: 'project' }> = [];
   
   projects.forEach(project => {
@@ -1269,7 +1627,6 @@ export async function getAllPlans(): Promise<Array<StandalonePlan & { source: 's
     
     try {
       if (project.plans) {
-        console.log('[getAllPlans] Project', project.id, 'plans type:', typeof project.plans, 'value:', project.plans);
         plansList = typeof project.plans === 'string'
           ? JSON.parse(project.plans)
           : project.plans;
@@ -1279,7 +1636,6 @@ export async function getAllPlans(): Promise<Array<StandalonePlan & { source: 's
     }
     
     if (Array.isArray(plansList) && plansList.length > 0) {
-      console.log('[getAllPlans] Project', project.title, 'has', plansList.length, 'plans');
       plansList.forEach(plan => {
         projectPlans.push({
           id: plan.id,
@@ -1296,8 +1652,6 @@ export async function getAllPlans(): Promise<Array<StandalonePlan & { source: 's
       });
     }
   });
-  
-  console.log('[getAllPlans] Total project plans found:', projectPlans.length);
   
   // Combine and sort by date (standalone plans have dates, project plans don't)
   const allPlans = [
