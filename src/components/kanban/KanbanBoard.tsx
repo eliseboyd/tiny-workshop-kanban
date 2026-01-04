@@ -483,7 +483,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   };
 
   const handleToggleColumnVisibility = (columnId: string) => {
-      setHiddenColumns(prev => 
+      setHiddenColumns((prev: string[]) => 
           prev.includes(columnId) 
               ? prev.filter(id => id !== columnId)
               : [...prev, columnId]
