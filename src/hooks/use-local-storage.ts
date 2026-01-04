@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => void] {
+export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((prev: T) => T)) => void] {
   // State to store our value - initialize with value from localStorage if available
   const [storedValue, setStoredValue] = useState<T>(() => {
     if (typeof window === 'undefined') {
@@ -30,8 +30,8 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T)
     }
   }, [key, storedValue]);
 
-  // Return a wrapped version of useState's setter function
-  const setValue = (value: T) => {
+  // Return a wrapped version of useState's setter function that accepts value or function
+  const setValue = (value: T | ((prev: T) => T)) => {
     try {
       setStoredValue(value);
     } catch (error) {
