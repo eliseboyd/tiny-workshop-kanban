@@ -152,6 +152,14 @@ export function ClientDndWrapper({
                     // Pinned items always come first
                     if (a.pinned && !b.pinned) return -1;
                     if (!a.pinned && b.pinned) return 1;
+                    
+                    // For completed/done columns, sort by updatedAt descending (newest first)
+                    const isDoneColumn = col.title.toLowerCase() === 'done' || 
+                                        col.title.toLowerCase() === 'completed';
+                    if (isDoneColumn && a.updatedAt && b.updatedAt) {
+                      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+                    }
+                    
                     // Within pinned or unpinned, sort by position
                     return a.position - b.position;
                   })

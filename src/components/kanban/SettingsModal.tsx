@@ -16,7 +16,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getSettings, updateSettings, getAllMediaFiles, deleteMediaFile, getAllTags, createTag, updateTag, deleteTag, getAllProjectGroups, createProjectGroup, updateProjectGroup, deleteProjectGroup, uploadFile } from '@/app/actions';
 import { logout } from '@/app/login/actions';
-import { Loader2, LogOut, Trash2, Image as ImageIcon, FileText, Plus, Edit2, Upload, X } from 'lucide-react';
+import { Loader2, LogOut, Trash2, Image as ImageIcon, FileText, Plus, Edit2, Upload, X, Code } from 'lucide-react';
 import Image from 'next/image';
 
 type SettingsModalProps = {
@@ -244,6 +244,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [isLoadingMedia, setIsLoadingMedia] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
+  const [embedCopied, setEmbedCopied] = useState(false);
   
   // Tags state
   const [tags, setTags] = useState<Tag[]>([]);
@@ -467,11 +468,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="tags">Tags</TabsTrigger>
             <TabsTrigger value="projects">Projects</TabsTrigger>
             <TabsTrigger value="media">Media</TabsTrigger>
+            <TabsTrigger value="embed">Embed</TabsTrigger>
           </TabsList>
           
           <TabsContent value="general" className="flex-1 overflow-y-auto">
@@ -684,6 +686,79 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   ))}
                 </div>
               )}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="embed" className="flex-1 overflow-y-auto">
+            <div className="space-y-4 py-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Embed Your Board</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Share your kanban board on external sites using an iframe. The embedded view shows a clean, read-only version of your board.
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Embed URL</Label>
+                <div className="flex gap-2">
+                  <Input
+                    readOnly
+                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/embed`}
+                    className="font-mono text-sm"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        navigator.clipboard.writeText(`${window.location.origin}/embed`);
+                        setEmbedCopied(true);
+                        setTimeout(() => setEmbedCopied(false), 2000);
+                      }
+                    }}
+                  >
+                    {embedCopied ? 'Copied!' : 'Copy'}
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Embed Code</Label>
+                <div className="relative">
+                  <textarea
+                    readOnly
+                    value={`<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/embed" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`}
+                    className="w-full h-24 p-3 font-mono text-xs border rounded-md bg-muted/50 resize-none"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="absolute top-2 right-2"
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        const embedCode = `<iframe src="${window.location.origin}/embed" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`;
+                        navigator.clipboard.writeText(embedCode);
+                        setEmbedCopied(true);
+                        setTimeout(() => setEmbedCopied(false), 2000);
+                      }
+                    }}
+                  >
+                    <Code className="h-4 w-4 mr-2" />
+                    {embedCopied ? 'Copied!' : 'Copy Code'}
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-sm font-medium mb-2">Preview</h4>
+                <a
+                  href="/embed"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline"
+                >
+                  Open embed view in new tab →
+                </a>
+              </div>
             </div>
           </TabsContent>
         </Tabs>

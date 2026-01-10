@@ -550,7 +550,15 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
       }
       const newInspiration = [...inspiration, ...newAttachments];
       setInspiration(newInspiration);
-      await updateProject(project.id, { inspiration: newInspiration });
+      
+      // If uploading a single image and no cover is set, use it as cover
+      const updateData: any = { inspiration: newInspiration };
+      if (files.length === 1 && !imageUrl && newAttachments[0]) {
+        setImageUrl(newAttachments[0].url);
+        updateData.imageUrl = newAttachments[0].url;
+      }
+      
+      await updateProject(project.id, updateData);
       router.refresh();
     } catch (error) {
       console.error('Failed to upload inspiration', error);
@@ -669,7 +677,15 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
               
               const newInspiration = [...inspiration, result];
               setInspiration(newInspiration);
-              await updateProject(project.id, { inspiration: newInspiration });
+              
+              // If no cover is set, use the pasted image as cover
+              const updateData: any = { inspiration: newInspiration };
+              if (!imageUrl) {
+                setImageUrl(result.url);
+                updateData.imageUrl = result.url;
+              }
+              
+              await updateProject(project.id, updateData);
               router.refresh();
             } catch (error) {
               console.error('Failed to upload pasted image', error);
