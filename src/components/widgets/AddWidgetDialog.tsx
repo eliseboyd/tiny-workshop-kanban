@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ListTodo, ShoppingCart, Tags, FolderKanban, ListChecks, Trash2, Calendar } from 'lucide-react';
+import { ListTodo, ShoppingCart, Tags, FolderKanban, ListChecks, Trash2, Calendar, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createWidget, updateWidget, deleteWidget } from '@/app/actions';
 import { useRouter } from 'next/navigation';
@@ -32,7 +32,7 @@ type Project = {
 
 type WidgetConfig = {
   id?: string;
-  type: 'todo-list' | 'materials-shopping' | 'project-todos' | 'day-plan';
+  type: 'todo-list' | 'materials-shopping' | 'project-todos' | 'day-plan' | 'active-projects';
   title: string;
   config: Record<string, any>;
 };
@@ -46,7 +46,7 @@ type AddWidgetDialogProps = {
   editingWidget?: WidgetConfig | null;
 };
 
-type WidgetType = 'todo-list' | 'materials-shopping' | 'project-todos' | 'day-plan';
+type WidgetType = 'todo-list' | 'materials-shopping' | 'project-todos' | 'day-plan' | 'active-projects';
 
 const WIDGET_TYPES = [
   {
@@ -55,6 +55,13 @@ const WIDGET_TYPES = [
     description: 'Filter by tags, project groups, or all projects',
     icon: ListTodo,
     color: 'bg-blue-500/10 text-blue-600 border-blue-500/30',
+  },
+  {
+    id: 'active-projects' as WidgetType,
+    name: 'Active Projects List',
+    description: 'All active projects/tasks with advanced filtering',
+    icon: Layers,
+    color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/30',
   },
   {
     id: 'materials-shopping' as WidgetType,
@@ -108,6 +115,9 @@ export function AddWidgetDialog({
   const [showPurchased, setShowPurchased] = useState(
     editingWidget?.config?.showPurchased ?? false
   );
+  const [showType, setShowType] = useState<'all' | 'projects' | 'tasks'>(
+    editingWidget?.config?.showType || 'all'
+  );
   const [colSpan, setColSpan] = useState<1 | 2 | 3>(
     editingWidget?.config?.colSpan || 1
   );
@@ -126,6 +136,7 @@ export function AddWidgetDialog({
         setProjectId(editingWidget.config?.projectId || '');
         setShowCompleted(editingWidget.config?.showCompleted ?? false);
         setShowPurchased(editingWidget.config?.showPurchased ?? false);
+        setShowType(editingWidget.config?.showType || 'all');
         setColSpan(editingWidget.config?.colSpan || 1);
       } else {
         // New widget - reset to type selection
@@ -137,6 +148,7 @@ export function AddWidgetDialog({
         setProjectId('');
         setShowCompleted(false);
         setShowPurchased(false);
+        setShowType('all');
         setColSpan(1);
       }
     }
@@ -150,6 +162,7 @@ export function AddWidgetDialog({
       else if (type === 'materials-shopping') setTitle('Shopping List');
       else if (type === 'project-todos') setTitle('Project Tasks');
       else if (type === 'day-plan') setTitle('Day Plan');
+      else if (type === 'active-projects') setTitle('Active Projects');
     }
     // For materials, default to 'all'
     if (type === 'materials-shopping') {
@@ -206,6 +219,8 @@ export function AddWidgetDialog({
       } else if (selectedType === 'project-todos') {
         config.projectId = projectId;
         config.showCompleted = showCompleted;
+      } else if (selectedType === 'active-projects') {
+        config.showType = showType;
       }
 
       if (editingWidget?.id) {
@@ -240,6 +255,7 @@ export function AddWidgetDialog({
     setProjectId('');
     setShowCompleted(false);
     setShowPurchased(false);
+    setShowType('all');
     setColSpan(1);
     onClose();
   };
@@ -328,6 +344,44 @@ export function AddWidgetDialog({
                 <p className="text-sm text-muted-foreground text-center">
                   Drag project cards from the Kanban board onto this widget to plan your day
                 </p>
+              </div>
+            )}
+
+            {/* Active Projects Type Selection */}
+            {selectedType === 'active-projects' && (
+              <div className="space-y-2">
+                <Label>Show</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={showType === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setShowType('all')}
+                    className="flex-1"
+                  >
+                    All
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={showType === 'projects' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setShowType('projects')}
+                    className="flex-1 gap-2"
+                  >
+                    <FolderKanban className="h-4 w-4" />
+                    Projects
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={showType === 'tasks' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setShowType('tasks')}
+                    className="flex-1 gap-2"
+                  >
+                    <ListTodo className="h-4 w-4" />
+                    Tasks
+                  </Button>
+                </div>
               </div>
             )}
 

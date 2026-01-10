@@ -127,7 +127,7 @@ export function KanbanColumn({ id, title, items, isHidden, onToggleVisibility, o
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+              className="h-6 w-6 opacity-0 group-hover:opacity-100 md:transition-opacity text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 touch:opacity-100"
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleVisibility();
@@ -143,7 +143,7 @@ export function KanbanColumn({ id, title, items, isHidden, onToggleVisibility, o
               <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-neutral-400 hover:text-destructive"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 md:transition-opacity text-neutral-400 hover:text-destructive touch:opacity-100"
                   onClick={() => onDeleteColumn(id)}
                   title="Delete empty column"
               >
@@ -248,7 +248,7 @@ export function KanbanColumn({ id, title, items, isHidden, onToggleVisibility, o
         {isCreating && (
             <div className="touch-none flex-shrink-0">
                <Card className="p-0 gap-0 overflow-hidden border-2 border-primary/20 shadow-sm">
-                  <CardHeader className="p-4 pb-3 space-y-0">
+                  <CardHeader className="p-4 pb-2 space-y-0">
                      <Input
                         autoFocus
                         placeholder={creatingAsTask ? "Enter task title..." : "Enter project title..."}
@@ -269,7 +269,7 @@ export function KanbanColumn({ id, title, items, isHidden, onToggleVisibility, o
                         }}
                      />
                   </CardHeader>
-                  <CardContent className="p-4 pt-0">
+                  <CardContent className="p-4 pt-2">
                       <span className="text-xs text-muted-foreground">
                         {creatingAsTask ? "Creating Task - " : "Creating Project - "}
                         Press Enter to save

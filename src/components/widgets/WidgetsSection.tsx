@@ -7,6 +7,7 @@ import { ToDoListWidget } from './ToDoListWidget';
 import { MaterialsShoppingWidget } from './MaterialsShoppingWidget';
 import { ProjectTodosWidget } from './ProjectTodosWidget';
 import { DayPlanWidget } from './DayPlanWidget';
+import { ActiveProjectsWidget } from './ActiveProjectsWidget';
 import { AddWidgetDialog } from './AddWidgetDialog';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
@@ -47,7 +48,7 @@ type ProjectGroup = {
 
 type Widget = {
   id: string;
-  type: 'todo-list' | 'materials-shopping' | 'project-todos';
+  type: 'todo-list' | 'materials-shopping' | 'project-todos' | 'day-plan' | 'active-projects';
   title: string;
   config: Record<string, any>;
   position: number;
@@ -346,6 +347,21 @@ export function WidgetsSection({
           widget={widget as any}
           projects={projects}
           columns={columns}
+          onEdit={() => handleEdit(widget)}
+          onProjectClick={onProjectClick}
+          onRefresh={onRefresh}
+        />
+      );
+    }
+
+    if (widget.type === 'active-projects') {
+      return (
+        <ActiveProjectsWidget
+          widget={widget as any}
+          projects={projects}
+          columns={columns}
+          tags={tags}
+          projectGroups={projectGroups}
           onEdit={() => handleEdit(widget)}
           onProjectClick={onProjectClick}
           onRefresh={onRefresh}

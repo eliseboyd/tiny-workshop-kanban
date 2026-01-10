@@ -97,6 +97,13 @@ import { v4 as uuidv4 } from 'uuid';
 export function KanbanBoard({ initialProjects, initialSettings, initialColumns }: KanbanBoardProps) {
   const router = useRouter();
   
+  // Hasmounted state to prevent hydration errors
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
   // Map snake_case to camelCase for frontend state
   const mapProjects = (projs: any[]): Project[] => {
       return projs.map(p => ({
@@ -195,7 +202,10 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   };
 
   useEffect(() => {
-    loadDashboardData();
+    // Only load dashboard data when needed (overview or dashboard view)
+    if (activeView === 'overview' || activeView === 'dashboard') {
+      loadDashboardData();
+    }
   }, [activeView]);
 
   // Calculate counts for dashboard

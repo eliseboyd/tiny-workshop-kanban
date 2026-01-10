@@ -1080,7 +1080,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
 
       {/* Main Content Wrapper */}
       <div 
-        className="flex-1 flex flex-col h-full overflow-y-auto relative editor-scroll-container"
+        className="flex-1 flex flex-col h-full overflow-y-auto overflow-x-hidden relative editor-scroll-container"
         style={{
           transform: swipeProgress > 0 ? `translateX(${swipeProgress * 50}px)` : 'none',
           transition: swipeProgress === 0 ? 'transform 0.2s ease-out' : 'none'
@@ -1492,7 +1492,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
               </div>
             </div>
           ) : (
-            <div className="max-w-2xl mx-auto space-y-8">
+            <div className="max-w-2xl mx-auto space-y-8 w-full px-4 sm:px-0">
             {/* Title Section */}
             <div id="section-overview" className="space-y-2">
               <textarea

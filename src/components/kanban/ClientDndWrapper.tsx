@@ -73,11 +73,11 @@ export function ClientDndWrapper({
         distance: 8,
       },
     }),
-    // Touch sensor - require press-and-hold for mobile to prevent accidental drags
+    // Touch sensor - improved for mobile
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 200, // 200ms press-and-hold required (slightly shorter)
-        tolerance: 10, // Allow 10px movement during hold (more forgiving for scrolling)
+        delay: 150, // Reduced delay for quicker response
+        tolerance: 8, // Tighter tolerance for better accuracy
       },
     }),
     useSensor(KeyboardSensor, {
@@ -114,25 +114,30 @@ export function ClientDndWrapper({
           {cols.map((col) => {
             const isHidden = hiddenColumns.includes(col.id);
             
-            // Render slim column indicator when hidden
+            // Render full-width column indicator when hidden (especially for mobile)
             if (isHidden) {
               const itemCount = filteredItems.filter((i) => i.status === col.id).length;
               return (
                 <button
                   key={col.id}
                   onClick={() => onToggleColumnVisibility(col.id)}
-                  className="flex-shrink-0 w-12 h-32 bg-muted/30 hover:bg-muted/50 border-2 border-dashed border-muted-foreground/20 hover:border-muted-foreground/40 rounded-lg transition-all cursor-pointer group relative"
+                  className="flex-shrink-0 w-[85vw] md:w-60 h-32 bg-muted/30 hover:bg-muted/50 border-2 border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 rounded-lg transition-all cursor-pointer group relative snap-center md:snap-align-none"
                   title={`Show ${col.title} (${itemCount} items)`}
                 >
-                  <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground/60 group-hover:text-muted-foreground/80 px-1">
-                    <span className="text-xs font-medium tracking-wider rotate-0 text-center break-words w-full leading-tight">
+                  <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground/60 group-hover:text-muted-foreground/80">
+                    <span className="text-base md:text-sm font-medium text-center">
                       {col.title}
                     </span>
-                    {itemCount > 0 && (
-                      <span className="text-xs font-bold bg-muted px-1.5 py-0.5 rounded">
-                        {itemCount}
+                    <div className="flex flex-col items-center gap-2">
+                      {itemCount > 0 && (
+                        <span className="text-sm font-bold bg-muted px-3 py-1 rounded">
+                          {itemCount} {itemCount === 1 ? 'item' : 'items'}
+                        </span>
+                      )}
+                      <span className="text-xs text-muted-foreground/50">
+                        Tap to show
                       </span>
-                    )}
+                    </div>
                   </div>
                 </button>
               );

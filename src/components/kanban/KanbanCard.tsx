@@ -137,13 +137,16 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, size = 'me
             <Pin className="absolute top-2 right-2 h-3 w-3 text-muted-foreground/40 fill-current" />
           )}
           {project.isTask && (
-            <ListTodo className="absolute top-2 left-2 h-3 w-3 text-blue-500/60" />
+            <ListTodo className={cn(
+              "absolute top-2 h-3 w-3 text-blue-500/60",
+              project.pinned ? "right-6" : "right-2"
+            )} />
           )}
           <CardTitle className={cn(
             titleSize, 
             "font-medium leading-tight",
-            project.pinned && "pr-6",
-            project.isTask && "pl-6",
+            (project.pinned || project.isTask) && "pr-6",
+            (project.pinned && project.isTask) && "pr-10",
             columnTitle?.toLowerCase() === 'done' && "line-through text-muted-foreground"
           )}>
             {project.title}
