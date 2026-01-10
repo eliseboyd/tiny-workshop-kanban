@@ -1128,19 +1128,24 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
           </div>
           
           {/* Navigation / Actions Header */}
-          <div className="absolute top-4 left-4 z-20 flex gap-2">
+          <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
             {/* Back Button (Full Page) */}
             {!isModal && (
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90 gap-1"
-                onClick={handleBack}
-                disabled={isSaving}
-              >
-                <ChevronLeft className="h-4 w-4" /> {isSaving ? 'Saving...' : 'Back'}
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90 gap-1"
+                  onClick={handleBack}
+                  disabled={isSaving}
+                >
+                  <ChevronLeft className="h-4 w-4" /> Back
+                </Button>
+                {isSaving && (
+                  <span className="text-sm text-muted-foreground">Saving...</span>
+                )}
+              </>
             )}
 
             {/* Expand Button (Modal) */}
@@ -1955,9 +1960,12 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
 
             {/* Done Button (Modal only) */}
             {isModal && onClose && (
-              <div className="flex justify-end pt-8 pb-4 sticky bottom-0 bg-gradient-to-t from-background via-background to-transparent">
+              <div className="flex flex-col items-end gap-2 pt-8 pb-4 sticky bottom-0 bg-gradient-to-t from-background via-background to-transparent">
+                {isSaving && (
+                  <p className="text-sm text-muted-foreground">Saving...</p>
+                )}
                 <Button onClick={handleClose} size="lg" disabled={isSaving}>
-                  {isSaving ? 'Saving...' : 'Done'}
+                  Done
                 </Button>
               </div>
             )}
