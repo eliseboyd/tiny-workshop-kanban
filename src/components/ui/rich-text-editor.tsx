@@ -60,10 +60,13 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
             class: 'w-full h-auto rounded-lg my-4 cursor-zoom-in border border-border/50 shadow-sm transition-all hover:shadow-md',
         },
       }),
-      Placeholder.configure({
-        placeholder: placeholder || 'Start typing...',
-        emptyEditorClass: 'is-editor-empty before:content-[attr(data-placeholder)] before:text-muted-foreground/50 before:float-left before:pointer-events-none',
-      }),
+      // Remove placeholder if empty string is passed
+      ...(placeholder !== '' ? [
+        Placeholder.configure({
+          placeholder: placeholder || '',
+          emptyEditorClass: 'is-editor-empty before:content-[attr(data-placeholder)] before:text-muted-foreground/50 before:float-left before:pointer-events-none',
+        })
+      ] : []),
     ],
     content: content,
     editorProps: {
@@ -104,6 +107,27 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
              return true;
          }
          return false;
+      },
+      // Add markdown shortcuts for checkboxes
+      handleTextInput: (view, from, to, text) => {
+        const { state } = view;
+        const { $from } = state.selection;
+        
+        // Check if we're at the start of a line
+        const lineStart = $from.start();
+        const textBefore = state.doc.textBetween(lineStart, from, '\0', '\0');
+        
+        // Handle checkbox markdown: - [ ] or - [x]
+        if (text === ' ' && (textBefore === '-[' || textBefore === '- [')) {
+          // Convert to task list
+          const tr = state.tr;
+          tr.delete(lineStart, to);
+          view.dispatch(tr);
+          editor?.chain().focus().toggleTaskList().run();
+          return true;
+        }
+        
+        return false;
       }
     },
     onUpdate: ({ editor }) => {
@@ -126,9 +150,9 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
 
   return (
     <>
-        <div className="relative group border rounded-md p-2 bg-transparent border-transparent hover:border-border focus-within:border-border transition-colors">
-        {/* Fixed Toolbar */}
-        <div className="flex items-center gap-1 mb-2 pb-2 border-b border-border/50 transition-opacity">
+        <div className="relative group border rounded-md bg-transparent border-transparent hover:border-border focus-within:border-border transition-colors">
+        {/* Sticky Toolbar */}
+        <div className="sticky top-0 z-10 flex items-center gap-1 p-2 pb-2 border-b border-border/50 bg-background backdrop-blur-sm transition-opacity">
           {isUploadingImage && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground mr-2 px-2 py-1 bg-muted/50 rounded">
               <Loader2 className="h-3 w-3 animate-spin" />
@@ -238,7 +262,9 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
       </div>
 
       {/* Editor Content */}
-      <EditorContent editor={editor} />
+      <div className="p-2">
+        <EditorContent editor={editor} />
+      </div>
     </div>
 
     {/* Lightbox for Image Expansion */}
