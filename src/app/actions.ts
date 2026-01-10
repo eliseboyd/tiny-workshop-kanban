@@ -305,6 +305,7 @@ export async function createProject(data: {
   status?: string;
   position?: number;
   attachments?: { id: string; url: string; name: string; type: string; size: number }[];
+  is_task?: boolean;
 }) {
   const supabase = createServiceRoleClient();
   const { error } = await supabase
@@ -321,7 +322,8 @@ export async function createProject(data: {
         tags: data.tags,
         attachments: data.attachments,
         status: data.status || 'todo',
-        position: data.position ?? 0, 
+        position: data.position ?? 0,
+        is_task: data.is_task || false,
     });
 
   if (error) console.error('Error creating project:', error);
@@ -385,6 +387,8 @@ export async function updateProject(id: string, data: any) {
   if (data.status !== undefined) dbData.status = data.status;
   if (data.position !== undefined) dbData.position = data.position;
   if (data.parent_project_id !== undefined) dbData.parent_project_id = data.parent_project_id;
+  if (data.is_task !== undefined) dbData.is_task = data.is_task;
+  if (data.is_completed !== undefined) dbData.is_completed = data.is_completed;
   
   // Try to fetch Open Graph image if needed
   if (shouldFetchOgImage && urlsToCheck.length > 0) {
@@ -497,9 +501,25 @@ export async function updateProjectStatus(id: string, status: string, position: 
   const supabase = createServiceRoleClient();
   const safePosition = Math.max(0, position);
   
+  // Check if the status/column is a "done" column
+  const { data: column } = await supabase
+    .from('columns')
+    .select('title')
+    .eq('id', status)
+    .single();
+  
+  const isDoneColumn = column?.title?.toLowerCase().includes('done') || 
+                       column?.title?.toLowerCase().includes('completed') ||
+                       column?.title?.toLowerCase().includes('complete');
+  
+  const updateData: any = { status, position: safePosition };
+  if (isDoneColumn !== undefined) {
+    updateData.is_completed = isDoneColumn;
+  }
+  
   const { error } = await supabase
     .from('projects')
-    .update({ status, position: safePosition })
+    .update(updateData)
     .eq('id', id);
 
   if (error) {

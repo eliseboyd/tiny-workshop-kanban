@@ -10,6 +10,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Trash2, Plus, Eye } from 'lucide-react';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 type KanbanColumnProps = {
   id: string;
@@ -22,10 +28,10 @@ type KanbanColumnProps = {
   onDeleteColumn?: (id: string) => void;
   onDeleteProject?: (id: string) => void;
   onTogglePin?: (id: string, pinned: boolean) => void;
-  onAddProject?: (columnId: string) => void;
+  onAddProject?: (columnId: string, isTask?: boolean) => void;
   cardSize?: string;
   isCreating?: boolean;
-  onConfirmCreate?: (columnId: string, title: string) => void;
+  onConfirmCreate?: (columnId: string, title: string, isTask?: boolean) => void;
   onCancelCreate?: () => void;
 };
 
@@ -53,6 +59,7 @@ export function KanbanColumn({ id, title, items, isHidden, onToggleVisibility, o
   
   const [isEditing, setIsEditing] = useState(false);
   const [internalTitle, setInternalTitle] = useState(title);
+  const [creatingAsTask, setCreatingAsTask] = useState(false);
   
   // This pattern allows the prop to override state during render if it changed, 
   // but only if we aren't editing.
@@ -88,7 +95,7 @@ export function KanbanColumn({ id, title, items, isHidden, onToggleVisibility, o
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="flex w-[85vw] md:w-60 md:min-w-[240px] shrink-0 snap-center md:snap-align-none flex-col rounded-lg bg-neutral-100 p-3 dark:bg-neutral-900 relative group">
+    <div ref={setNodeRef} style={style} className="flex w-[85vw] md:w-60 md:min-w-[240px] shrink-0 snap-center md:snap-align-none flex-col rounded-lg bg-neutral-100 p-3 dark:bg-neutral-900 relative group" data-column-id={id}>
       <div 
         className="mb-3 h-6 flex items-center justify-between cursor-grab active:cursor-grabbing" 
         {...attributes} 
@@ -145,50 +152,82 @@ export function KanbanColumn({ id, title, items, isHidden, onToggleVisibility, o
           )}
         </div>
       </div>
-      <div className="flex flex-1 flex-col gap-2 min-h-0 overflow-y-visible">
-        {/* Add Project Button - Dotted Line Card - Now at Top */}
+      <div className="flex flex-1 flex-col gap-2 min-h-0 overflow-y-auto" data-column-scroll>
+        {/* Add Project Button - At Top for easy access */}
         {onAddProject && !isCreating && (
-            <button
-                onClick={() => onAddProject(id)}
-                className="flex items-center justify-center w-full h-12 rounded-lg border-2 border-dashed border-neutral-300 dark:border-neutral-700 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 hover:border-neutral-400 dark:hover:border-neutral-500 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 transition-all group/add flex-shrink-0"
-            >
-                <span className="flex items-center gap-2 text-sm font-medium">
-                    <Plus className="h-4 w-4 group-hover/add:scale-110 transition-transform" />
-                    Add Project
-                </span>
-            </button>
-        )}
-
-        {/* Inline Create Input - Now at Top */}
-        {isCreating && (
-            <div className="touch-none flex-shrink-0">
-               <Card className="p-0 gap-0 overflow-hidden border-2 border-primary/20 shadow-sm">
-                  <CardHeader className="p-4 pb-2 space-y-0">
-                     <Input
-                        autoFocus
-                        placeholder="Enter title..."
-                        className="text-base font-medium leading-tight border-none shadow-none p-0 h-auto focus-visible:ring-0 bg-transparent resize-none"
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                onConfirmCreate?.(id, e.currentTarget.value);
-                            } else if (e.key === 'Escape') {
-                                onCancelCreate?.();
-                            }
-                        }}
-                        onBlur={(e) => {
-                            if (!e.currentTarget.value.trim()) {
-                                onCancelCreate?.();
-                            } else {
-                                onConfirmCreate?.(id, e.currentTarget.value);
-                            }
-                        }}
-                     />
-                  </CardHeader>
-                  <CardContent className="p-4 pt-2">
-                      <span className="text-xs text-muted-foreground">Press Enter to save</span>
-                  </CardContent>
-               </Card>
-            </div>
+          <ContextMenu>
+            <ContextMenuTrigger asChild>
+              <button
+                  onClick={() => {
+                    setCreatingAsTask(false);
+                    onAddProject(id, false);
+                    // Scroll to bottom where the create input will appear
+                    setTimeout(() => {
+                      const columnElement = document.querySelector(`[data-column-id="${id}"]`);
+                      if (columnElement) {
+                        const scrollContainer = columnElement.querySelector('[data-column-scroll]');
+                        if (scrollContainer) {
+                          scrollContainer.scrollTo({
+                            top: scrollContainer.scrollHeight,
+                            behavior: 'smooth'
+                          });
+                        }
+                      }
+                    }, 50);
+                  }}
+                  className="flex items-center justify-center w-full h-12 rounded-lg border-2 border-dashed border-neutral-300 dark:border-neutral-700 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 hover:border-neutral-400 dark:hover:border-neutral-500 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 transition-all group/add flex-shrink-0"
+              >
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                      <Plus className="h-4 w-4 group-hover/add:scale-110 transition-transform" />
+                      Add Project
+                  </span>
+              </button>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              <ContextMenuItem 
+                onClick={() => {
+                  setCreatingAsTask(false);
+                  onAddProject(id, false);
+                  // Scroll to bottom
+                  setTimeout(() => {
+                    const columnElement = document.querySelector(`[data-column-id="${id}"]`);
+                    if (columnElement) {
+                      const scrollContainer = columnElement.querySelector('[data-column-scroll]');
+                      if (scrollContainer) {
+                        scrollContainer.scrollTo({
+                          top: scrollContainer.scrollHeight,
+                          behavior: 'smooth'
+                        });
+                      }
+                    }
+                  }, 50);
+                }}
+              >
+                Add Project
+              </ContextMenuItem>
+              <ContextMenuItem 
+                onClick={() => {
+                  setCreatingAsTask(true);
+                  onAddProject(id, true);
+                  // Scroll to bottom
+                  setTimeout(() => {
+                    const columnElement = document.querySelector(`[data-column-id="${id}"]`);
+                    if (columnElement) {
+                      const scrollContainer = columnElement.querySelector('[data-column-scroll]');
+                      if (scrollContainer) {
+                        scrollContainer.scrollTo({
+                          top: scrollContainer.scrollHeight,
+                          behavior: 'smooth'
+                        });
+                      }
+                    }
+                  }, 50);
+                }}
+              >
+                Add Task
+              </ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
         )}
         
         <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
@@ -204,6 +243,41 @@ export function KanbanColumn({ id, title, items, isHidden, onToggleVisibility, o
             />
           ))}
         </SortableContext>
+        
+        {/* Inline Create Input - At Bottom */}
+        {isCreating && (
+            <div className="touch-none flex-shrink-0">
+               <Card className="p-0 gap-0 overflow-hidden border-2 border-primary/20 shadow-sm">
+                  <CardHeader className="p-4 pb-3 space-y-0">
+                     <Input
+                        autoFocus
+                        placeholder={creatingAsTask ? "Enter task title..." : "Enter project title..."}
+                        className="text-base font-medium leading-tight border-none shadow-none px-4 py-3 h-auto focus-visible:ring-0 bg-transparent resize-none"
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                onConfirmCreate?.(id, e.currentTarget.value, creatingAsTask);
+                            } else if (e.key === 'Escape') {
+                                onCancelCreate?.();
+                            }
+                        }}
+                        onBlur={(e) => {
+                            if (!e.currentTarget.value.trim()) {
+                                onCancelCreate?.();
+                            } else {
+                                onConfirmCreate?.(id, e.currentTarget.value, creatingAsTask);
+                            }
+                        }}
+                     />
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                      <span className="text-xs text-muted-foreground">
+                        {creatingAsTask ? "Creating Task - " : "Creating Project - "}
+                        Press Enter to save
+                      </span>
+                  </CardContent>
+               </Card>
+            </div>
+        )}
       </div>
     </div>
   );

@@ -15,8 +15,9 @@ import { DashboardSection } from './DashboardSection';
 import { ModeToggle } from '@/components/mode-toggle';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Menu, LayoutDashboard, Columns3, LayoutGrid, FileStack } from 'lucide-react';
+import { Menu, LayoutDashboard, Columns3, LayoutGrid, FileStack, CheckCircle2 } from 'lucide-react';
 import { PlansView } from './PlansView';
+import { CompletedProjectsView } from './CompletedProjectsView';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Settings, KanbanSquareDashed } from 'lucide-react';
@@ -39,6 +40,8 @@ export type Project = {
     status: string;
     position: number;
     pinned?: boolean;
+    isTask?: boolean;
+    isCompleted?: boolean;
     createdAt: Date | null;
     updatedAt: Date | null;
     parentProjectId?: string | null;
@@ -47,6 +50,8 @@ export type Project = {
     image_url?: string;
     materials_list?: string;
     parent_project_id?: string;
+    is_task?: boolean;
+    is_completed?: boolean;
 };
 
 type Tag = {
@@ -100,6 +105,8 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
           imageUrl: p.image_url || p.imageUrl,
           materialsList: p.materials_list || p.materialsList,
           parentProjectId: p.parent_project_id || p.parentProjectId,
+          isTask: p.is_task || p.isTask || false,
+          isCompleted: p.is_completed || p.isCompleted || false,
           plans: p.plans,
           inspiration: p.inspiration,
       }));
@@ -133,8 +140,8 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   const [titleInput, setTitleInput] = useState(initialSettings.boardTitle);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
-  // View state: 'overview' (both), 'dashboard', 'kanban', 'plans'
-  const [activeView, setActiveView] = useLocalStorage<'overview' | 'dashboard' | 'kanban' | 'plans'>('kanban-view', 'overview');
+  // View state: 'overview' (both), 'dashboard', 'kanban', 'plans', 'completed'
+  const [activeView, setActiveView] = useLocalStorage<'overview' | 'dashboard' | 'kanban' | 'plans' | 'completed'>('kanban-view', 'overview');
   const [allPlans, setAllPlans] = useState<Array<StandalonePlan & { source: 'standalone' | 'project' }>>([]);
   
   // Hidden columns state (array of column IDs)
@@ -401,19 +408,11 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
     setIsModalOpen(true);
   };
 
-  const handleCreateProject = () => {
-    // Default to first column for "New Project" button
-    if (cols.length > 0) {
-        setIsCreatingInColumn(cols[0].id);
-        // Optional: scroll to column or focus
-    }
-  };
-
-  const handleAddProjectToColumn = (columnId: string) => {
+  const handleAddProjectToColumn = (columnId: string, isTask?: boolean) => {
       setIsCreatingInColumn(columnId);
   };
 
-  const handleConfirmCreate = async (columnId: string, title: string) => {
+  const handleConfirmCreate = async (columnId: string, title: string, isTask?: boolean) => {
       setIsCreatingInColumn(null);
       if (title.trim()) {
           // Optimistic Update
@@ -434,6 +433,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
               attachments: null,
               createdAt: new Date(),
               updatedAt: new Date(),
+              isTask: isTask || false,
           };
           
           setItems(prev => [...prev, optimisticProject]);
@@ -442,8 +442,23 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
           await import('@/app/actions').then(mod => mod.createProject({ 
               title, 
               status: columnId,
-              position: position
+              position: position,
+              is_task: isTask || false,
           }));
+          
+          // Scroll to bottom of column to show the new card
+          setTimeout(() => {
+              const columnElement = document.querySelector(`[data-column-id="${columnId}"]`);
+              if (columnElement) {
+                  const scrollContainer = columnElement.querySelector('[data-column-scroll]');
+                  if (scrollContainer) {
+                      scrollContainer.scrollTo({
+                          top: scrollContainer.scrollHeight,
+                          behavior: 'smooth'
+                      });
+                  }
+              }
+          }, 100);
       }
   };
 
@@ -641,7 +656,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
 
             {/* View Tabs */}
             <div className="px-4 py-2 border-b bg-muted/30">
-              <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'overview' | 'dashboard' | 'kanban' | 'plans')}>
+              <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'overview' | 'dashboard' | 'kanban' | 'plans' | 'completed')}>
                 <TabsList>
                   <TabsTrigger value="overview" className="gap-1.5">
                     <LayoutGrid className="h-4 w-4" />
@@ -658,6 +673,10 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
                   <TabsTrigger value="plans" className="gap-1.5">
                     <FileStack className="h-4 w-4" />
                     <span className="hidden sm:inline">Plans</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="completed" className="gap-1.5">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span className="hidden sm:inline">Completed</span>
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -711,11 +730,11 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
               <Button variant="outline" size="sm" onClick={handleCreateColumn}>
                 <KanbanSquareDashed className="mr-2 h-4 w-4" /> Add Column
               </Button>
-              <Button size="sm" onClick={handleCreateProject}>
+              <Button size="sm" onClick={() => cols.length > 0 && setIsCreatingInColumn(cols[0].id)}>
                 <Plus className="mr-2 h-4 w-4" /> New Project
               </Button>
             </div>
-            <ClientDndWrapper 
+            <ClientDndWrapper
                 items={items}
                 cols={cols}
                 filteredItems={filteredItems}
@@ -756,6 +775,16 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
                 window.open(plan.url, '_blank');
               }
             }}
+          />
+        )}
+
+        {/* Completed View - shown only in completed view */}
+        {activeView === 'completed' && (
+          <CompletedProjectsView
+            projects={items}
+            tags={tags}
+            projectGroups={projectGroups}
+            onProjectClick={handleEditProject}
           />
         )}
       </div>

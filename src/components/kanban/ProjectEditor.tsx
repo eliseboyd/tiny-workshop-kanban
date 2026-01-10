@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Project } from './KanbanBoard';
 import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage } from '@/app/actions';
 import Image from 'next/image';
-import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images, ExternalLink, Pencil } from 'lucide-react';
+import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images, ExternalLink, Pencil, FolderKanban, ListTodo, CheckCircle2, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -94,6 +94,8 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
   const [richContent, setRichContent] = useState(project.richContent || '');
   const [tags, setTags] = useState<string[]>(project.tags || []);
   const [parentProjectId, setParentProjectId] = useState<string | null>(project.parentProjectId || null);
+  const [isTask, setIsTask] = useState<boolean>(project.isTask || false);
+  const [isCompleted, setIsCompleted] = useState<boolean>(project.isCompleted || false);
   const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
   const [allTags, setAllTags] = useState<TagMetadata[]>([]);
   const [materialsList, setMaterialsList] = useState<Material[]>(() => {
@@ -406,8 +408,16 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
 
   // Get tag suggestions for autocomplete
   const tagSuggestions = useMemo(() => {
-    if (!tagInput.trim()) return [];
     const input = tagInput.toLowerCase().replace(/^#/, '');
+    
+    // If no input, show all available tags (when focused)
+    if (!input.trim()) {
+      return allTags
+        .filter(tag => !tags.includes(tag.name))
+        .slice(0, 10);
+    }
+    
+    // Otherwise filter by input
     return allTags
       .filter(tag => 
         tag.name.toLowerCase().includes(input) && 
@@ -421,6 +431,22 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
     const newGroupId = groupId === 'none' ? null : groupId;
     setParentProjectId(newGroupId);
     await updateProject(project.id, { parent_project_id: newGroupId });
+    router.refresh();
+  };
+  
+  // Task type handler
+  const handleToggleTaskType = async () => {
+    const newIsTask = !isTask;
+    setIsTask(newIsTask);
+    await updateProject(project.id, { is_task: newIsTask });
+    router.refresh();
+  };
+  
+  // Completed status handler
+  const handleToggleCompleted = async () => {
+    const newIsCompleted = !isCompleted;
+    setIsCompleted(newIsCompleted);
+    await updateProject(project.id, { is_completed: newIsCompleted });
     router.refresh();
   };
   
@@ -932,6 +958,15 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
     loadData();
   }, []);
   
+  // Sync local state when project prop changes (e.g., after router.refresh())
+  useEffect(() => {
+    setIsTask(project.isTask || false);
+  }, [project.isTask]);
+  
+  useEffect(() => {
+    setIsCompleted(project.isCompleted || false);
+  }, [project.isCompleted]);
+  
   // Swipe back gesture for mobile with visual feedback
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
@@ -1132,18 +1167,18 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
             {/* Back Button (Full Page) */}
             {!isModal && (
               <>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90 gap-1"
-                  onClick={handleBack}
-                  disabled={isSaving}
-                >
-                  <ChevronLeft className="h-4 w-4" /> Back
-                </Button>
-                {isSaving && (
-                  <span className="text-sm text-muted-foreground">Saving...</span>
+                {isSaving ? (
+                  <span className="text-sm text-muted-foreground px-3 py-2 bg-background/80 backdrop-blur-sm rounded-md">Saving...</span>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90 gap-1"
+                    onClick={handleBack}
+                  >
+                    <ChevronLeft className="h-4 w-4" /> Back
+                  </Button>
                 )}
               </>
             )}
@@ -1472,6 +1507,56 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                 rows={1}
                 style={{ height: 'auto' }}
               />
+              
+              {/* Task/Project Type Toggle */}
+              <div className="flex items-center gap-2 pb-2">
+                <button
+                  onClick={handleToggleTaskType}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors",
+                    isTask 
+                      ? "bg-blue-500/10 text-blue-600 hover:bg-blue-500/20" 
+                      : "bg-violet-500/10 text-violet-600 hover:bg-violet-500/20"
+                  )}
+                  title={isTask ? "Switch to Project" : "Switch to Task"}
+                >
+                  {isTask ? (
+                    <>
+                      <ListTodo className="h-4 w-4" />
+                      <span>Task</span>
+                    </>
+                  ) : (
+                    <>
+                      <FolderKanban className="h-4 w-4" />
+                      <span>Project</span>
+                    </>
+                  )}
+                </button>
+                
+                {/* Completed Status Toggle */}
+                <button
+                  onClick={handleToggleCompleted}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ml-auto",
+                    isCompleted 
+                      ? "bg-green-500/10 text-green-600 hover:bg-green-500/20" 
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  )}
+                  title={isCompleted ? "Mark as incomplete" : "Mark as complete"}
+                >
+                  {isCompleted ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>Completed</span>
+                    </>
+                  ) : (
+                    <>
+                      <Circle className="h-4 w-4" />
+                      <span>Mark Complete</span>
+                    </>
+                  )}
+                </button>
+              </div>
               
               {/* Project Group Selector */}
               <div className="flex items-center gap-3 pb-2">
@@ -1960,13 +2045,14 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
 
             {/* Done Button (Modal only) */}
             {isModal && onClose && (
-              <div className="flex flex-col items-end gap-2 pt-8 pb-4 sticky bottom-0 bg-gradient-to-t from-background via-background to-transparent">
-                {isSaving && (
-                  <p className="text-sm text-muted-foreground">Saving...</p>
+              <div className="flex justify-end pt-8 pb-4 sticky bottom-0 bg-gradient-to-t from-background via-background to-transparent">
+                {isSaving ? (
+                  <p className="text-sm text-muted-foreground px-4 py-2">Saving...</p>
+                ) : (
+                  <Button onClick={handleClose} size="lg">
+                    Done
+                  </Button>
                 )}
-                <Button onClick={handleClose} size="lg" disabled={isSaving}>
-                  Done
-                </Button>
               </div>
             )}
           </div>

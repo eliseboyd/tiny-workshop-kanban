@@ -15,7 +15,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
-import { Trash2, Pin } from 'lucide-react';
+import { Trash2, Pin, ListTodo } from 'lucide-react';
 
 type KanbanCardProps = {
   project: Project;
@@ -136,10 +136,14 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, size = 'me
           {project.pinned && (
             <Pin className="absolute top-2 right-2 h-3 w-3 text-muted-foreground/40 fill-current" />
           )}
+          {project.isTask && (
+            <ListTodo className="absolute top-2 left-2 h-3 w-3 text-blue-500/60" />
+          )}
           <CardTitle className={cn(
             titleSize, 
             "font-medium leading-tight",
             project.pinned && "pr-6",
+            project.isTask && "pl-6",
             columnTitle?.toLowerCase() === 'done' && "line-through text-muted-foreground"
           )}>
             {project.title}

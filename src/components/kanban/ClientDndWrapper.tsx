@@ -39,9 +39,9 @@ type ClientDndWrapperProps = {
   handleDeleteColumn: (id: string) => void;
   handleDeleteProject: (id: string) => void;
   handleTogglePin: (id: string, pinned: boolean) => void;
-  handleAddProjectToColumn: (columnId: string) => void;
+  handleAddProjectToColumn: (columnId: string, isTask?: boolean) => void;
   isCreatingInColumn: string | null;
-  onConfirmCreate: (columnId: string, title: string) => void;
+  onConfirmCreate: (columnId: string, title: string, isTask?: boolean) => void;
   onCancelCreate: () => void;
 };
 

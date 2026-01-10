@@ -148,6 +148,31 @@
   outline: none;
 }
 
+.tiptap p {
+  margin: 0;
+  min-height: 1em;
+}
+
+/* Add spacing between paragraphs only when there's content */
+.tiptap p + p {
+  margin-top: 0.5rem;
+}
+
+/* Remove extra spacing for empty paragraphs */
+.tiptap p:empty {
+  min-height: 1em;
+}
+
+/* First paragraph shouldn't have top margin */
+.tiptap > p:first-child {
+  margin-top: 0;
+}
+
+/* Last paragraph shouldn't have bottom margin */
+.tiptap > p:last-child {
+  margin-bottom: 0;
+}
+
 .tiptap ul,
 .tiptap ol {
   padding-left: 1.5rem;
@@ -235,8 +260,4 @@
   padding: 0.125rem 0.25rem;
   font-family: monospace;
   font-size: 0.875em;
-}
-
-.tiptap p {
-  margin: 0.5rem 0;
 }

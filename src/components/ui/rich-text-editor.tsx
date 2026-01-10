@@ -29,13 +29,29 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
     extensions: [
       StarterKit.configure({
         heading: false, // We have a separate title field
+        paragraph: {
+          HTMLAttributes: {
+            class: 'min-h-[1em]',
+          },
+        },
         bulletList: {
           keepMarks: true,
           keepAttributes: false,
+          HTMLAttributes: {
+            class: 'list-disc list-outside ml-4 space-y-1',
+          },
         },
         orderedList: {
           keepMarks: true,
           keepAttributes: false,
+          HTMLAttributes: {
+            class: 'list-decimal list-outside ml-4 space-y-1',
+          },
+        },
+        listItem: {
+          HTMLAttributes: {
+            class: 'leading-normal',
+          },
         },
       }),
       TaskList,
@@ -127,6 +143,77 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
           return true;
         }
         
+        return false;
+      },
+      // Fix backspace handling for empty paragraphs before lists/task lists
+      handleKeyDown: (view, event) => {
+        if (event.key === 'Backspace') {
+          const { state } = view;
+          const { $from, empty } = state.selection;
+          
+          // If we're at the start of a task item, try to delete empty lines before it first
+          if (empty && $from.parentOffset === 0) {
+            const parent = $from.parent;
+            
+            // Check if we're in a task item
+            if (parent.type.name === 'taskItem' || 
+                (parent.type.name === 'paragraph' && $from.node($from.depth - 1)?.type.name === 'taskItem')) {
+              
+              // Look backwards for empty paragraphs
+              try {
+                const beforePos = $from.pos - 1;
+                if (beforePos > 0) {
+                  const resolvedBefore = state.doc.resolve(beforePos);
+                  const nodeBefore = resolvedBefore.nodeBefore;
+                  
+                  // If there's an empty paragraph before, delete it and prevent default
+                  if (nodeBefore && nodeBefore.type.name === 'paragraph' && nodeBefore.nodeSize === 2) {
+                    const deleteFrom = beforePos - nodeBefore.nodeSize + 1;
+                    const deleteTo = beforePos + 1;
+                    const tr = state.tr.delete(deleteFrom, deleteTo);
+                    view.dispatch(tr);
+                    return true; // Prevent default - we handled it
+                  }
+                }
+              } catch (e) {
+                // If we can't find an empty line, allow default backspace
+              }
+              
+              // If no empty paragraph found, allow default backspace (which will delete the checkbox)
+              return false;
+            }
+          }
+          
+          // For other cases: check if we're at the start of any node with an empty paragraph before
+          if (empty && $from.parentOffset === 0 && $from.pos > 1) {
+            try {
+              const nodeBefore = state.doc.resolve($from.pos - 1).nodeBefore;
+              
+              // If the node before is an empty paragraph, delete it
+              if (nodeBefore && nodeBefore.type.name === 'paragraph' && nodeBefore.nodeSize === 2) {
+                const tr = state.tr.delete($from.pos - 2, $from.pos);
+                view.dispatch(tr);
+                return true;
+              }
+            } catch (e) {
+              // Ignore errors
+            }
+          }
+          
+          // Check if we're in an empty paragraph ourselves
+          if (empty && $from.parent.type.name === 'paragraph' && $from.parent.nodeSize === 2) {
+            const posBefore = $from.pos - $from.parentOffset - 1;
+            if (posBefore >= 0) {
+              try {
+                const tr = state.tr.delete(posBefore, $from.pos + 1);
+                view.dispatch(tr);
+                return true;
+              } catch (e) {
+                // Ignore errors
+              }
+            }
+          }
+        }
         return false;
       }
     },
