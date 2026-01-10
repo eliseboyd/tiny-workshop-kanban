@@ -206,23 +206,31 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
   
   // Track pending changes for immediate save on unmount/background
   const pendingChangesRef = useRef<Partial<Project> | null>(null);
+  const saveInProgressRef = useRef<Promise<boolean> | null>(null);
   
   // Immediate save function (no debounce)
   const immediatelySave = useCallback(async (data: Partial<Project>) => {
-    try {
-      await updateProject(project.id, data);
-      pendingChangesRef.current = null;
-      
-      // If richContent was saved and has unchecked todos, move project from Done
-      if (data.richContent && hasUncheckedTodos(data.richContent)) {
-        await moveProjectFromDoneIfNeeded(project.id);
+    const savePromise = (async () => {
+      try {
+        await updateProject(project.id, data);
+        pendingChangesRef.current = null;
+        
+        // If richContent was saved and has unchecked todos, move project from Done
+        if (data.richContent && hasUncheckedTodos(data.richContent)) {
+          await moveProjectFromDoneIfNeeded(project.id);
+        }
+        
+        return true;
+      } catch (error) {
+        console.error('Save failed:', error);
+        return false;
+      } finally {
+        saveInProgressRef.current = null;
       }
-      
-      return true;
-    } catch (error) {
-      console.error('Save failed:', error);
-      return false;
-    }
+    })();
+    
+    saveInProgressRef.current = savePromise;
+    return savePromise;
   }, [project.id]);
   
   // Simple debounced save function
@@ -235,21 +243,29 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
     }
     setIsSaving(true);
     saveTimeoutRef.current = setTimeout(async () => {
-      try {
-        await updateProject(project.id, data);
-        pendingChangesRef.current = null;
-        
-        // If richContent was saved and has unchecked todos, move project from Done
-        if (data.richContent && hasUncheckedTodos(data.richContent)) {
-          await moveProjectFromDoneIfNeeded(project.id);
+      const savePromise = (async (): Promise<boolean> => {
+        try {
+          await updateProject(project.id, data);
+          pendingChangesRef.current = null;
+          
+          // If richContent was saved and has unchecked todos, move project from Done
+          if (data.richContent && hasUncheckedTodos(data.richContent)) {
+            await moveProjectFromDoneIfNeeded(project.id);
+          }
+          
+          router.refresh();
+          return true;
+        } catch (error) {
+          console.error('Save failed:', error);
+          return false;
+        } finally {
+          setIsSaving(false);
+          saveInProgressRef.current = null;
         }
-        
-        router.refresh();
-      } catch (error) {
-        console.error('Save failed:', error);
-      } finally {
-        setIsSaving(false);
-      }
+      })();
+      
+      saveInProgressRef.current = savePromise;
+      await savePromise;
     }, 300);
   }, [project.id, router]);
   
@@ -291,6 +307,13 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
       clearTimeout(saveTimeoutRef.current);
     }
     
+    // Wait for any in-flight save to complete
+    if (saveInProgressRef.current) {
+      setIsSaving(true);
+      await saveInProgressRef.current;
+      setIsSaving(false);
+    }
+    
     // Save any pending changes immediately
     if (pendingChangesRef.current) {
       setIsSaving(true);
@@ -307,6 +330,13 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
     // Cancel any pending debounced save
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
+    }
+    
+    // Wait for any in-flight save to complete
+    if (saveInProgressRef.current) {
+      setIsSaving(true);
+      await saveInProgressRef.current;
+      setIsSaving(false);
     }
     
     // Save any pending changes immediately
