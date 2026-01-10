@@ -7,7 +7,7 @@ import ImageExtension from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
-import { Bold, Italic, Strikethrough, Code, Link as LinkIcon, X, List, ListOrdered, CheckSquare } from 'lucide-react';
+import { Bold, Italic, Strikethrough, Code, Link as LinkIcon, X, List, ListOrdered, CheckSquare, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Toggle } from '@/components/ui/toggle';
 import { useEffect, useState } from 'react';
@@ -22,6 +22,7 @@ type RichTextEditorProps = {
 
 export function RichTextEditor({ content, onChange, placeholder, className, onImageUpload }: RichTextEditorProps) {
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -78,18 +79,20 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
           if (file.type.startsWith('image/') && onImageUpload) {
              event.preventDefault(); 
              
-             // Optimistic insertion could be done here, but for now we just upload then insert
+             setIsUploadingImage(true);
+             // Insert a loading placeholder
+             const { schema } = view.state;
+             const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY });
+             const insertPos = coordinates ? coordinates.pos : view.state.doc.content.size;
+             
              onImageUpload(file).then(url => {
-                const { schema } = view.state;
-                const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY });
-                // If dropped inside, insert at coords, otherwise append?
                 if (coordinates) {
                     view.dispatch(view.state.tr.insert(coordinates.pos, schema.nodes.image.create({ src: url })));
                 } else {
-                    // Fallback to appending if drop coords are weird
                      view.dispatch(view.state.tr.insert(view.state.doc.content.size, schema.nodes.image.create({ src: url })));
                 }
-             }).catch(err => console.error("Image upload failed", err));
+             }).catch(err => console.error("Image upload failed", err))
+             .finally(() => setIsUploadingImage(false));
              return true; 
           }
         }
@@ -126,6 +129,12 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
         <div className="relative group border rounded-md p-2 bg-transparent border-transparent hover:border-border focus-within:border-border transition-colors">
         {/* Fixed Toolbar */}
         <div className="flex items-center gap-1 mb-2 pb-2 border-b border-border/50 transition-opacity">
+          {isUploadingImage && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mr-2 px-2 py-1 bg-muted/50 rounded">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>Uploading...</span>
+            </div>
+          )}
           <Toggle
             size="sm"
             pressed={editor.isActive('bold')}

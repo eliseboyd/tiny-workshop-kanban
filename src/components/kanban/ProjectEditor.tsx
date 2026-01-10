@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { compressImage } from '@/utils/image-compression';
 
 // Dynamically import PDFViewer to avoid SSR issues
 const PDFViewer = dynamic(() => import('@/components/ui/pdf-viewer').then(mod => ({ default: mod.PDFViewer })), {
@@ -80,6 +81,9 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
   const [isFetchingOgImage, setIsFetchingOgImage] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isDraggingPlans, setIsDraggingPlans] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [isUploadingInspiration, setIsUploadingInspiration] = useState(false);
+  const [uploadingInspirationCount, setUploadingInspirationCount] = useState(0);
   const [showInspirationPicker, setShowInspirationPicker] = useState(false);
   const [isCoverPickerOpen, setIsCoverPickerOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('overview');
@@ -525,14 +529,24 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
+    setIsUploadingInspiration(true);
+    setUploadingInspirationCount(files.length);
+    
     try {
       const newAttachments: Attachment[] = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        
+        // Compress image before upload
+        const compressedFile = await compressImage(file);
+        
         const fd = new FormData();
-        fd.append('file', file);
+        fd.append('file', compressedFile);
         const result = await uploadFile(fd);
         newAttachments.push(result);
+        
+        // Update count as we progress
+        setUploadingInspirationCount(files.length - i - 1);
       }
       const newInspiration = [...inspiration, ...newAttachments];
       setInspiration(newInspiration);
@@ -540,6 +554,9 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
       router.refresh();
     } catch (error) {
       console.error('Failed to upload inspiration', error);
+    } finally {
+      setIsUploadingInspiration(false);
+      setUploadingInspirationCount(0);
     }
     if (e.target) e.target.value = '';
   };
@@ -589,9 +606,13 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
   
   // Image upload handlers
   const handleFileUpload = async (file: File) => {
+    setIsUploadingCover(true);
     try {
+      // Compress image before upload
+      const compressedFile = await compressImage(file);
+      
       const fd = new FormData();
-      fd.append('file', file);
+      fd.append('file', compressedFile);
       const result = await uploadFile(fd);
       setImageUrl(result.url);
       
@@ -606,6 +627,8 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
       router.refresh();
     } catch (error) {
       console.error('Failed to upload image', error);
+    } finally {
+      setIsUploadingCover(false);
     }
   };
   
@@ -634,9 +657,14 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
           if (target === 'cover') {
             await handleFileUpload(file);
           } else {
+            setIsUploadingInspiration(true);
+            setUploadingInspirationCount(prev => prev + 1);
             try {
+              // Compress image before upload
+              const compressedFile = await compressImage(file);
+              
               const fd = new FormData();
-              fd.append('file', file);
+              fd.append('file', compressedFile);
               const result = await uploadFile(fd);
               
               const newInspiration = [...inspiration, result];
@@ -645,6 +673,11 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
               router.refresh();
             } catch (error) {
               console.error('Failed to upload pasted image', error);
+            } finally {
+              setUploadingInspirationCount(prev => prev - 1);
+              if (uploadingInspirationCount <= 1) {
+                setIsUploadingInspiration(false);
+              }
             }
           }
         }
@@ -1018,6 +1051,11 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
               <div className="flex flex-col items-center gap-2 text-muted-foreground animate-pulse">
                 <Loader2 className="h-8 w-8 animate-spin" />
                 <p className="text-sm">Creating your cover image...</p>
+              </div>
+            ) : isUploadingCover ? (
+              <div className="flex flex-col items-center gap-2 text-muted-foreground animate-pulse">
+                <Loader2 className="h-8 w-8 animate-spin" />
+                <p className="text-sm">Uploading image...</p>
               </div>
             ) : imageUrl ? (
               <>
@@ -1719,11 +1757,19 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
             >
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold">Inspiration</h2>
-                {isHoveringInspiration && (
-                  <p className="text-xs text-muted-foreground hidden md:block">
-                    Paste from clipboard (Ctrl+V)
-                  </p>
-                )}
+                <div className="flex items-center gap-3">
+                  {isUploadingInspiration && uploadingInspirationCount > 0 && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Uploading {uploadingInspirationCount} image{uploadingInspirationCount > 1 ? 's' : ''}...</span>
+                    </div>
+                  )}
+                  {isHoveringInspiration && !isUploadingInspiration && (
+                    <p className="text-xs text-muted-foreground hidden md:block">
+                      Paste from clipboard (Ctrl+V)
+                    </p>
+                  )}
+                </div>
               </div>
               <input
                 type="file"
