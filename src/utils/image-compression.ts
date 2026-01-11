@@ -1,19 +1,19 @@
 /**
  * Compresses an image file before upload
  * @param file The image file to compress
- * @param maxWidth Maximum width (default 1920px)
- * @param maxHeight Maximum height (default 1920px)
- * @param quality Compression quality 0-1 (default 0.85)
+ * @param maxWidth Maximum width (default 2400px)
+ * @param maxHeight Maximum height (default 2400px)
+ * @param quality Compression quality 0-1 (default 0.92)
  * @returns Compressed file
  */
 export async function compressImage(
   file: File,
-  maxWidth: number = 1920,
-  maxHeight: number = 1920,
-  quality: number = 0.85
+  maxWidth: number = 2400,
+  maxHeight: number = 2400,
+  quality: number = 0.92
 ): Promise<File> {
-  // Skip compression for small files (< 200KB) or non-JPEG/PNG
-  if (file.size < 200 * 1024 || (!file.type.match(/image\/(jpeg|jpg|png)/))) {
+  // Skip compression for small files (< 300KB) or non-JPEG/PNG
+  if (file.size < 300 * 1024 || (!file.type.match(/image\/(jpeg|jpg|png)/))) {
     return file;
   }
 
@@ -43,11 +43,18 @@ export async function compressImage(
         canvas.width = width;
         canvas.height = height;
         
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { 
+          alpha: file.type === 'image/png', // Preserve alpha for PNGs
+          willReadFrequently: false 
+        });
         if (!ctx) {
           reject(new Error('Failed to get canvas context'));
           return;
         }
+        
+        // Use better image smoothing for higher quality
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         
         ctx.drawImage(img, 0, 0, width, height);
         
@@ -87,7 +94,7 @@ export async function compressImage(
  * Useful for showing expected savings
  */
 export function estimateCompressedSize(originalSize: number): number {
-  if (originalSize < 200 * 1024) return originalSize;
-  return Math.round(originalSize * 0.5); // Roughly 50% reduction
+  if (originalSize < 300 * 1024) return originalSize;
+  return Math.round(originalSize * 0.65); // Roughly 35% reduction with higher quality
 }
 
