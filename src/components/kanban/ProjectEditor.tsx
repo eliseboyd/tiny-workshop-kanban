@@ -11,6 +11,13 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Lightbox, type LightboxItem } from '@/components/ui/lightbox';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -146,6 +153,9 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
   const [isSaving, setIsSaving] = useState(false);
   const [viewingAttachment, setViewingAttachment] = useState<{ url: string; type: string; name: string } | null>(null);
   const [isHoveringCover, setIsHoveringCover] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxItems, setLightboxItems] = useState<LightboxItem[]>([]);
   const [isHoveringInspiration, setIsHoveringInspiration] = useState(false);
   const [editingMaterialId, setEditingMaterialId] = useState<string | null>(null);
   const [editingMaterialText, setEditingMaterialText] = useState('');
@@ -157,9 +167,22 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const inspirationSectionRef = useRef<HTMLDivElement>(null);
   
-  // Open attachment viewer inline
+  // Open attachment in lightbox
+  const openInspirationLightbox = (clickedItem: Attachment) => {
+    const items: LightboxItem[] = inspiration.map(item => ({
+      id: item.id,
+      url: item.url,
+      name: item.name,
+      type: item.type,
+    }));
+    const index = inspiration.findIndex(item => item.id === clickedItem.id);
+    setLightboxItems(items);
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
+  
   const openAttachment = (url: string, type: string, name: string) => {
-    // Open image in new tab natively
+    // For plans section, keep old behavior (open in new tab)
     window.open(url, '_blank');
   };
   
@@ -1935,38 +1958,47 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                           key={item.id} 
                           className="flex-shrink-0 w-full snap-center"
                         >
-                          <div className="group relative rounded-lg overflow-hidden bg-muted/20 cursor-pointer aspect-[4/3]" onClick={() => openAttachment(item.url, item.type, item.name)}>
-                            {item.type.startsWith('image/') ? (
-                              <Image 
-                                src={item.url} 
-                                alt={item.name} 
-                                fill
-                                className="object-contain" 
-                                unoptimized
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
-                                <FileText className="h-12 w-12" />
-                              </div>
-                            )}
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-active:opacity-100 transition-opacity flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
-                              <Button 
-                                size="sm" 
-                                variant="secondary" 
-                                className="h-10 w-10 p-0" 
-                                onClick={() => handleSetInspirationAsCover(item.url)}
-                                title="Set as cover"
+                          <ContextMenu>
+                            <ContextMenuTrigger asChild>
+                              <div 
+                                className="group relative rounded-lg overflow-hidden bg-muted/20 cursor-pointer aspect-[4/3]" 
+                                onClick={() => openInspirationLightbox(item)}
                               >
-                                <Images className="h-5 w-5" />
-                              </Button>
-                              <Button size="sm" variant="secondary" className="h-10 w-10 p-0" onClick={() => openAttachment(item.url, item.type, item.name)}>
-                                <Maximize2 className="h-5 w-5" />
-                              </Button>
-                              <Button size="sm" variant="destructive" className="h-10 w-10 p-0" onClick={() => handleRemoveInspiration(item.id)}>
-                                <Trash2 className="h-5 w-5" />
-                              </Button>
-                            </div>
-                          </div>
+                                {item.type.startsWith('image/') ? (
+                                  <Image 
+                                    src={item.url} 
+                                    alt={item.name} 
+                                    fill
+                                    className="object-contain" 
+                                    unoptimized
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                                    <FileText className="h-12 w-12" />
+                                  </div>
+                                )}
+                              </div>
+                            </ContextMenuTrigger>
+                            <ContextMenuContent>
+                              <ContextMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                handleSetInspirationAsCover(item.url);
+                              }}>
+                                <ImageIcon className="mr-2 h-4 w-4" />
+                                Set as Cover
+                              </ContextMenuItem>
+                              <ContextMenuItem 
+                                className="text-destructive focus:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveInspiration(item.id);
+                                }}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </ContextMenuItem>
+                            </ContextMenuContent>
+                          </ContextMenu>
                         </div>
                       ))}
                       <div className="flex-shrink-0 w-full snap-center">
@@ -1999,7 +2031,11 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                   <div className="hidden md:block">
                     <div className="columns-2 sm:columns-3 gap-4 space-y-4">
                       {inspiration.map(item => (
-                        <div key={item.id} className="break-inside-avoid group relative rounded-lg overflow-hidden bg-muted/20 mb-4 cursor-pointer" onClick={() => openAttachment(item.url, item.type, item.name)}>
+                        <div 
+                          key={item.id} 
+                          className="break-inside-avoid group relative rounded-lg overflow-hidden bg-muted/20 mb-4 cursor-pointer" 
+                          onClick={() => openInspirationLightbox(item)}
+                        >
                           {item.type.startsWith('image/') ? (
                             <Image 
                               src={item.url} 
@@ -2019,15 +2055,36 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                               size="sm" 
                               variant="secondary" 
                               className="h-8 w-8 p-0" 
-                              onClick={() => handleSetInspirationAsCover(item.url)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSetInspirationAsCover(item.url);
+                              }}
                               title="Set as cover"
                             >
                               <Images className="h-4 w-4" />
                             </Button>
-                            <Button size="sm" variant="secondary" className="h-8 w-8 p-0" onClick={() => openAttachment(item.url, item.type, item.name)}>
+                            <Button 
+                              size="sm" 
+                              variant="secondary" 
+                              className="h-8 w-8 p-0" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openInspirationLightbox(item);
+                              }}
+                              title="View full size"
+                            >
                               <Maximize2 className="h-4 w-4" />
                             </Button>
-                            <Button size="sm" variant="destructive" className="h-8 w-8 p-0" onClick={() => handleRemoveInspiration(item.id)}>
+                            <Button 
+                              size="sm" 
+                              variant="destructive" 
+                              className="h-8 w-8 p-0" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveInspiration(item.id);
+                              }}
+                              title="Delete"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -2059,6 +2116,18 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
           )}
         </div>
       </div>
+      
+      {/* Lightbox for inspiration images */}
+      <Lightbox
+        items={lightboxItems}
+        initialIndex={lightboxIndex}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        onDelete={handleRemoveInspiration}
+        onSetAsCover={handleSetInspirationAsCover}
+        showDeleteButton={true}
+        showSetCoverButton={true}
+      />
     </div>
   );
 }
