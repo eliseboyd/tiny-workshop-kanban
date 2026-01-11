@@ -169,6 +169,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
   
   // Open attachment in lightbox
   const openInspirationLightbox = (clickedItem: Attachment) => {
+    console.log('Opening lightbox for:', clickedItem);
     const items: LightboxItem[] = inspiration.map(item => ({
       id: item.id,
       url: item.url,
@@ -176,6 +177,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
       type: item.type,
     }));
     const index = inspiration.findIndex(item => item.id === clickedItem.id);
+    console.log('Lightbox items:', items.length, 'Index:', index);
     setLightboxItems(items);
     setLightboxIndex(index);
     setLightboxOpen(true);
@@ -1962,7 +1964,16 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                             <ContextMenuTrigger asChild>
                               <div 
                                 className="group relative rounded-lg overflow-hidden bg-muted/20 cursor-pointer aspect-[4/3]" 
-                                onClick={() => openInspirationLightbox(item)}
+                                onClick={(e) => {
+                                  // Only open lightbox if it's a regular click, not a long-press
+                                  if (e.detail === 1) {
+                                    openInspirationLightbox(item);
+                                  }
+                                }}
+                                onContextMenu={(e) => {
+                                  // Prevent default context menu on long press/right click
+                                  e.preventDefault();
+                                }}
                               >
                                 {item.type.startsWith('image/') ? (
                                   <Image 
@@ -2034,7 +2045,12 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                         <div 
                           key={item.id} 
                           className="break-inside-avoid group relative rounded-lg overflow-hidden bg-muted/20 mb-4 cursor-pointer" 
-                          onClick={() => openInspirationLightbox(item)}
+                          onClick={(e) => {
+                            // Only trigger on direct click, not on button clicks
+                            if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === 'IMG') {
+                              openInspirationLightbox(item);
+                            }
+                          }}
                         >
                           {item.type.startsWith('image/') ? (
                             <Image 

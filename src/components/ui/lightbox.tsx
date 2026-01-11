@@ -68,6 +68,13 @@ export function Lightbox({
   if (!isOpen || items.length === 0) return null;
 
   const currentItem = items[currentIndex];
+  
+  if (!currentItem) {
+    console.error('Lightbox: currentItem is undefined', { currentIndex, itemsLength: items.length });
+    return null;
+  }
+
+  console.log('Lightbox rendering:', { isOpen, currentIndex, itemsLength: items.length, currentItem });
 
   return (
     <div
