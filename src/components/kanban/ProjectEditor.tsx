@@ -1960,56 +1960,54 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                           key={item.id} 
                           className="flex-shrink-0 w-full snap-center"
                         >
-                          <ContextMenu>
-                            <ContextMenuTrigger asChild>
-                              <div 
-                                className="group relative rounded-lg overflow-hidden bg-muted/20 cursor-pointer aspect-[4/3]" 
+                          <div 
+                            className="group relative rounded-lg overflow-hidden bg-muted/20 cursor-pointer aspect-[4/3]" 
+                            onClick={() => {
+                              console.log('Mobile carousel clicked!', item);
+                              openInspirationLightbox(item);
+                            }}
+                          >
+                            {item.type.startsWith('image/') ? (
+                              <Image 
+                                src={item.url} 
+                                alt={item.name} 
+                                fill
+                                className="object-contain" 
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                                <FileText className="h-12 w-12" />
+                              </div>
+                            )}
+                            {/* Quick action buttons on long press - Mobile */}
+                            <div className="absolute bottom-2 left-2 right-2 opacity-0 active:opacity-100 transition-opacity flex gap-2 md:hidden" onClick={(e) => e.stopPropagation()}>
+                              <Button 
+                                size="sm" 
+                                variant="secondary" 
+                                className="flex-1 h-9" 
                                 onClick={(e) => {
-                                  // Only open lightbox if it's a regular click, not a long-press
-                                  if (e.detail === 1) {
-                                    openInspirationLightbox(item);
-                                  }
-                                }}
-                                onContextMenu={(e) => {
-                                  // Prevent default context menu on long press/right click
-                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleSetInspirationAsCover(item.url);
                                 }}
                               >
-                                {item.type.startsWith('image/') ? (
-                                  <Image 
-                                    src={item.url} 
-                                    alt={item.name} 
-                                    fill
-                                    className="object-contain" 
-                                    unoptimized
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
-                                    <FileText className="h-12 w-12" />
-                                  </div>
-                                )}
-                              </div>
-                            </ContextMenuTrigger>
-                            <ContextMenuContent>
-                              <ContextMenuItem onClick={(e) => {
-                                e.stopPropagation();
-                                handleSetInspirationAsCover(item.url);
-                              }}>
-                                <ImageIcon className="mr-2 h-4 w-4" />
-                                Set as Cover
-                              </ContextMenuItem>
-                              <ContextMenuItem 
-                                className="text-destructive focus:text-destructive"
+                                <ImageIcon className="h-4 w-4 mr-1" />
+                                Cover
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="destructive" 
+                                className="flex-1 h-9" 
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleRemoveInspiration(item.id);
                                 }}
                               >
-                                <Trash2 className="mr-2 h-4 w-4" />
+                                <Trash2 className="h-4 w-4 mr-1" />
                                 Delete
-                              </ContextMenuItem>
-                            </ContextMenuContent>
-                          </ContextMenu>
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       ))}
                       <div className="flex-shrink-0 w-full snap-center">
@@ -2045,11 +2043,9 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                         <div 
                           key={item.id} 
                           className="break-inside-avoid group relative rounded-lg overflow-hidden bg-muted/20 mb-4 cursor-pointer" 
-                          onClick={(e) => {
-                            // Only trigger on direct click, not on button clicks
-                            if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === 'IMG') {
-                              openInspirationLightbox(item);
-                            }
+                          onClick={() => {
+                            console.log('Desktop grid clicked!', item);
+                            openInspirationLightbox(item);
                           }}
                         >
                           {item.type.startsWith('image/') ? (
