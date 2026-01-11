@@ -1961,22 +1961,32 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                           className="flex-shrink-0 w-full snap-center"
                         >
                           <div 
-                            className="group relative rounded-lg overflow-hidden bg-muted/20 cursor-pointer aspect-[4/3]" 
-                            onClick={() => {
-                              console.log('Mobile carousel clicked!', item);
-                              openInspirationLightbox(item);
-                            }}
+                            className="group relative rounded-lg overflow-hidden bg-muted/20 aspect-[4/3]" 
                           >
                             {item.type.startsWith('image/') ? (
-                              <Image 
-                                src={item.url} 
-                                alt={item.name} 
-                                fill
-                                className="object-contain" 
-                                unoptimized
-                              />
+                              <div
+                                className="relative w-full h-full cursor-pointer"
+                                onClick={() => {
+                                  console.log('Mobile carousel IMAGE WRAPPER clicked!', item);
+                                  openInspirationLightbox(item);
+                                }}
+                              >
+                                <Image 
+                                  src={item.url} 
+                                  alt={item.name} 
+                                  fill
+                                  className="object-contain pointer-events-none" 
+                                  unoptimized
+                                />
+                              </div>
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                              <div 
+                                className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground cursor-pointer"
+                                onClick={() => {
+                                  console.log('Mobile carousel FILE clicked!', item);
+                                  openInspirationLightbox(item);
+                                }}
+                              >
                                 <FileText className="h-12 w-12" />
                               </div>
                             )}
@@ -2042,23 +2052,33 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                       {inspiration.map(item => (
                         <div 
                           key={item.id} 
-                          className="break-inside-avoid group relative rounded-lg overflow-hidden bg-muted/20 mb-4 cursor-pointer" 
-                          onClick={() => {
-                            console.log('Desktop grid clicked!', item);
-                            openInspirationLightbox(item);
-                          }}
+                          className="break-inside-avoid group relative rounded-lg overflow-hidden bg-muted/20 mb-4" 
                         >
                           {item.type.startsWith('image/') ? (
-                            <Image 
-                              src={item.url} 
-                              alt={item.name} 
-                              width={400}
-                              height={400}
-                              className="w-full h-auto object-cover" 
-                              unoptimized
-                            />
+                            <div
+                              className="relative cursor-pointer"
+                              onClick={() => {
+                                console.log('Desktop grid IMAGE clicked!', item);
+                                openInspirationLightbox(item);
+                              }}
+                            >
+                              <Image 
+                                src={item.url} 
+                                alt={item.name} 
+                                width={400}
+                                height={400}
+                                className="w-full h-auto object-cover pointer-events-none" 
+                                unoptimized
+                              />
+                            </div>
                           ) : (
-                            <div className="aspect-square flex items-center justify-center bg-muted text-muted-foreground">
+                            <div 
+                              className="aspect-square flex items-center justify-center bg-muted text-muted-foreground cursor-pointer"
+                              onClick={() => {
+                                console.log('Desktop grid FILE clicked!', item);
+                                openInspirationLightbox(item);
+                              }}
+                            >
                               <FileText className="h-8 w-8" />
                             </div>
                           )}
