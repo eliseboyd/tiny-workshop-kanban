@@ -3,33 +3,42 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Project } from './KanbanBoard';
+import { Project, Column } from './KanbanBoard';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
 } from "@/components/ui/context-menu"
-import { Trash2, Pin, ListTodo } from 'lucide-react';
+import { Trash2, Pin, ListTodo, MoveRight } from 'lucide-react';
 
 type KanbanCardProps = {
   project: Project;
   onClick?: () => void;
   onDelete?: () => void;
   onTogglePin?: (pinned: boolean) => void;
+  onMoveToColumn?: (columnId: string) => void;
+  columns?: Column[];
+  currentColumnId?: string;
   size?: string; // compact, small, medium
   columnTitle?: string;
 };
 
-export function KanbanCard({ project, onClick, onDelete, onTogglePin, size = 'medium', columnTitle }: KanbanCardProps) {
+export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToColumn, columns = [], currentColumnId, size = 'medium', columnTitle }: KanbanCardProps) {
   // Touch handling to distinguish between scroll and tap
   const touchStartPos = useRef<{ x: number; y: number; time: number } | null>(null);
   const isTouchDevice = useRef(false);
+  const [longPressTriggered, setLongPressTriggered] = useState(false);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  
   const {
     attributes,
     listeners,
@@ -42,7 +51,8 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, size = 'me
     data: {
         type: 'Project',
         project,
-    }
+    },
+    disabled: longPressTriggered, // Disable drag when long press menu is open
   });
 
   if (!project) return null;
@@ -104,8 +114,18 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, size = 'me
     }
   };
 
+  // Detect if device supports touch
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      isTouchDevice.current = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    }
+  }, []);
+
+  // Remove drag listeners on mobile to prevent glitching
+  const cardListeners = isTouchDevice.current ? {} : listeners;
+
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} {...attributes} {...cardListeners}>
       <ContextMenu>
       <ContextMenuTrigger>
       <Card 
@@ -182,6 +202,32 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, size = 'me
           <Pin className="mr-2 h-4 w-4" />
           {project.pinned ? 'Unpin' : 'Pin to Top'}
         </ContextMenuItem>
+        
+        {/* Move to Column submenu */}
+        {columns && columns.length > 0 && onMoveToColumn && (
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>
+              <MoveRight className="mr-2 h-4 w-4" />
+              Move to...
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent>
+              {columns
+                .filter(col => col.id !== currentColumnId)
+                .map(col => (
+                  <ContextMenuItem
+                    key={col.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMoveToColumn(col.id);
+                    }}
+                  >
+                    {col.title}
+                  </ContextMenuItem>
+                ))}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
+        )}
+        
         <ContextMenuItem className="text-destructive focus:text-destructive" onClick={(e) => {
             e.stopPropagation();
             onDelete?.();

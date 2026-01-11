@@ -182,6 +182,7 @@ export function KanbanBoardEmbed({ initialProjects, initialSettings, initialColu
             handleDeleteColumn={async () => {}}
             handleDeleteProject={async () => {}}
             handleTogglePin={handleTogglePin}
+            onMoveCard={async () => {}}
             handleAddProjectToColumn={() => {}}
             isCreatingInColumn={null}
             onConfirmCreate={async () => {}}

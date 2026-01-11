@@ -43,6 +43,7 @@ type ClientDndWrapperProps = {
   isCreatingInColumn: string | null;
   onConfirmCreate: (columnId: string, title: string, isTask?: boolean) => void;
   onCancelCreate: () => void;
+  onMoveCard: (projectId: string, newColumnId: string) => void;
 };
 
 export function ClientDndWrapper({
@@ -65,6 +66,7 @@ export function ClientDndWrapper({
   isCreatingInColumn,
   onConfirmCreate,
   onCancelCreate,
+  onMoveCard,
 }: ClientDndWrapperProps) {
   const sensors = useSensors(
     // Mouse sensor - instant drag for desktop (no delay)
@@ -149,6 +151,7 @@ export function ClientDndWrapper({
                 key={col.id}
                 id={col.id}
                 title={col.title}
+                columns={cols}
                 isHidden={false}
                 onToggleVisibility={() => onToggleColumnVisibility(col.id)}
                 items={filteredItems
@@ -174,6 +177,7 @@ export function ClientDndWrapper({
                 onDeleteColumn={handleDeleteColumn}
                 onDeleteProject={handleDeleteProject}
                 onTogglePin={handleTogglePin}
+                onMoveCard={onMoveCard}
                 onAddProject={handleAddProjectToColumn}
                 cardSize={settingsState.cardSize}
                 isCreating={isCreatingInColumn === col.id}

@@ -5,11 +5,11 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { KanbanCard } from './KanbanCard';
-import { Project } from './KanbanBoard';
+import { Project, Column } from './KanbanBoard';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { Trash2, Plus, Eye } from 'lucide-react';
+import { Trash2, Plus, Eye, ListTodo, FolderKanban } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -21,6 +21,7 @@ type KanbanColumnProps = {
   id: string;
   title: string;
   items: Project[];
+  columns?: Column[];
   isHidden?: boolean;
   onToggleVisibility?: () => void;
   onCardClick?: (project: Project) => void;
@@ -28,6 +29,7 @@ type KanbanColumnProps = {
   onDeleteColumn?: (id: string) => void;
   onDeleteProject?: (id: string) => void;
   onTogglePin?: (id: string, pinned: boolean) => void;
+  onMoveCard?: (projectId: string, newColumnId: string) => void;
   onAddProject?: (columnId: string, isTask?: boolean) => void;
   cardSize?: string;
   isCreating?: boolean;
@@ -35,7 +37,7 @@ type KanbanColumnProps = {
   onCancelCreate?: () => void;
 };
 
-export function KanbanColumn({ id, title, items, isHidden, onToggleVisibility, onCardClick, onTitleChange, onDeleteColumn, onDeleteProject, onTogglePin, onAddProject, cardSize, isCreating, onConfirmCreate, onCancelCreate }: KanbanColumnProps) {
+export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisibility, onCardClick, onTitleChange, onDeleteColumn, onDeleteProject, onTogglePin, onMoveCard, onAddProject, cardSize, isCreating, onConfirmCreate, onCancelCreate }: KanbanColumnProps) {
   const {
     setNodeRef,
     attributes,
@@ -238,6 +240,9 @@ export function KanbanColumn({ id, title, items, isHidden, onToggleVisibility, o
                 onClick={() => onCardClick?.(project)} 
                 onDelete={() => onDeleteProject?.(project.id)}
                 onTogglePin={(pinned) => onTogglePin?.(project.id, pinned)}
+                onMoveToColumn={(columnId) => onMoveCard?.(project.id, columnId)}
+                columns={columns}
+                currentColumnId={id}
                 size={cardSize || "small"}
                 columnTitle={title}
             />

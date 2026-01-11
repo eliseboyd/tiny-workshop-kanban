@@ -507,6 +507,28 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
       router.refresh();
   };
 
+  const handleMoveCard = async (projectId: string, newColumnId: string) => {
+      const project = items.find(p => p.id === projectId);
+      if (!project) return;
+      
+      // Find the new column's current max position
+      const columnProjects = items.filter(p => p.status === newColumnId);
+      const maxPosition = columnProjects.length > 0 
+          ? Math.max(...columnProjects.map(p => p.position)) 
+          : 0;
+      const newPosition = maxPosition + 1;
+      
+      // Optimistically update UI
+      setItems(prev => prev.map(item => 
+          item.id === projectId 
+              ? { ...item, status: newColumnId, position: newPosition } 
+              : item
+      ));
+      
+      await updateProjectStatus(projectId, newColumnId, newPosition);
+      router.refresh();
+  };
+
   const handleToggleColumnVisibility = (columnId: string) => {
       setHiddenColumns(prev => 
           prev.includes(columnId) 
@@ -760,6 +782,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
                 handleDeleteColumn={handleDeleteColumn}
                 handleDeleteProject={handleDeleteProject}
                 handleTogglePin={handleTogglePin}
+                onMoveCard={handleMoveCard}
                 handleAddProjectToColumn={handleAddProjectToColumn}
                 isCreatingInColumn={isCreatingInColumn}
                 onConfirmCreate={handleConfirmCreate}
