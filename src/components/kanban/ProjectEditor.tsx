@@ -2082,11 +2082,12 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                               <FileText className="h-8 w-8" />
                             </div>
                           )}
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          {/* Hover overlay - pointer-events-none when hidden, only buttons are clickable */}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
                             <Button 
                               size="sm" 
                               variant="secondary" 
-                              className="h-8 w-8 p-0" 
+                              className="h-8 w-8 p-0 pointer-events-auto" 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleSetInspirationAsCover(item.url);
@@ -2098,7 +2099,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                             <Button 
                               size="sm" 
                               variant="secondary" 
-                              className="h-8 w-8 p-0" 
+                              className="h-8 w-8 p-0 pointer-events-auto" 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 openInspirationLightbox(item);
@@ -2110,7 +2111,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                             <Button 
                               size="sm" 
                               variant="destructive" 
-                              className="h-8 w-8 p-0" 
+                              className="h-8 w-8 p-0 pointer-events-auto" 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleRemoveInspiration(item.id);
