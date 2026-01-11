@@ -135,8 +135,9 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
     }
   }, []);
 
-  // Remove drag listeners on mobile to prevent glitching
-  const cardListeners = isTouchDevice.current ? {} : listeners;
+  // Re-enable drag on all devices - the sensors handle mobile properly now
+  // Only disable when context menu is actually open
+  const cardListeners = contextMenuOpen ? {} : listeners;
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...cardListeners}>
@@ -144,7 +145,7 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
       <ContextMenuTrigger asChild>
       <Card 
         className={cn(
-          "cursor-grab active:cursor-grabbing hover:shadow-md transition-all p-0 gap-0 overflow-hidden",
+          "cursor-grab active:cursor-grabbing hover:shadow-md transition-all p-0 gap-0 overflow-hidden select-none",
           !contextMenuOpen && "active:scale-[0.98] active:shadow-lg",
           project.pinned && "border-l-2 border-l-primary/30"
         )}
@@ -152,10 +153,8 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onContextMenu={(e) => {
-          // Prevent default context menu but allow our custom one
-          if (contextMenuOpen) {
-            e.preventDefault();
-          }
+          // Prevent text selection on long press
+          e.preventDefault();
         }}
       >
         {project.imageUrl && !isCompact && (

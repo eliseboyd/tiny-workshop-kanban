@@ -75,11 +75,11 @@ export function ClientDndWrapper({
         distance: 5,
       },
     }),
-    // Touch sensor - optimized for mobile with pressure detection
+    // Touch sensor - optimized for mobile with better constraints
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 100, // Minimal delay
-        tolerance: 5, // Very tight tolerance for precise control
+        delay: 250, // Longer delay to distinguish from taps and allow context menu
+        tolerance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -111,7 +111,7 @@ export function ClientDndWrapper({
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
     >
-      <div className="flex flex-1 w-full gap-4 p-4 overflow-x-auto snap-x snap-mandatory md:snap-none">
+      <div className="flex flex-1 w-full gap-4 p-4 overflow-x-auto snap-x snap-mandatory md:snap-none select-none">
         <SortableContext items={cols.map(c => c.id)} strategy={horizontalListSortingStrategy}>
           {cols.map((col) => {
             const isHidden = hiddenColumns.includes(col.id);
