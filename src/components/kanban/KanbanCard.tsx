@@ -18,7 +18,15 @@ import {
   ContextMenuSubContent,
   ContextMenuSubTrigger,
 } from "@/components/ui/context-menu"
-import { Trash2, Pin, ListTodo, MoveRight } from 'lucide-react';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
+import { Button } from "@/components/ui/button"
+import { Trash2, Pin, ListTodo, MoveRight, ArrowRightLeft } from 'lucide-react';
 
 type KanbanCardProps = {
   project: Project;
@@ -38,6 +46,7 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
   const isTouchDevice = useRef(false);
   const [longPressTriggered, setLongPressTriggered] = useState(false);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
+  const [moveSheetOpen, setMoveSheetOpen] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   
   const {
@@ -135,9 +144,9 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
     }
   }, []);
 
-  // Re-enable drag on all devices - the sensors handle mobile properly now
-  // Only disable when context menu is actually open
-  const cardListeners = contextMenuOpen ? {} : listeners;
+  // Disable drag on mobile devices - use context menu instead (best practice)
+  // Only enable drag listeners on desktop (non-touch devices)
+  const cardListeners = (isTouchDevice.current || contextMenuOpen) ? {} : listeners;
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...cardListeners}>
@@ -145,8 +154,9 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
       <ContextMenuTrigger asChild>
       <Card 
         className={cn(
-          "cursor-grab active:cursor-grabbing hover:shadow-md transition-all p-0 gap-0 overflow-hidden select-none",
-          !contextMenuOpen && "active:scale-[0.98] active:shadow-lg",
+          "hover:shadow-md transition-all p-0 gap-0 overflow-hidden select-none relative group",
+          !isTouchDevice.current && "cursor-grab active:cursor-grabbing",
+          !contextMenuOpen && !isTouchDevice.current && "active:scale-[0.98] active:shadow-lg",
           project.pinned && "border-l-2 border-l-primary/30"
         )}
         onClick={handleClick}
@@ -206,6 +216,48 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
         )}
         {isCompact && (
              <div className="pb-2"></div>
+        )}
+        
+        {/* Mobile Move Button - Only show on touch devices when columns available */}
+        {isTouchDevice.current && columns && columns.length > 1 && onMoveToColumn && (
+          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity md:hidden">
+            <Sheet open={moveSheetOpen} onOpenChange={setMoveSheetOpen}>
+              <SheetTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-7 px-2 shadow-md"
+                >
+                  <ArrowRightLeft className="h-3 w-3 mr-1" />
+                  Move
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-auto">
+                <SheetHeader>
+                  <SheetTitle>Move to Column</SheetTitle>
+                </SheetHeader>
+                <div className="grid gap-2 py-4">
+                  {columns
+                    .filter(col => col.id !== currentColumnId)
+                    .map(col => (
+                      <Button
+                        key={col.id}
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onMoveToColumn(col.id);
+                          setMoveSheetOpen(false);
+                        }}
+                      >
+                        <MoveRight className="mr-2 h-4 w-4" />
+                        {col.title}
+                      </Button>
+                    ))}
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         )}
       </Card>
       </ContextMenuTrigger>
