@@ -272,7 +272,7 @@ export function CompletedProjectsView({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
             {sortedProjects.map(project => (
               <Card
                 key={project.id}
@@ -280,7 +280,7 @@ export function CompletedProjectsView({
                 onClick={() => onProjectClick(project)}
               >
                 {project.imageUrl && (
-                  <div className="relative w-full h-40 overflow-hidden bg-muted">
+                  <div className="relative w-full h-32 overflow-hidden bg-muted">
                     <Image
                       src={project.imageUrl}
                       alt={project.title}
@@ -289,43 +289,43 @@ export function CompletedProjectsView({
                     />
                   </div>
                 )}
-                <CardContent className={cn("p-4", !project.imageUrl && "pt-6")}>
-                  <h3 className="font-semibold mb-2 line-clamp-2">
+                <CardContent className={cn("p-3", !project.imageUrl && "pt-4")}>
+                  <h3 className="font-semibold text-sm mb-1.5 line-clamp-2">
                     {project.title}
                   </h3>
                   {project.description && (
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                    <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
                       {project.description}
                     </p>
                   )}
                   {project.tags && project.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {project.tags.slice(0, 3).map(tagName => {
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {project.tags.slice(0, 2).map(tagName => {
                         const tag = tags.find(t => t.name === tagName);
                         return (
                           <Badge
                             key={tagName}
                             variant="secondary"
-                            className="text-xs"
+                            className="text-[10px] px-1.5 py-0"
                             style={tag ? { backgroundColor: tag.color + '20', color: tag.color } : {}}
                           >
-                            {tag?.emoji && <span className="mr-1">{tag.emoji}</span>}
+                            {tag?.emoji && <span className="mr-0.5">{tag.emoji}</span>}
                             {tagName}
                           </Badge>
                         );
                       })}
-                      {project.tags.length > 3 && (
-                        <Badge variant="secondary" className="text-xs">
-                          +{project.tags.length - 3}
+                      {project.tags.length > 2 && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          +{project.tags.length - 2}
                         </Badge>
                       )}
                     </div>
                   )}
                   {project.updatedAt && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <Calendar className="h-2.5 w-2.5" />
                       <span>
-                        Completed {format(parseISO(project.updatedAt.toString()), 'MMM d, yyyy')}
+                        {format(parseISO(project.updatedAt.toString()), 'MMM d, yyyy')}
                       </span>
                     </div>
                   )}
