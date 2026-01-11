@@ -667,26 +667,26 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
             {/* View Tabs */}
             <div className="px-4 py-2 border-b bg-muted/30">
               <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'overview' | 'dashboard' | 'kanban' | 'plans' | 'completed')}>
-                <TabsList>
+                <TabsList className="flex-wrap">
                   <TabsTrigger value="overview" className="gap-1.5">
                     <LayoutGrid className="h-4 w-4" />
-                    <span className="hidden sm:inline">Overview</span>
+                    <span>Overview</span>
                   </TabsTrigger>
                   <TabsTrigger value="dashboard" className="gap-1.5">
                     <LayoutDashboard className="h-4 w-4" />
-                    <span className="hidden sm:inline">Dashboard</span>
+                    <span>Dashboard</span>
                   </TabsTrigger>
                   <TabsTrigger value="kanban" className="gap-1.5">
                     <Columns3 className="h-4 w-4" />
-                    <span className="hidden sm:inline">Kanban</span>
+                    <span>Kanban</span>
                   </TabsTrigger>
                   <TabsTrigger value="plans" className="gap-1.5">
                     <FileStack className="h-4 w-4" />
-                    <span className="hidden sm:inline">Plans</span>
+                    <span>Plans</span>
                   </TabsTrigger>
                   <TabsTrigger value="completed" className="gap-1.5">
                     <CheckCircle2 className="h-4 w-4" />
-                    <span className="hidden sm:inline">Completed</span>
+                    <span>Completed</span>
                   </TabsTrigger>
                 </TabsList>
               </Tabs>

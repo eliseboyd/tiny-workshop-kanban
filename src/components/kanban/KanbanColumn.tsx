@@ -127,7 +127,7 @@ export function KanbanColumn({ id, title, items, isHidden, onToggleVisibility, o
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100 md:transition-opacity text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 touch:opacity-100"
+              className="h-6 w-6 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleVisibility();
@@ -143,7 +143,7 @@ export function KanbanColumn({ id, title, items, isHidden, onToggleVisibility, o
               <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-6 w-6 opacity-0 group-hover:opacity-100 md:transition-opacity text-neutral-400 hover:text-destructive touch:opacity-100"
+                  className="h-6 w-6 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-neutral-400 hover:text-destructive"
                   onClick={() => onDeleteColumn(id)}
                   title="Delete empty column"
               >

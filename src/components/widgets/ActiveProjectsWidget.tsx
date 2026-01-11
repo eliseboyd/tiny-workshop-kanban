@@ -76,12 +76,12 @@ export function ActiveProjectsWidget({
   const displayProjects = useMemo(() => {
     let filtered = projects.filter(p => {
       // Filter by completion status
-      if (p.isCompleted) return false;
+      if (p.isCompleted === true) return false;
       if (doneColumn && p.status === doneColumn.id) return false;
 
       // Filter by project/task type
-      if (widget.config.showType === 'projects' && p.isTask) return false;
-      if (widget.config.showType === 'tasks' && !p.isTask) return false;
+      if (widget.config.showType === 'projects' && p.isTask === true) return false;
+      if (widget.config.showType === 'tasks' && p.isTask !== true) return false;
 
       // Filter by tag or project group
       if (filterType === 'tag' && filterBy !== 'all') {

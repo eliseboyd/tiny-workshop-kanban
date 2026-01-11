@@ -70,14 +70,14 @@ export function ClientDndWrapper({
     // Mouse sensor - instant drag for desktop (no delay)
     useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 5,
       },
     }),
-    // Touch sensor - improved for mobile
+    // Touch sensor - optimized for mobile with pressure detection
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 150, // Reduced delay for quicker response
-        tolerance: 8, // Tighter tolerance for better accuracy
+        delay: 100, // Minimal delay
+        tolerance: 5, // Very tight tolerance for precise control
       },
     }),
     useSensor(KeyboardSensor, {
