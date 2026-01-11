@@ -37,6 +37,7 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
   const touchStartPos = useRef<{ x: number; y: number; time: number } | null>(null);
   const isTouchDevice = useRef(false);
   const [longPressTriggered, setLongPressTriggered] = useState(false);
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   
   const {
@@ -85,6 +86,12 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (!touchStartPos.current) return;
 
+    // Don't open modal if context menu is/was open
+    if (contextMenuOpen) {
+      touchStartPos.current = null;
+      return;
+    }
+
     const touchEndX = e.changedTouches[0].clientX;
     const touchEndY = e.changedTouches[0].clientY;
     const timeDiff = Date.now() - touchStartPos.current.time;
@@ -108,6 +115,13 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
   };
 
   const handleClick = (e: React.MouseEvent) => {
+    // Don't open modal if context menu is open
+    if (contextMenuOpen) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    
     // Only handle mouse clicks (desktop), not touch events
     if (!isTouchDevice.current && !isDragging) {
       onClick?.();
@@ -126,20 +140,22 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...cardListeners}>
-      <ContextMenu>
-      <ContextMenuTrigger>
+      <ContextMenu onOpenChange={setContextMenuOpen}>
+      <ContextMenuTrigger asChild>
       <Card 
         className={cn(
-          "cursor-grab active:cursor-grabbing hover:shadow-md transition-all p-0 gap-0 overflow-hidden active:scale-[0.98] active:shadow-lg",
+          "cursor-grab active:cursor-grabbing hover:shadow-md transition-all p-0 gap-0 overflow-hidden",
+          !contextMenuOpen && "active:scale-[0.98] active:shadow-lg",
           project.pinned && "border-l-2 border-l-primary/30"
         )}
         onClick={handleClick}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        draggable={true}
-        onDragStart={(e) => {
-          e.dataTransfer.setData('application/project-card', project.id);
-          e.dataTransfer.effectAllowed = 'copy';
+        onContextMenu={(e) => {
+          // Prevent default context menu but allow our custom one
+          if (contextMenuOpen) {
+            e.preventDefault();
+          }
         }}
       >
         {project.imageUrl && !isCompact && (
