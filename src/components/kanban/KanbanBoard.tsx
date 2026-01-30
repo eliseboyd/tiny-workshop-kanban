@@ -15,16 +15,18 @@ import { DashboardSection } from './DashboardSection';
 import { ModeToggle } from '@/components/mode-toggle';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Menu, LayoutDashboard, Columns3, LayoutGrid, FileStack, CheckCircle2 } from 'lucide-react';
+import { Menu, LayoutDashboard, Columns3, LayoutGrid, FileStack, CheckCircle2, Lightbulb } from 'lucide-react';
 import { PlansView } from './PlansView';
 import { CompletedProjectsView } from './CompletedProjectsView';
+import { IdeasView } from './IdeasView';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Settings, KanbanSquareDashed } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/use-local-storage';
-import { updateProjectStatus, updateSettings, updateColumn, createColumn, deleteColumn, deleteProject, updateColumnsOrder, updateColumnOrder, getAllTags, getAllProjectGroups, getAllWidgets, getAllMaterials, getProjects, getAllPlans, StandalonePlan, toggleProjectPinned } from '@/app/actions';
+import { updateProjectStatus, updateSettings, updateColumn, createColumn, deleteColumn, deleteProject, updateColumnsOrder, updateColumnOrder, getAllTags, getAllProjectGroups, getAllWidgets, getAllMaterials, getProjects, getAllPlans, StandalonePlan, toggleProjectPinned, getIdeas, moveIdeaToKanban } from '@/app/actions';
 
 import { ClientDndWrapper } from './ClientDndWrapper';
+import { QuickAddDialog } from './QuickAddDialog';
 
 export type Project = {
     id: string;
@@ -42,6 +44,7 @@ export type Project = {
     pinned?: boolean;
     isTask?: boolean;
     isCompleted?: boolean;
+    isIdea?: boolean;
     createdAt: Date | null;
     updatedAt: Date | null;
     parentProjectId?: string | null;
@@ -52,6 +55,7 @@ export type Project = {
     parent_project_id?: string;
     is_task?: boolean;
     is_completed?: boolean;
+    is_idea?: boolean;
 };
 
 type Tag = {
@@ -114,6 +118,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
           parentProjectId: p.parent_project_id || p.parentProjectId,
           isTask: p.is_task || p.isTask || false,
           isCompleted: p.is_completed || p.isCompleted || false,
+          isIdea: p.is_idea || p.isIdea || false,
           plans: p.plans,
           inspiration: p.inspiration,
       }));
@@ -148,8 +153,9 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   // View state: 'overview' (both), 'dashboard', 'kanban', 'plans', 'completed'
-  const [activeView, setActiveView] = useLocalStorage<'overview' | 'dashboard' | 'kanban' | 'plans' | 'completed'>('kanban-view', 'overview');
+  const [activeView, setActiveView] = useLocalStorage<'overview' | 'dashboard' | 'kanban' | 'plans' | 'completed' | 'ideas'>('kanban-view', 'overview');
   const [allPlans, setAllPlans] = useState<Array<StandalonePlan & { source: 'standalone' | 'project' }>>([]);
+  const [ideas, setIdeas] = useState<Project[]>([]);
   
   // Hidden columns state (array of column IDs)
   const [hiddenColumns, setHiddenColumns] = useLocalStorage<string[]>('hidden-columns', []);
@@ -172,16 +178,19 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   const [isDashboardLoading, setIsDashboardLoading] = useState(true);
 
   // Collect all unique tags from all items
-  // Load tags, project groups, widgets, materials, and plans
-  const loadDashboardData = async () => {
-    // Always load tags and groups (needed for filtering)
+  const loadTagsAndGroups = async () => {
     const [tagsData, groupsData] = await Promise.all([
       getAllTags(),
       getAllProjectGroups(),
     ]);
     setTags(tagsData);
     setProjectGroups(groupsData);
-    
+  };
+
+  // Load tags, project groups, widgets, materials, and plans
+  const loadDashboardData = async () => {
+    await loadTagsAndGroups();
+
     // Only load widgets, materials, and plans if in overview or dashboard view
     if (activeView === 'overview' || activeView === 'dashboard') {
       const [widgetsData, materialsData, plansData] = await Promise.all([
@@ -205,6 +214,11 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
     // Only load dashboard data when needed (overview or dashboard view)
     if (activeView === 'overview' || activeView === 'dashboard') {
       loadDashboardData();
+    } else if (activeView === 'plans') {
+      loadDashboardData();
+    } else if (activeView === 'ideas') {
+      loadTagsAndGroups();
+      getIdeas().then((data) => setIdeas(mapProjects(data)));
     }
   }, [activeView]);
 
@@ -498,6 +512,25 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
       }
   };
 
+  const refreshIdeas = async () => {
+      const ideasData = await getIdeas();
+      setIdeas(mapProjects(ideasData));
+  };
+
+  const handleDeleteIdea = async (id: string) => {
+      if (confirm("Are you sure you want to delete this idea?")) {
+          setIdeas(prev => prev.filter(item => item.id !== id));
+          await deleteProject(id);
+      }
+  };
+
+  const handleMoveIdeaToKanban = async (ideaId: string, columnId: string) => {
+      await moveIdeaToKanban(ideaId, columnId);
+      const freshProjects = await getProjects();
+      setItems(mapProjects(freshProjects));
+      await refreshIdeas();
+  };
+
   const handleTogglePin = async (id: string, pinned: boolean) => {
       // Optimistically update UI
       setItems(prev => prev.map(item => 
@@ -628,6 +661,13 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
       await updateColumn(colId, newTitle);
   };
 
+  const handleQuickAddCreated = async () => {
+      const freshProjects = await getProjects();
+      setItems(mapProjects(freshProjects));
+      await refreshIdeas();
+      loadDashboardData();
+  };
+
   return (
     <>
       <div className="flex flex-col min-h-screen">
@@ -688,7 +728,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
 
             {/* View Tabs */}
             <div className="px-4 py-2 border-b bg-muted/30 overflow-x-auto">
-              <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'overview' | 'dashboard' | 'kanban' | 'plans' | 'completed')}>
+              <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'overview' | 'dashboard' | 'kanban' | 'plans' | 'completed' | 'ideas')}>
                 <TabsList className="w-auto">
                   <TabsTrigger value="overview" className="gap-1.5">
                     <LayoutGrid className="h-4 w-4" />
@@ -701,6 +741,10 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
                   <TabsTrigger value="kanban" className="gap-1.5">
                     <Columns3 className="h-4 w-4" />
                     <span className="hidden md:inline">Kanban</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="ideas" className="gap-1.5">
+                    <Lightbulb className="h-4 w-4" />
+                    <span className="hidden md:inline">Ideas</span>
                   </TabsTrigger>
                   <TabsTrigger value="plans" className="gap-1.5">
                     <FileStack className="h-4 w-4" />
@@ -791,6 +835,18 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
           </div>
         )}
 
+        {/* Ideas View - shown only in ideas view */}
+        {activeView === 'ideas' && (
+          <IdeasView
+            ideas={ideas}
+            tags={tags}
+            columns={cols}
+            onIdeaClick={handleEditProject}
+            onMoveToKanban={handleMoveIdeaToKanban}
+            onDeleteIdea={handleDeleteIdea}
+          />
+        )}
+
         {/* Plans View - shown only in plans view */}
         {activeView === 'plans' && (
           <PlansView
@@ -821,6 +877,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
           />
         )}
       </div>
+      <QuickAddDialog columns={cols} onCreated={handleQuickAddCreated} />
       {editingProject && (
         <ProjectModal
           project={editingProject}
@@ -830,6 +887,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
             // Refresh projects and dashboard data when modal closes
             const freshProjects = await getProjects();
             setItems(mapProjects(freshProjects));
+            await refreshIdeas();
             loadDashboardData();
           }}
         />

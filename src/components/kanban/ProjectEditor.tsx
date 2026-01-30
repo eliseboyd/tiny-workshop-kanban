@@ -3,8 +3,8 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Button } from '@/components/ui/button';
-import { Project } from './KanbanBoard';
-import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage } from '@/app/actions';
+import { Project, Column } from './KanbanBoard';
+import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage, getColumns, moveIdeaToKanban } from '@/app/actions';
 import Image from 'next/image';
 import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images, ExternalLink, Pencil, FolderKanban, ListTodo, CheckCircle2, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -103,6 +103,9 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
   const [parentProjectId, setParentProjectId] = useState<string | null>(project.parentProjectId || null);
   const [isTask, setIsTask] = useState<boolean>(project.isTask || false);
   const [isCompleted, setIsCompleted] = useState<boolean>(project.isCompleted || false);
+  const [isIdea, setIsIdea] = useState<boolean>(project.isIdea || false);
+  const [columns, setColumns] = useState<Column[]>([]);
+  const [ideaMoveColumnId, setIdeaMoveColumnId] = useState<string | null>(null);
   const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
   const [allTags, setAllTags] = useState<TagMetadata[]>([]);
   const [materialsList, setMaterialsList] = useState<Material[]>(() => {
@@ -473,6 +476,14 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
     setIsCompleted(newIsCompleted);
     await updateProject(project.id, { is_completed: newIsCompleted });
     router.refresh();
+  };
+
+  const handleMoveIdeaToKanban = async () => {
+    if (!ideaMoveColumnId) return;
+    await moveIdeaToKanban(project.id, ideaMoveColumnId);
+    setIsIdea(false);
+    router.refresh();
+    onClose?.();
   };
   
   // Materials handlers
@@ -973,12 +984,15 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
   // Load project groups and tags
   useEffect(() => {
     const loadData = async () => {
-      const [groups, tagsData] = await Promise.all([
+      const [groups, tagsData, columnsData] = await Promise.all([
         getAllProjectGroups(),
         getAllTags(),
+        getColumns(),
       ]);
       setProjectGroups(groups);
       setAllTags(tagsData);
+      setColumns(columnsData);
+      setIdeaMoveColumnId(columnsData[0]?.id || null);
     };
     loadData();
   }, []);
@@ -991,6 +1005,10 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
   useEffect(() => {
     setIsCompleted(project.isCompleted || false);
   }, [project.isCompleted]);
+
+  useEffect(() => {
+    setIsIdea(project.isIdea || false);
+  }, [project.isIdea]);
   
   // Swipe back gesture for mobile with visual feedback
   const touchStartX = useRef(0);
@@ -1582,6 +1600,33 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                   )}
                 </button>
               </div>
+
+              {isIdea && (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 pb-2">
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm text-muted-foreground min-w-[80px]">Move to:</label>
+                    <Select value={ideaMoveColumnId || undefined} onValueChange={setIdeaMoveColumnId}>
+                      <SelectTrigger className="w-[200px] h-8">
+                        <SelectValue placeholder="Choose column" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {columns.map(col => (
+                          <SelectItem key={col.id} value={col.id}>
+                            {col.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={handleMoveIdeaToKanban}
+                    disabled={!ideaMoveColumnId}
+                  >
+                    Move to Kanban
+                  </Button>
+                </div>
+              )}
               
               {/* Project Group Selector */}
               <div className="flex items-center gap-3 pb-2">

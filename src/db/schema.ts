@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, timestamp, jsonb, boolean } from 'drizzle-orm/pg-core';
 
 export const projects = pgTable('projects', {
   id: text('id').primaryKey(),
@@ -12,6 +12,7 @@ export const projects = pgTable('projects', {
   tags: text('tags').array(), 
   attachments: jsonb('attachments').$type<{ id: string; url: string; name: string; type: string; size: number }[]>().default([]),
   parentProjectId: text('parent_project_id'), // For grouping cards under a project
+  isIdea: boolean('is_idea').notNull().default(false),
 });
 
 export const columns = pgTable('columns', {
@@ -68,5 +69,11 @@ export const standalonePlans = pgTable('standalone_plans', {
   size: integer('size').notNull(),
   projectId: text('project_id'), // nullable - null means unassigned
   notes: text('notes'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const quickAddTokens = pgTable('quick_add_tokens', {
+  userId: text('user_id').primaryKey(),
+  tokenHash: text('token_hash').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });

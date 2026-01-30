@@ -1,0 +1,23 @@
+# Tiny Kanban Quick Add
+
+GetURLsfromInput -> mv:InputUrls
+GetItemfromList "First Item" -> mv:InputUrl
+
+GetFile service="iCloud Drive" showDocumentPicker=false filePath="Shortcuts/quick-add-token.txt" errorIfNotFound=false -> mv:TokenFile
+Count "Items" -> mv:TokenFileCount
+If "Is Greater Than" 0
+GetTextfromInput -> mv:StoredToken
+Otherwise
+AskforInput "Quick Add token" -> mv:StoredToken
+SaveFile service="iCloud Drive" askWheretoSave=false destinationPath="Shortcuts/quick-add-token.txt" overwriteIfFileExists=true
+End If
+
+Text "Bearer \\(mv:StoredToken)" -> mv:AuthHeader
+
+URL "https://tinywork.shop/api/quick-add"
+GetContentsofURL advanced=true method="POST" headers=true headers2={
+  "Content-Type": "application/json"
+  "Authorization": mv:AuthHeader
+} requestBody="JSON" jSONValues={
+  url: mv:InputUrl
+}
