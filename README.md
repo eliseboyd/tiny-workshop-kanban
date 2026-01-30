@@ -27,6 +27,7 @@ A simple Kanban board application built with Next.js, Shadcn UI, and SQLite.
 
 You can add links directly to Ideas from iOS using a Shortcuts share sheet action.
 First, generate a Quick Add token in **Settings → Quick Add**, then click **Install iOS Shortcut**.
+If the import says the URL is invalid, open `/shortcuts/quick-add.signed.shortcut` in Safari to install.
 
 1. Open the Shortcuts app on iOS.
 2. Create a new shortcut named "Add to Project Board".

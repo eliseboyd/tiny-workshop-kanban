@@ -867,7 +867,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       variant="outline"
                       onClick={() => {
                         if (typeof window !== 'undefined') {
-                          const url = `${window.location.origin}/api/shortcuts/quick-add`;
+                          const url = new URL('/shortcuts/quick-add.signed.shortcut', window.location.origin).toString();
                           window.location.href = `shortcuts://import-shortcut?url=${encodeURIComponent(url)}`;
                         }
                       }}
@@ -877,6 +877,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <p className="text-xs text-muted-foreground">
                       Opens the Shortcuts app to import the prebuilt share shortcut.
                     </p>
+                    <a
+                      className="text-xs text-primary hover:underline"
+                      href="/shortcuts/quick-add.signed.shortcut"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      If import fails, open the shortcut file directly →
+                    </a>
                   </div>
 
                   <div className="space-y-2 text-sm text-muted-foreground">
