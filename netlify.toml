@@ -1,6 +1,7 @@
 [build]
   command = "npm run build"
   publish = ".next"
+  environment = { SECRETS_SCAN_OMIT_PATHS = ".env.local,.netlify/functions-internal/___netlify-server-handler/.env.local" }
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
