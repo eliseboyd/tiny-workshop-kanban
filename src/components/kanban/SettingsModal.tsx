@@ -867,7 +867,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       variant="outline"
                       onClick={() => {
                         if (typeof window !== 'undefined') {
-                          const url = `${window.location.origin}/shortcuts/quick-add.signed.shortcut`;
+                          const url = `${window.location.origin}/api/shortcuts/quick-add`;
                           window.location.href = `shortcuts://import-shortcut?url=${encodeURIComponent(url)}`;
                         }
                       }}

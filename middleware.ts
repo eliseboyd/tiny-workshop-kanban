@@ -3,7 +3,7 @@ import { updateSession } from '@/utils/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  if (pathname.startsWith('/shortcuts/') || pathname.endsWith('.shortcut')) {
+  if (pathname.startsWith('/shortcuts/') || pathname.startsWith('/api/shortcuts') || pathname.endsWith('.shortcut')) {
     return NextResponse.next();
   }
   return await updateSession(request);
