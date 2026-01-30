@@ -15,7 +15,7 @@ export const config = {
      * - uploads/ (user uploaded content - public)
      * Feel free to modify this pattern to include more paths.
      */
-    '/((?!_next/static|_next/image|favicon.ico|uploads/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|uploads/|shortcuts/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|shortcut)$).*)',
   ],
 };
 
