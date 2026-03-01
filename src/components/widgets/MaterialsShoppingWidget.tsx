@@ -181,7 +181,7 @@ export function MaterialsShoppingWidget({
       const project = projects.find(p => p.id === item.projectId);
       if (!project) return;
 
-      let materialsList: any[] = [];
+      let materialsList: { id: string; text: string; toBuy?: boolean; toBuild?: boolean }[] = [];
       try {
         if (project.materialsList) {
           materialsList = typeof project.materialsList === 'string'
@@ -236,7 +236,7 @@ export function MaterialsShoppingWidget({
       const project = projects.find(p => p.id === item.projectId);
       if (!project) return;
 
-      let materialsList: any[] = [];
+      let materialsList: { id: string; text: string; toBuy?: boolean; toBuild?: boolean }[] = [];
       try {
         if (project.materialsList) {
           materialsList = typeof project.materialsList === 'string'
@@ -280,7 +280,7 @@ export function MaterialsShoppingWidget({
       const project = projects.find(p => p.id === item.projectId);
       if (!project) return;
 
-      let materialsList: any[] = [];
+      let materialsList: { id: string; text: string; toBuy?: boolean; toBuild?: boolean }[] = [];
       try {
         if (project.materialsList) {
           materialsList = typeof project.materialsList === 'string'

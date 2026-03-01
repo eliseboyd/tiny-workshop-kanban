@@ -43,7 +43,9 @@ type KanbanCardProps = {
 export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToColumn, columns = [], currentColumnId, size = 'medium', columnTitle }: KanbanCardProps) {
   // Touch handling to distinguish between scroll and tap
   const touchStartPos = useRef<{ x: number; y: number; time: number } | null>(null);
-  const isTouchDevice = useRef(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(() =>
+    typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0)
+  );
   const [longPressTriggered, setLongPressTriggered] = useState(false);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const [moveSheetOpen, setMoveSheetOpen] = useState(false);
@@ -84,7 +86,7 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
   const showDescription = false;
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    isTouchDevice.current = true;
+    setIsTouchDevice(true);
     touchStartPos.current = {
       x: e.touches[0].clientX,
       y: e.touches[0].clientY,
@@ -104,22 +106,22 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
     const touchEndX = e.changedTouches[0].clientX;
     const touchEndY = e.changedTouches[0].clientY;
     const timeDiff = Date.now() - touchStartPos.current.time;
-    
+
     // Calculate movement distance
     const deltaX = Math.abs(touchEndX - touchStartPos.current.x);
     const deltaY = Math.abs(touchEndY - touchStartPos.current.y);
-    
+
     // Threshold: if moved less than 10px and touch was less than 300ms, it's a tap
     const MOVEMENT_THRESHOLD = 10;
     const TIME_THRESHOLD = 300;
-    
+
     if (deltaX < MOVEMENT_THRESHOLD && deltaY < MOVEMENT_THRESHOLD && timeDiff < TIME_THRESHOLD) {
       // This is an intentional tap, not a scroll
       if (!isDragging) {
         onClick?.();
       }
     }
-    
+
     touchStartPos.current = null;
   };
 
@@ -130,23 +132,16 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
       e.stopPropagation();
       return;
     }
-    
+
     // Only handle mouse clicks (desktop), not touch events
-    if (!isTouchDevice.current && !isDragging) {
+    if (!isTouchDevice && !isDragging) {
       onClick?.();
     }
   };
 
-  // Detect if device supports touch
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      isTouchDevice.current = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    }
-  }, []);
-
   // Disable drag on mobile devices - use context menu instead (best practice)
   // Only enable drag listeners on desktop (non-touch devices)
-  const cardListeners = (isTouchDevice.current || contextMenuOpen) ? {} : listeners;
+  const cardListeners = (isTouchDevice || contextMenuOpen) ? {} : listeners;
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...cardListeners}>
@@ -155,8 +150,8 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
       <Card 
         className={cn(
           "hover:shadow-md transition-all p-0 gap-0 overflow-hidden select-none relative group",
-          !isTouchDevice.current && "cursor-grab active:cursor-grabbing",
-          !contextMenuOpen && !isTouchDevice.current && "active:scale-[0.98] active:shadow-lg",
+          !isTouchDevice && "cursor-grab active:cursor-grabbing",
+          !contextMenuOpen && !isTouchDevice && "active:scale-[0.98] active:shadow-lg",
           project.pinned && "border-l-2 border-l-primary/30"
         )}
         onClick={handleClick}
@@ -165,7 +160,7 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
         onContextMenu={(e) => {
           // Prevent text selection on long press (mobile only)
           // On desktop, letting Radix handle this is required for the context menu to open
-          if (isTouchDevice.current) {
+          if (isTouchDevice) {
             e.preventDefault();
           }
         }}
@@ -222,7 +217,7 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
         )}
         
         {/* Mobile Move Button - Only show on touch devices when columns available */}
-        {isTouchDevice.current && columns && columns.length > 1 && onMoveToColumn && (
+        {isTouchDevice && columns && columns.length > 1 && onMoveToColumn && (
           <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity md:hidden">
             <Sheet open={moveSheetOpen} onOpenChange={setMoveSheetOpen}>
               <SheetTrigger asChild onClick={(e) => e.stopPropagation()}>

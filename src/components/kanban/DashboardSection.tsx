@@ -41,9 +41,9 @@ type DashboardItem = {
 
 type Widget = {
   id: string;
-  type: 'todo-list' | 'materials-shopping' | 'project-todos';
+  type: 'todo-list' | 'materials-shopping' | 'project-todos' | 'day-plan' | 'active-projects';
   title: string;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   position: number;
 };
 

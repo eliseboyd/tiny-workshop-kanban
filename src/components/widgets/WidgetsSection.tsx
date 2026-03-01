@@ -50,7 +50,7 @@ type Widget = {
   id: string;
   type: 'todo-list' | 'materials-shopping' | 'project-todos' | 'day-plan' | 'active-projects';
   title: string;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   position: number;
 };
 
@@ -100,6 +100,7 @@ function SortableWidget({
   // Reset height when prop changes
   useEffect(() => {
     if (!isResizing) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentHeight(height);
       latestHeight.current = height;
     }
@@ -269,7 +270,7 @@ export function WidgetsSection({
     router.refresh();
   };
 
-  const getHeight = (widget: Widget) => widget.config?.height || DEFAULT_HEIGHT;
+  const getHeight = (widget: Widget) => (widget.config?.height as number | undefined) || DEFAULT_HEIGHT;
 
   if (widgets.length === 0) {
     return (
@@ -302,7 +303,7 @@ export function WidgetsSection({
     if (widget.type === 'todo-list') {
       return (
         <ToDoListWidget
-          widget={widget as any}
+          widget={widget as unknown as Parameters<typeof ToDoListWidget>[0]['widget']}
           projects={projects}
           columns={columns}
           tags={tags}
@@ -317,7 +318,7 @@ export function WidgetsSection({
     if (widget.type === 'materials-shopping') {
       return (
         <MaterialsShoppingWidget
-          widget={widget as any}
+          widget={widget as unknown as Parameters<typeof MaterialsShoppingWidget>[0]['widget']}
           materials={materials}
           projects={projects}
           tags={tags}
@@ -332,7 +333,7 @@ export function WidgetsSection({
     if (widget.type === 'project-todos') {
       return (
         <ProjectTodosWidget
-          widget={widget as any}
+          widget={widget as unknown as Parameters<typeof ProjectTodosWidget>[0]['widget']}
           projects={projects}
           onEdit={() => handleEdit(widget)}
           onProjectClick={onProjectClick}
@@ -344,7 +345,7 @@ export function WidgetsSection({
     if (widget.type === 'day-plan') {
       return (
         <DayPlanWidget
-          widget={widget as any}
+          widget={widget as unknown as Parameters<typeof DayPlanWidget>[0]['widget']}
           projects={projects}
           columns={columns}
           onEdit={() => handleEdit(widget)}
@@ -357,7 +358,7 @@ export function WidgetsSection({
     if (widget.type === 'active-projects') {
       return (
         <ActiveProjectsWidget
-          widget={widget as any}
+          widget={widget as unknown as Parameters<typeof ActiveProjectsWidget>[0]['widget']}
           projects={projects}
           columns={columns}
           tags={tags}

@@ -56,7 +56,7 @@ export const widgets = pgTable('widgets', {
   id: text('id').primaryKey(),
   type: text('type').notNull(), // 'todo-list' | 'materials-shopping'
   title: text('title').notNull(),
-  config: jsonb('config').$type<Record<string, any>>().notNull().default({}),
+  config: jsonb('config').$type<Record<string, unknown>>().notNull().default({}),
   position: integer('position').notNull().default(0),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });

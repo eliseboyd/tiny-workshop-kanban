@@ -37,11 +37,6 @@ export function KanbanBoard() {
     })
   );
 
-  useEffect(() => {
-    setIsMounted(true);
-    fetchProjects();
-  }, []);
-
   const fetchProjects = async () => {
     try {
       const res = await fetch('/api/projects');
@@ -53,6 +48,12 @@ export function KanbanBoard() {
       console.error('Failed to fetch projects:', error);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+    fetchProjects();
+  }, []);
 
   const handleAddProject = async (newProjectData: { title: string; description: string; status: ProjectStatus }) => {
     try {

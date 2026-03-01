@@ -7,6 +7,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createHash, randomBytes } from 'crypto';
 import { writeFile, mkdir } from 'fs/promises';
+import type { IncomingMessage } from 'http';
+import https from 'https';
 import path from 'path';
 
 // Helper function to download image from URL and upload to Supabase
@@ -122,7 +124,6 @@ async function fetchOpenGraphImage(url: string): Promise<string | null> {
     }
     
     // Use native https module with increased header size limit
-    const https = require('https');
     const urlObj = new URL(cleanedUrl);
     
     const html = await new Promise<string>((resolve, reject) => {
@@ -140,7 +141,7 @@ async function fetchOpenGraphImage(url: string): Promise<string | null> {
           'Referer': urlObj.origin,
         },
         maxHeaderSize: 32768, // Increase to 32KB to handle large headers
-      }, (res: any) => {
+      }, (res: IncomingMessage) => {
         // Handle redirects
         if (res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307 || res.statusCode === 308) {
           reject(new Error(`Redirect not followed: ${res.statusCode}`));
@@ -159,7 +160,7 @@ async function fetchOpenGraphImage(url: string): Promise<string | null> {
         }
         
         let data = '';
-        res.on('data', (chunk: any) => data += chunk);
+        res.on('data', (chunk: Buffer | string) => data += chunk);
         res.on('end', () => resolve(data));
       });
       
@@ -356,9 +357,9 @@ export async function createProject(data: {
   title: string; 
   description?: string; 
   richContent?: string; 
-  materialsList?: any;
-  plans?: any;
-  inspiration?: any;
+  materialsList?: Record<string, unknown>[];
+  plans?: Record<string, unknown>[];
+  inspiration?: Record<string, unknown>[];
   imageUrl?: string; 
   tags?: string[]; 
   status?: string;
@@ -435,12 +436,12 @@ export async function createIdea(data: {
   return idea;
 }
 
-export async function updateProject(id: string, data: any) {
+export async function updateProject(id: string, data: Record<string, unknown>) {
   const supabase = createServiceRoleClient();
   
   // Check if we should fetch an Open Graph image
   let shouldFetchOgImage = false;
-  let urlsToCheck: string[] = [];
+  const urlsToCheck: string[] = [];
   
   // Get current project to check if it has a cover image
   const { data: currentProject } = await supabase
@@ -454,10 +455,10 @@ export async function updateProject(id: string, data: any) {
   if (hasNoCoverImage) {
     // Check if title or richContent has been updated with a URL
     if (data.title !== undefined) {
-      urlsToCheck.push(...extractUrls(data.title));
+      urlsToCheck.push(...extractUrls(data.title as string));
     }
     if (data.richContent !== undefined) {
-      urlsToCheck.push(...extractUrlsFromHtml(data.richContent));
+      urlsToCheck.push(...extractUrlsFromHtml(data.richContent as string));
     }
     
     // If no new URLs, check existing content
@@ -474,12 +475,12 @@ export async function updateProject(id: string, data: any) {
   }
   
   // Convert camelCase to snake_case for DB
-  const dbData: any = {};
+  const dbData: Record<string, unknown> = {};
   if (data.title !== undefined) dbData.title = data.title;
   if (data.description !== undefined) dbData.description = data.description;
   if (data.richContent !== undefined) {
     // Clean URLs in rich content before saving
-    dbData.rich_content = cleanUrlsInHtml(data.richContent);
+    dbData.rich_content = cleanUrlsInHtml(data.richContent as string);
   }
   if (data.materialsList !== undefined) {
     dbData.materials_list = JSON.stringify(data.materialsList);
@@ -618,7 +619,7 @@ export async function updateProjectStatus(id: string, status: string, position: 
                        column?.title?.toLowerCase().includes('completed') ||
                        column?.title?.toLowerCase().includes('complete');
   
-  const updateData: any = { status, position: safePosition };
+  const updateData: Record<string, unknown> = { status, position: safePosition };
   if (isDoneColumn !== undefined) {
     updateData.is_completed = isDoneColumn;
   }
@@ -1000,13 +1001,13 @@ export async function getSettings() {
   };
 }
 
-export async function updateSettings(data: any) {
+export async function updateSettings(data: Record<string, unknown>) {
   const supabase = createServiceRoleClient();
   // Get current settings ID
   const { data: current } = await supabase.from('settings').select('id').limit(1).single();
   if (!current) return;
 
-  const dbData: any = {};
+  const dbData: Record<string, unknown> = {};
   if (data.aiPromptTemplate !== undefined) dbData.ai_prompt_template = data.aiPromptTemplate;
   if (data.boardTitle !== undefined) dbData.board_title = data.boardTitle;
   if (data.cardSize !== undefined) dbData.card_size = data.cardSize;
@@ -1119,9 +1120,9 @@ export async function uploadImageBase64(base64Data: string, fileName: string, fi
       .getPublicUrl(storageFileName);
       
     return publicUrl;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Server] Upload failed:', error);
-    throw new Error(`Server upload failed: ${error.message}`);
+    throw new Error(`Server upload failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -1172,7 +1173,7 @@ export async function getAllMediaFiles() {
           : project.inspiration;
         
         if (Array.isArray(inspiration)) {
-          inspiration.forEach((item: any) => {
+          inspiration.forEach((item: { url?: string; name?: string; type?: string; size?: number }) => {
             if (item.url) {
               if (!mediaMap.has(item.url)) {
                 mediaMap.set(item.url, {
@@ -1196,7 +1197,7 @@ export async function getAllMediaFiles() {
           : project.plans;
         
         if (Array.isArray(plans)) {
-          plans.forEach((item: any) => {
+          plans.forEach((item: { url?: string; name?: string; type?: string; size?: number }) => {
             if (item.url) {
               if (!mediaMap.has(item.url)) {
                 mediaMap.set(item.url, {
@@ -1252,7 +1253,7 @@ export async function deleteMediaFile(fileUrl: string) {
     // Remove the file URL from all projects
     for (const project of projects) {
       let updated = false;
-      const updates: any = {};
+      const updates: Record<string, unknown> = {};
       
       // Remove from cover image
       if (project.image_url === fileUrl) {
@@ -1267,7 +1268,7 @@ export async function deleteMediaFile(fileUrl: string) {
           : project.inspiration;
         
         if (Array.isArray(inspiration)) {
-          const filtered = inspiration.filter((item: any) => item.url !== fileUrl);
+          const filtered = inspiration.filter((item: { url?: string }) => item.url !== fileUrl);
           if (filtered.length !== inspiration.length) {
             updates.inspiration = JSON.stringify(filtered);
             updated = true;
@@ -1282,7 +1283,7 @@ export async function deleteMediaFile(fileUrl: string) {
           : project.plans;
         
         if (Array.isArray(plans)) {
-          const filtered = plans.filter((item: any) => item.url !== fileUrl);
+          const filtered = plans.filter((item: { url?: string }) => item.url !== fileUrl);
           if (filtered.length !== plans.length) {
             updates.plans = JSON.stringify(filtered);
             updated = true;
@@ -1343,7 +1344,7 @@ export async function getAllTags() {
   });
   
   // Create a map of existing tags
-  const tagsMap = new Map<string, any>();
+  const tagsMap = new Map<string, { name: string; color: string; emoji: string | null; icon: string | null }>();
   tagsData?.forEach(tag => {
     tagsMap.set(tag.name, tag);
   });
@@ -1555,10 +1556,10 @@ export async function getAllWidgets() {
   return data;
 }
 
-export async function createWidget(widget: { 
-  type: string; 
-  title: string; 
-  config: Record<string, any>;
+export async function createWidget(widget: {
+  type: string;
+  title: string;
+  config: Record<string, unknown>;
   position?: number;
 }) {
   const supabase = createServiceRoleClient();
@@ -1590,9 +1591,9 @@ export async function createWidget(widget: {
   revalidatePath('/');
 }
 
-export async function updateWidget(id: string, updates: { 
-  title?: string; 
-  config?: Record<string, any>;
+export async function updateWidget(id: string, updates: {
+  title?: string;
+  config?: Record<string, unknown>;
   position?: number;
 }) {
   const supabase = createServiceRoleClient();
@@ -1662,7 +1663,7 @@ export async function getAllMaterials() {
   }> = [];
   
   projects.forEach(project => {
-    let materialsList: any[] = [];
+    let materialsList: { id?: string; text?: string; toBuy?: boolean; toBuild?: boolean; name?: string; quantity?: string; notes?: string; checked?: boolean }[] = [];
     
     try {
       if (project.materials_list) {
@@ -1677,8 +1678,8 @@ export async function getAllMaterials() {
     if (Array.isArray(materialsList)) {
       materialsList.forEach(material => {
         materials.push({
-          id: material.id,
-          text: material.text,
+          id: material.id ?? '',
+          text: material.text ?? '',
           toBuy: material.toBuy || false,
           toBuild: material.toBuild || false,
           projectId: project.id,
@@ -1787,7 +1788,7 @@ export async function updateStandalonePlan(id: string, data: {
 }) {
   const supabase = createServiceRoleClient();
   
-  const updateData: any = {};
+  const updateData: Record<string, unknown> = {};
   if (data.projectId !== undefined) updateData.project_id = data.projectId;
   if (data.notes !== undefined) updateData.notes = data.notes;
   
@@ -1840,7 +1841,7 @@ export async function getAllPlans(): Promise<Array<StandalonePlan & { source: 's
   const projectPlans: Array<StandalonePlan & { source: 'project' }> = [];
   
   projects.forEach(project => {
-    let plansList: any[] = [];
+    let plansList: { id?: string; url?: string; name?: string; type?: string; size?: number }[] = [];
     
     try {
       if (project.plans) {
@@ -1855,10 +1856,10 @@ export async function getAllPlans(): Promise<Array<StandalonePlan & { source: 's
     if (Array.isArray(plansList) && plansList.length > 0) {
       plansList.forEach(plan => {
         projectPlans.push({
-          id: plan.id,
-          url: plan.url,
-          name: plan.name,
-          type: plan.type,
+          id: plan.id ?? '',
+          url: plan.url ?? '',
+          name: plan.name ?? '',
+          type: plan.type ?? '',
           size: plan.size || 0,
           projectId: project.id,
           projectTitle: project.title,

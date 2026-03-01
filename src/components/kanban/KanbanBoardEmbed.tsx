@@ -15,7 +15,7 @@ import { Project, Column, SettingsData } from './KanbanBoard';
 import { v4 as uuidv4 } from 'uuid';
 
 type KanbanBoardEmbedProps = {
-  initialProjects: any[];
+  initialProjects: Record<string, unknown>[];
   initialSettings: SettingsData;
   initialColumns: Column[];
 };
@@ -24,7 +24,7 @@ export function KanbanBoardEmbed({ initialProjects, initialSettings, initialColu
   const router = useRouter();
   
   // Map snake_case to camelCase
-  const mapProjects = (projs: any[]): Project[] => {
+  const mapProjects = (projs: Record<string, unknown>[]): Project[] => {
     return projs.map(p => ({
       ...p,
       richContent: p.rich_content || p.richContent,
@@ -33,7 +33,7 @@ export function KanbanBoardEmbed({ initialProjects, initialSettings, initialColu
       parentProjectId: p.parent_project_id || p.parentProjectId,
       plans: p.plans,
       inspiration: p.inspiration,
-    }));
+    })) as unknown as Project[];
   };
 
   const [items, setItems] = useState<Project[]>(mapProjects(initialProjects));

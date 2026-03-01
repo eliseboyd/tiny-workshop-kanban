@@ -180,7 +180,7 @@ export function QuickAddDialog({ columns, onCreated }: QuickAddDialogProps) {
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)}>
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="link">Link</TabsTrigger>
             <TabsTrigger value="note">Note</TabsTrigger>
