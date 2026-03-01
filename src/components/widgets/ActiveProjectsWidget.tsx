@@ -74,7 +74,7 @@ export function ActiveProjectsWidget({
 
   // Filter and sort projects
   const displayProjects = useMemo(() => {
-    let filtered = projects.filter(p => {
+    const filtered = projects.filter(p => {
       // Filter by completion status
       if (p.isCompleted === true) return false;
       if (doneColumn && p.status === doneColumn.id) return false;

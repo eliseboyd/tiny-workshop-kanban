@@ -38,7 +38,7 @@ export type Project = {
     inspiration: string | null;
     imageUrl: string | null;
     tags: string[] | null;
-    attachments: any | null;
+    attachments: Record<string, unknown>[] | null;
     status: string;
     position: number;
     pinned?: boolean;
@@ -73,6 +73,25 @@ type ProjectGroup = {
   icon?: string;
 };
 
+type Widget = {
+  id: string;
+  type: 'todo-list' | 'materials-shopping' | 'project-todos' | 'day-plan' | 'active-projects';
+  title: string;
+  config: Record<string, unknown>;
+  position: number;
+};
+
+type MaterialItem = {
+  id: string;
+  text: string;
+  toBuy: boolean;
+  toBuild: boolean;
+  projectId: string;
+  projectTitle: string;
+  projectTags: string[];
+  parentProjectId: string | null;
+};
+
 export type SettingsData = {
     id: string;
     aiPromptTemplate: string;
@@ -91,7 +110,7 @@ export type Column = {
 };
 
 type KanbanBoardProps = {
-  initialProjects: any[]; // Loosely typed as we map them
+  initialProjects: Record<string, unknown>[]; // Loosely typed as we map them
   initialSettings: SettingsData;
   initialColumns: Column[];
 };
@@ -109,7 +128,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   }, []);
 
   // Map snake_case to camelCase for frontend state
-  const mapProjects = (projs: any[]): Project[] => {
+  const mapProjects = (projs: Record<string, unknown>[]): Project[] => {
       return projs.map(p => ({
           ...p,
           richContent: p.rich_content || p.richContent,
@@ -121,7 +140,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
           isIdea: p.is_idea || p.isIdea || false,
           plans: p.plans,
           inspiration: p.inspiration,
-      }));
+      })) as unknown as Project[];
   };
 
   const [items, setItems] = useState<Project[]>(mapProjects(initialProjects));
@@ -144,8 +163,8 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   const [showUngrouped, setShowUngrouped] = useState(false);
   const [tags, setTags] = useState<Tag[]>([]);
   const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
-  const [widgets, setWidgets] = useState<any[]>([]);
-  const [materials, setMaterials] = useState<any[]>([]);
+  const [widgets, setWidgets] = useState<Widget[]>([]);
+  const [materials, setMaterials] = useState<MaterialItem[]>([]);
 
   // Board title editing state
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -183,8 +202,8 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
       getAllTags(),
       getAllProjectGroups(),
     ]);
-    setTags(tagsData);
-    setProjectGroups(groupsData);
+    setTags(tagsData.map(t => ({ ...t, emoji: t.emoji ?? undefined, icon: t.icon ?? undefined })));
+    setProjectGroups(groupsData.map(g => ({ ...g, emoji: g.emoji ?? undefined, icon: g.icon ?? undefined })));
   };
 
   // Load tags, project groups, widgets, materials, and plans
@@ -198,8 +217,8 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
         getAllMaterials(),
         getAllPlans(),
       ]);
-      setWidgets(widgetsData);
-      setMaterials(materialsData);
+      setWidgets(widgetsData as unknown as Widget[]);
+      setMaterials(materialsData as unknown as MaterialItem[]);
       setAllPlans(plansData);
     } else if (activeView === 'plans') {
       // Only load plans if in plans view

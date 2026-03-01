@@ -33,7 +33,12 @@ export async function POST(request: NextRequest) {
 
     const { createIdea, processLinkWithAI } = await import('@/app/actions');
 
-    let metadata: any = {};
+    interface LinkMetadata {
+      title?: string;
+      description?: string;
+      suggestedTags?: string[];
+    }
+    let metadata: LinkMetadata = {};
     if (url) {
       metadata = await processLinkWithAI(url);
     }

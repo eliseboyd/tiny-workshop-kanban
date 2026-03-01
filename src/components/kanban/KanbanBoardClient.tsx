@@ -10,7 +10,7 @@ const KanbanBoard = dynamic(
 );
 
 type KanbanBoardClientProps = {
-  initialProjects: any[];
+  initialProjects: Record<string, unknown>[];
   initialSettings: SettingsData;
   initialColumns: Column[];
 };

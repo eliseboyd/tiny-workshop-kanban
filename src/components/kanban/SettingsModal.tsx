@@ -63,6 +63,7 @@ function TagItem({
 
   // Sync local state when tag color changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalColor(tag.color);
   }, [tag.color]);
 
@@ -158,6 +159,7 @@ function ProjectGroupItem({
 
   // Sync local state when group color changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalColor(group.color);
   }, [group.color]);
 
@@ -347,7 +349,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     setIsLoadingTags(true);
     try {
       const allTags = await getAllTags();
-      setTags(allTags);
+      setTags(allTags.map(t => ({ ...t, emoji: t.emoji ?? undefined, icon: t.icon ?? undefined })));
     } catch (error) {
       console.error('Failed to load tags', error);
     } finally {

@@ -174,7 +174,7 @@ export function CompletedProjectsView({
                 className="pl-9"
               />
             </div>
-            <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
@@ -191,7 +191,7 @@ export function CompletedProjectsView({
             <Filter className="h-4 w-4 text-muted-foreground" />
             
             {/* Date Filter */}
-            <Select value={dateFilter} onValueChange={(v: any) => setDateFilter(v)}>
+            <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as typeof dateFilter)}>
               <SelectTrigger className="w-[160px]">
                 <SelectValue />
               </SelectTrigger>

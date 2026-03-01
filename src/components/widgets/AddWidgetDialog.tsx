@@ -34,7 +34,7 @@ type WidgetConfig = {
   id?: string;
   type: 'todo-list' | 'materials-shopping' | 'project-todos' | 'day-plan' | 'active-projects';
   title: string;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 };
 
 type AddWidgetDialogProps = {
@@ -101,25 +101,25 @@ export function AddWidgetDialog({
   );
   const [title, setTitle] = useState(editingWidget?.title || '');
   const [filterType, setFilterType] = useState<'all' | 'tag' | 'project-group'>(
-    editingWidget?.config?.filterType || 'tag'
+    (editingWidget?.config?.filterType as 'all' | 'tag' | 'project-group') || 'tag'
   );
   const [filterId, setFilterId] = useState<string>(
-    editingWidget?.config?.filterId || ''
+    (editingWidget?.config?.filterId as string) || ''
   );
   const [projectId, setProjectId] = useState<string>(
-    editingWidget?.config?.projectId || ''
+    (editingWidget?.config?.projectId as string) || ''
   );
   const [showCompleted, setShowCompleted] = useState(
-    editingWidget?.config?.showCompleted ?? false
+    (editingWidget?.config?.showCompleted as boolean) ?? false
   );
   const [showPurchased, setShowPurchased] = useState(
-    editingWidget?.config?.showPurchased ?? false
+    (editingWidget?.config?.showPurchased as boolean) ?? false
   );
   const [showType, setShowType] = useState<'all' | 'projects' | 'tasks'>(
-    editingWidget?.config?.showType || 'all'
+    (editingWidget?.config?.showType as 'all' | 'projects' | 'tasks') || 'all'
   );
   const [colSpan, setColSpan] = useState<1 | 2 | 3>(
-    editingWidget?.config?.colSpan || 1
+    (editingWidget?.config?.colSpan as 1 | 2 | 3) || 1
   );
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -131,13 +131,13 @@ export function AddWidgetDialog({
         setStep('config');
         setSelectedType(editingWidget.type);
         setTitle(editingWidget.title || '');
-        setFilterType(editingWidget.config?.filterType || 'tag');
-        setFilterId(editingWidget.config?.filterId || '');
-        setProjectId(editingWidget.config?.projectId || '');
-        setShowCompleted(editingWidget.config?.showCompleted ?? false);
-        setShowPurchased(editingWidget.config?.showPurchased ?? false);
-        setShowType(editingWidget.config?.showType || 'all');
-        setColSpan(editingWidget.config?.colSpan || 1);
+        setFilterType((editingWidget.config?.filterType as 'all' | 'tag' | 'project-group') || 'tag');
+        setFilterId((editingWidget.config?.filterId as string) || '');
+        setProjectId((editingWidget.config?.projectId as string) || '');
+        setShowCompleted((editingWidget.config?.showCompleted as boolean) ?? false);
+        setShowPurchased((editingWidget.config?.showPurchased as boolean) ?? false);
+        setShowType((editingWidget.config?.showType as 'all' | 'projects' | 'tasks') || 'all');
+        setColSpan((editingWidget.config?.colSpan as 1 | 2 | 3) || 1);
       } else {
         // New widget - reset to type selection
         setStep('type');
@@ -200,7 +200,7 @@ export function AddWidgetDialog({
     setIsSaving(true);
 
     try {
-      const config: Record<string, any> = {
+      const config: Record<string, unknown> = {
         colSpan, // Include width in all widget configs
       };
       

@@ -439,7 +439,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
     
     // Reload tags to get the newly created one
     const tagsData = await getAllTags();
-    setAllTags(tagsData);
+    setAllTags(tagsData.map(t => ({ ...t, emoji: t.emoji ?? undefined, icon: t.icon ?? undefined })));
     
     router.refresh();
   };
@@ -661,7 +661,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
       setInspiration(newInspiration);
       
       // If uploading a single image and no cover is set, use it as cover
-      const updateData: any = { inspiration: newInspiration };
+      const updateData: Record<string, unknown> = { inspiration: newInspiration };
       if (files.length === 1 && !imageUrl && newAttachments[0]) {
         setImageUrl(newAttachments[0].url);
         updateData.imageUrl = newAttachments[0].url;
@@ -788,7 +788,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
               setInspiration(newInspiration);
               
               // If no cover is set, use the pasted image as cover
-              const updateData: any = { inspiration: newInspiration };
+              const updateData: Record<string, unknown> = { inspiration: newInspiration };
               if (!imageUrl) {
                 setImageUrl(result.url);
                 updateData.imageUrl = result.url;
@@ -1007,7 +1007,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
         getColumns(),
       ]);
       setProjectGroups(groups);
-      setAllTags(tagsData);
+      setAllTags(tagsData.map(t => ({ ...t, emoji: t.emoji ?? undefined, icon: t.icon ?? undefined })));
       setColumns(columnsData);
       setIdeaMoveColumnId(columnsData[0]?.id || null);
     };

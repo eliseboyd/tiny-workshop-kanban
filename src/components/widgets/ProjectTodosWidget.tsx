@@ -73,7 +73,7 @@ function parseTodosFromHtml(html: string): TodoItem[] {
     const checkedMatch = startTag.match(/data-checked=["']?(true|false)["']?/i);
     const checked = checkedMatch ? checkedMatch[1].toLowerCase() === 'true' : false;
     
-    let text = content
+    const text = content
       .replace(/<label[^>]*>[\s\S]*?<\/label>/gi, '')
       .replace(/<input[^>]*\/?>/gi, '')
       .replace(/<[^>]+>/g, '')
@@ -216,6 +216,7 @@ export function ProjectTodosWidget({
   );
 
   // Parse todos from project's rich content
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const allTodos = useMemo(() => {
     if (!project?.richContent) return [];
     return parseTodosFromHtml(project.richContent);
@@ -358,7 +359,7 @@ export function ProjectTodosWidget({
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-1 truncate">
-          Tasks from "{project.title}"
+          Tasks from &quot;{project.title}&quot;
         </p>
       </div>
 

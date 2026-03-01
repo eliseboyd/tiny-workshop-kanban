@@ -16,6 +16,7 @@ import {
   rectIntersection,
   pointerWithin,
   getFirstCollision,
+  type CollisionDetection,
 } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { KanbanColumn } from './KanbanColumn';
@@ -88,7 +89,7 @@ export function ClientDndWrapper({
   );
 
   // Custom collision detection strategy
-  const customCollisionDetection = useCallback((args: any) => {
+  const customCollisionDetection = useCallback((args: Parameters<CollisionDetection>[0]) => {
     // First, try pointer detection (precise for mouse/touch over an element)
     const pointerCollisions = pointerWithin(args);
     

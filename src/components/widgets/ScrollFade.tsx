@@ -28,8 +28,9 @@ export function ScrollFade({ children, className }: ScrollFadeProps) {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     checkScroll();
-    
+
     // Re-check when content might have changed
     const observer = new ResizeObserver(checkScroll);
     if (scrollRef.current) {
