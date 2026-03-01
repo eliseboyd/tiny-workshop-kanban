@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Netlify Functions use CommonJS and should not be linted by the
+    // TypeScript ESLint rules configured for the Next.js app.
+    "netlify/**",
   ]),
 ]);
 
