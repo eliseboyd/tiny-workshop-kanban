@@ -163,8 +163,11 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onContextMenu={(e) => {
-          // Prevent text selection on long press
-          e.preventDefault();
+          // Prevent text selection on long press (mobile only)
+          // On desktop, letting Radix handle this is required for the context menu to open
+          if (isTouchDevice.current) {
+            e.preventDefault();
+          }
         }}
       >
         {project.imageUrl && !isCompact && (

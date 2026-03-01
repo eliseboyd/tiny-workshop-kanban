@@ -41,6 +41,7 @@ Run `git status` and `git diff HEAD` to identify all staged and unstaged changes
 
 ## Rules
 
+- When running shell commands, avoid quoted strings in arguments where possible (e.g. use `git status && git diff HEAD`, not `git status && echo "---" && git diff HEAD`)
 - Always show the user what files will be committed before committing
 - Use conventional commit format: `type(scope): message`
 - If already on a feature branch (not `main`), skip branch creation
