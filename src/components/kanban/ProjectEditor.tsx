@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import { Project, Column } from './KanbanBoard';
-import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage, getColumns, moveIdeaToKanban } from '@/app/actions';
+import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage, getColumns, moveIdeaToKanban, deleteProject } from '@/app/actions';
 import Image from 'next/image';
 import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images, ExternalLink, Pencil, FolderKanban, ListTodo, CheckCircle2, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -352,6 +352,23 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
     }
     
     // Now close
+    onClose?.();
+  };
+
+  const handleDeleteProject = async () => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    if (!confirm('Are you sure you want to delete this project?')) return;
+
+    try {
+      await deleteProject(project.id);
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+      return;
+    }
+
     onClose?.();
   };
   
@@ -2184,9 +2201,14 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                 {isSaving ? (
                   <p className="text-sm text-muted-foreground px-4 py-2">Saving...</p>
                 ) : (
-                  <Button onClick={handleClose} size="lg">
-                    Done
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="destructive" onClick={handleDeleteProject} size="lg">
+                      Delete
+                    </Button>
+                    <Button onClick={handleClose} size="lg">
+                      Done
+                    </Button>
+                  </div>
                 )}
               </div>
             )}
