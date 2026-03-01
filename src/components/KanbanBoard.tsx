@@ -163,55 +163,6 @@ export function KanbanBoard() {
     }
   }
 
-  function onDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    
-    // Reset active project
-    setActiveProject(null);
-
-    if (!over) return;
-
-    const activeId = active.id;
-    const overId = over.id;
-
-    // Calculate new order for all projects and save
-    // We need to re-calculate orders based on the current state array which has been modified by DragOver/DragEnd
-    // Wait, DragOver modifies state optimistically?
-    // Yes, useSortable expects the array to be updated.
-
-    // Final reorder check
-    if (activeId !== overId) {
-        setProjects((items) => {
-            const oldIndex = items.findIndex((item) => item.id === activeId);
-            const newIndex = items.findIndex((item) => item.id === overId);
-            const newItems = arrayMove(items, oldIndex, newIndex);
-            
-            // We need to update 'order' field for persistence
-            // We can just re-index everything or just the affected ones. 
-            // Simplest is to re-index all, or at least the ones in the affected columns.
-            
-            // However, the state update in DragEnd might overlap with DragOver. 
-            // DragOver handles cross-column movement visually. 
-            // DragEnd handles sorting within the same column or final drop.
-            
-            return newItems;
-        });
-    }
-    
-    // Trigger backend update after state settles
-    // Using a timeout to let state update first, or just pass the new state if we computed it.
-    // Better to do it in a useEffect or just compute it here.
-    
-    // Let's re-read the projects state? No, closure.
-    // We should compute the new state and pass it to update function.
-  }
-  
-  // We need to sync the 'order' property of the projects with their index in the array
-  // whenever the array changes due to drag operations, so persistence works.
-  // But doing it on every DragOver is expensive API wise.
-  // We should do it on DragEnd.
-  
-  // Improved onDragEnd:
   const handleDragEnd = (event: DragEndEvent) => {
       const { active, over } = event;
       setActiveProject(null);
