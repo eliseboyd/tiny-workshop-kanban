@@ -1,12 +1,12 @@
 ---
 name: deploy
-description: This skill should be used when the user asks to "deploy", "commit and deploy", "push and deploy", "ship", "release", "deploy to netlify", "commit to github and deploy", or wants to publish their changes live.
+description: This skill should be used when the user asks to "deploy", "commit and deploy", "push and deploy", "ship", "release", "deploy to netlify", "commit to github and deploy", or wants to publish their changes live. Netlify auto-deploys from main — no manual verification needed.
 version: 2.0.0
 ---
 
 # Deploy: Commit, Merge, and Ship to Netlify
 
-This skill commits changes, creates a PR, merges into main, and verifies the Netlify deploy is live.
+This skill commits changes, creates a PR, and merges into main. Netlify auto-deploys from main.
 
 ## Steps
 
@@ -29,15 +29,7 @@ Run `git status` and `git diff HEAD` to identify all staged and unstaged changes
 ### 4. Merge the PR
 
 - Merge the PR using `gh pr merge --squash --delete-branch`
-- This triggers Netlify's auto-deploy on main
-
-### 5. Verify Netlify Deploy
-
-- Read the site ID from `.netlify/state.json` (fallback: `5399662c-9c4a-4b42-b255-7e8d7e30c1ee`)
-- Use `netlify-deploy-services-reader` with `get-deploy-for-site` to check the latest deploy status
-- Poll every ~15 seconds until the deploy state is `ready` or an error occurs
-- Timeout after 5 minutes if the deploy hasn't completed
-- Report the final deploy URL on success, or the error on failure
+- Merging triggers Netlify's auto-deploy on main — check the [Netlify dashboard](https://app.netlify.com) for deploy status
 
 ## Rules
 
@@ -47,8 +39,6 @@ Run `git status` and `git diff HEAD` to identify all staged and unstaged changes
 - If already on a feature branch (not `main`), skip branch creation
 - Branch names derived from the commit message, e.g. `feat/add-auth` or `fix/mobile-layout`
 - Merge with `--squash` to keep main history clean and `--delete-branch` to clean up
-- If no site ID is found in `.netlify/state.json`, ask: "What is your Netlify site ID?"
-- If deploy fails or times out, suggest checking the Netlify dashboard
 
 ## Example Commit Messages
 
