@@ -2,12 +2,12 @@
 
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Project, Column } from './KanbanBoard';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 
 import {
   ContextMenu,
@@ -50,7 +50,7 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const [moveSheetOpen, setMoveSheetOpen] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
-  
+
   const {
     attributes,
     listeners,
