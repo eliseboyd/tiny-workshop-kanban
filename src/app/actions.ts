@@ -5,7 +5,6 @@ import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { createHash, randomBytes } from 'crypto';
 import { writeFile, mkdir } from 'fs/promises';
 import type { IncomingMessage } from 'http';
 import https from 'https';
@@ -262,46 +261,6 @@ function extractPlatformImage(url: string): string | null {
   }
 }
 
-// Helper function to process link with AI and metadata
-export async function processLinkWithAI(url: string) {
-  const cleanedUrl = cleanUrl(url);
-  const ogImage = await fetchOpenGraphImage(cleanedUrl);
-
-  const apiKey = process.env.GOOGLE_AI_API_KEY;
-  if (!apiKey) {
-    return { url: cleanedUrl, image: ogImage };
-  }
-
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const prompt = `Analyze this URL and provide a JSON response with suggested metadata:
-URL: ${cleanedUrl}
-
-Return ONLY valid JSON with this structure:
-{
-  "title": "suggested title",
-  "description": "brief description",
-  "suggestedTags": ["tag1", "tag2"],
-  "contentType": "tutorial|product|inspiration|article|video|other"
-}`;
-
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    const normalized = text.replace(/```json\n?/g, '').replace(/```/g, '').trim();
-    const parsed = JSON.parse(normalized);
-
-    return {
-      url: cleanedUrl,
-      image: ogImage,
-      ...parsed,
-    };
-  } catch (error) {
-    console.error('AI processing failed:', error);
-    return { url: cleanedUrl, image: ogImage };
-  }
-}
-
 // --- Projects ---
 
 export async function getProjects() {
@@ -389,51 +348,6 @@ export async function createProject(data: {
 
   if (error) console.error('Error creating project:', error);
   revalidatePath('/');
-}
-
-export async function createIdea(data: {
-  title: string;
-  description?: string;
-  url?: string;
-  tags?: string[];
-}) {
-  const supabase = createServiceRoleClient();
-  const id = uuidv4();
-
-  const cleanedUrl = data.url ? cleanUrl(data.url) : undefined;
-  let imageUrl = null;
-
-  if (cleanedUrl) {
-    const ogImage = await fetchOpenGraphImage(cleanedUrl);
-    if (ogImage) {
-      imageUrl = await downloadAndUploadImage(ogImage);
-    }
-  }
-
-  const { data: idea, error } = await supabase
-    .from('projects')
-    .insert({
-      id,
-      title: data.title,
-      description: data.description,
-      rich_content: cleanedUrl ? `<p><a href="${cleanedUrl}">${cleanedUrl}</a></p>` : null,
-      image_url: imageUrl,
-      tags: data.tags || [],
-      status: 'todo',
-      position: 0,
-      is_task: false,
-      is_idea: true,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error creating idea:', JSON.stringify(error, null, 2));
-    return null;
-  }
-
-  revalidatePath('/');
-  return idea;
 }
 
 export async function updateProject(id: string, data: Record<string, unknown>) {
@@ -661,55 +575,6 @@ export async function moveIdeaToKanban(ideaId: string, status: string) {
   }
 
   revalidatePath('/');
-}
-
-export async function getQuickAddTokenStatus() {
-  const supabase = createServiceRoleClient();
-  const authed = await createClient();
-  const { data: { user } } = await authed.auth.getUser();
-
-  if (!user) {
-    return { exists: false, createdAt: null as string | null };
-  }
-
-  const { data, error } = await supabase
-    .from('quick_add_tokens')
-    .select('created_at')
-    .eq('user_id', user.id)
-    .single();
-
-  if (error || !data) {
-    return { exists: false, createdAt: null as string | null };
-  }
-
-  return { exists: true, createdAt: data.created_at as string };
-}
-
-export async function createQuickAddToken() {
-  const supabase = createServiceRoleClient();
-  const authed = await createClient();
-  const { data: { user } } = await authed.auth.getUser();
-
-  if (!user) {
-    throw new Error('Not authenticated');
-  }
-
-  const token = `qa_${randomBytes(24).toString('hex')}`;
-  const tokenHash = createHash('sha256').update(token).digest('hex');
-
-  const { error } = await supabase
-    .from('quick_add_tokens')
-    .upsert({
-      user_id: user.id,
-      token_hash: tokenHash,
-    }, { onConflict: 'user_id' });
-
-  if (error) {
-    console.error('Error saving quick add token:', JSON.stringify(error, null, 2));
-    throw new Error('Failed to save token');
-  }
-
-  return { token };
 }
 
 export async function toggleProjectPinned(id: string, pinned: boolean) {

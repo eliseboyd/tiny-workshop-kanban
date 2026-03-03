@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getSettings, updateSettings, getAllMediaFiles, deleteMediaFile, getAllTags, createTag, updateTag, deleteTag, getAllProjectGroups, createProjectGroup, updateProjectGroup, deleteProjectGroup, uploadFile, getQuickAddTokenStatus, createQuickAddToken } from '@/app/actions';
+import { getSettings, updateSettings, getAllMediaFiles, deleteMediaFile, getAllTags, createTag, updateTag, deleteTag, getAllProjectGroups, createProjectGroup, updateProjectGroup, deleteProjectGroup, uploadFile } from '@/app/actions';
 import { logout } from '@/app/login/actions';
 import { Loader2, LogOut, Trash2, Image as ImageIcon, FileText, Plus, Edit2, Upload, X, Code } from 'lucide-react';
 import Image from 'next/image';
@@ -247,12 +247,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [isLoadingMedia, setIsLoadingMedia] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
   const [embedCopied, setEmbedCopied] = useState(false);
-  const [quickAddToken, setQuickAddToken] = useState<string | null>(null);
-  const [quickAddTokenCreatedAt, setQuickAddTokenCreatedAt] = useState<string | null>(null);
-  const [quickAddTokenExists, setQuickAddTokenExists] = useState(false);
-  const [isLoadingQuickAdd, setIsLoadingQuickAdd] = useState(false);
-  const [isGeneratingQuickAdd, setIsGeneratingQuickAdd] = useState(false);
-  
   // Tags state
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoadingTags, setIsLoadingTags] = useState(false);
@@ -297,26 +291,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       loadProjectGroups();
     }
   }, [isOpen, activeTab]);
-
-  useEffect(() => {
-    if (isOpen && activeTab === 'quick-add') {
-      loadQuickAddStatus();
-    }
-  }, [isOpen, activeTab]);
-
-  const loadQuickAddStatus = async () => {
-    setIsLoadingQuickAdd(true);
-    try {
-      const status = await getQuickAddTokenStatus();
-      setQuickAddTokenExists(status.exists);
-      setQuickAddTokenCreatedAt(status.createdAt);
-      setQuickAddToken(null);
-    } catch (error) {
-      console.error('Failed to load quick add token status', error);
-    } finally {
-      setIsLoadingQuickAdd(false);
-    }
-  };
 
   const loadMediaFiles = async () => {
     setIsLoadingMedia(true);
@@ -471,20 +445,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     }
   };
 
-  const handleGenerateQuickAddToken = async () => {
-    setIsGeneratingQuickAdd(true);
-    try {
-      const result = await createQuickAddToken();
-      setQuickAddToken(result.token);
-      setQuickAddTokenExists(true);
-    } catch (error) {
-      console.error('Failed to generate quick add token', error);
-      alert('Failed to generate token');
-    } finally {
-      setIsGeneratingQuickAdd(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -509,13 +469,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="tags">Tags</TabsTrigger>
             <TabsTrigger value="projects">Projects</TabsTrigger>
             <TabsTrigger value="media">Media</TabsTrigger>
             <TabsTrigger value="embed">Embed</TabsTrigger>
-            <TabsTrigger value="quick-add">Quick Add</TabsTrigger>
           </TabsList>
           
           <TabsContent value="general" className="flex-1 overflow-y-auto">
@@ -804,104 +763,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </div>
           </TabsContent>
 
-          <TabsContent value="quick-add" className="flex-1 overflow-y-auto">
-            <div className="space-y-4 py-4">
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Quick Add Token</h3>
-                <p className="text-sm text-muted-foreground">
-                  Use this token in your iOS Shortcut to authenticate Quick Add requests.
-                </p>
-              </div>
-
-              {isLoadingQuickAdd ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading token status...
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <Label>Status</Label>
-                    <div className="text-sm">
-                      {quickAddTokenExists
-                        ? `Token active${quickAddTokenCreatedAt ? ` (created ${new Date(quickAddTokenCreatedAt).toLocaleDateString()})` : ''}`
-                        : 'No token yet'}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Token</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        readOnly
-                        value={quickAddToken || (quickAddTokenExists ? '••••••••••••••••••••••••••' : 'Generate a token to display it')}
-                        className="font-mono text-sm"
-                      />
-                      <Button
-                        variant="outline"
-                        disabled={!quickAddToken}
-                        onClick={() => {
-                          if (quickAddToken) {
-                            navigator.clipboard.writeText(quickAddToken);
-                          }
-                        }}
-                      >
-                        Copy
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      We only show the token once after generation. Copy and store it safely.
-                    </p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button onClick={handleGenerateQuickAddToken} disabled={isGeneratingQuickAdd}>
-                      {isGeneratingQuickAdd && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {quickAddTokenExists ? 'Regenerate Token' : 'Generate Token'}
-                    </Button>
-                    <Button variant="outline" onClick={loadQuickAddStatus} disabled={isGeneratingQuickAdd}>
-                      Refresh Status
-                    </Button>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        if (typeof window !== 'undefined') {
-                          const url = new URL('/shortcuts/quick-add.signed.shortcut', window.location.origin).toString();
-                          window.location.href = `shortcuts://import-shortcut?url=${encodeURIComponent(url)}`;
-                        }
-                      }}
-                    >
-                      Install iOS Shortcut
-                    </Button>
-                    <p className="text-xs text-muted-foreground">
-                      Opens the Shortcuts app to import the prebuilt share shortcut.
-                    </p>
-                    <a
-                      className="text-xs text-primary hover:underline"
-                      href="/shortcuts/quick-add.signed.shortcut"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      If import fails, open the shortcut file directly →
-                    </a>
-                  </div>
-
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    <p>Shortcut header:</p>
-                    <code className="block rounded border bg-muted/50 px-3 py-2 text-xs">
-                      Authorization: Bearer {'<your_token>'}
-                    </code>
-                    <p className="text-xs text-muted-foreground">
-                      If you regenerate the token, delete <code>iCloud Drive/Shortcuts/quick-add-token.txt</code> on your device and run the shortcut once to save the new token.
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
-          </TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>

@@ -71,9 +71,3 @@ export const standalonePlans = pgTable('standalone_plans', {
   notes: text('notes'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
-
-export const quickAddTokens = pgTable('quick_add_tokens', {
-  userId: text('user_id').primaryKey(),
-  tokenHash: text('token_hash').notNull(),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-});

@@ -27,12 +27,3 @@ ON standalone_plans
 FOR ALL
 USING (true)
 WITH CHECK (true);
-
--- quick_add_tokens
-ALTER TABLE quick_add_tokens ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Allow authenticated users full access to quick_add_tokens"
-ON quick_add_tokens
-FOR ALL
-USING (true)
-WITH CHECK (true);
