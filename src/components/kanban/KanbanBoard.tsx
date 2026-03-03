@@ -26,7 +26,6 @@ import { useLocalStorage } from '@/hooks/use-local-storage';
 import { updateProjectStatus, updateSettings, updateColumn, createColumn, deleteColumn, deleteProject, updateColumnsOrder, updateColumnOrder, getAllTags, getAllProjectGroups, getAllWidgets, getAllMaterials, getProjects, getAllPlans, StandalonePlan, toggleProjectPinned, getIdeas, moveIdeaToKanban } from '@/app/actions';
 
 import { ClientDndWrapper } from './ClientDndWrapper';
-import { QuickAddDialog } from './QuickAddDialog';
 
 export type Project = {
     id: string;
@@ -680,13 +679,6 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
       await updateColumn(colId, newTitle);
   };
 
-  const handleQuickAddCreated = async () => {
-      const freshProjects = await getProjects();
-      setItems(mapProjects(freshProjects));
-      await refreshIdeas();
-      loadDashboardData();
-  };
-
   return (
     <>
       <div className="flex flex-col min-h-screen">
@@ -896,7 +888,6 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
           />
         )}
       </div>
-      <QuickAddDialog columns={cols} onCreated={handleQuickAddCreated} />
       {editingProject && (
         <ProjectModal
           project={editingProject}

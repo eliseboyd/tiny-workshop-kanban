@@ -85,15 +85,6 @@ CREATE POLICY "Allow authenticated users full access to project_groups" ON publi
   USING ((select auth.uid()) IS NOT NULL)
   WITH CHECK ((select auth.uid()) IS NOT NULL);
 
--- ── quick_add_tokens ─────────────────────────────────────────────────────────
-
-DROP POLICY IF EXISTS "Allow authenticated users full access to quick_add_tokens" ON public.quick_add_tokens;
-
-CREATE POLICY "Allow authenticated users full access to quick_add_tokens" ON public.quick_add_tokens
-  FOR ALL TO authenticated
-  USING ((select auth.uid()) IS NOT NULL)
-  WITH CHECK ((select auth.uid()) IS NOT NULL);
-
 -- ── standalone_plans ─────────────────────────────────────────────────────────
 
 DROP POLICY IF EXISTS "Allow authenticated users full access to standalone_plans" ON public.standalone_plans;

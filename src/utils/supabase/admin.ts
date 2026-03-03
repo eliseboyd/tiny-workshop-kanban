@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { getSupabaseAnonKey, getSupabaseUrl } from './env';
+import { getSupabaseUrl } from './env';
 
 export function createServiceRoleClient() {
   const supabaseUrl = getSupabaseUrl();
@@ -13,15 +13,9 @@ export function createServiceRoleClient() {
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseServiceKey) {
-    console.warn('SUPABASE_SERVICE_ROLE_KEY is missing. Admin operations will fail.');
-    // Fallback to anon key, though it won't bypass RLS
-    const supabaseAnonKey = getSupabaseAnonKey();
-    if (!supabaseAnonKey) {
-      throw new Error(
-        'SUPABASE_ANON_KEY is missing. Set NEXT_PUBLIC_SUPABASE_ANON_KEY or SUPABASE_ANON_KEY.'
-      );
-    }
-    return createClient(supabaseUrl, supabaseAnonKey);
+    throw new Error(
+      'SUPABASE_SERVICE_ROLE_KEY is missing. Set it in your environment variables.'
+    );
   }
 
   return createClient(supabaseUrl, supabaseServiceKey);
