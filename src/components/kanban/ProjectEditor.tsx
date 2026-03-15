@@ -116,9 +116,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   const [localItemType, setLocalItemType] = useState<'project' | 'task' | 'idea'>(
     project.isIdea ? 'idea' : project.isTask ? 'task' : 'project'
   );
-  const [pendingItemType, setPendingItemType] = useState<'project' | 'task' | null>(null);
   const [columns, setColumns] = useState<Column[]>([]);
-  const [ideaMoveColumnId, setIdeaMoveColumnId] = useState<string | null>(null);
   const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
   const [allTags, setAllTags] = useState<TagMetadata[]>([]);
   const [materialsList, setMaterialsList] = useState<Material[]>(() => {
@@ -501,20 +499,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
     router.refresh();
   };
 
-  const handleMoveIdeaToKanban = async () => {
-    if (!ideaMoveColumnId) return;
-    await moveIdeaToKanban(project.id, ideaMoveColumnId);
-    if (pendingItemType === 'task') {
-      await updateProject(project.id, { is_task: true });
-    }
-    const resolvedType = pendingItemType ?? 'project';
-    setIsIdea(false);
-    setLocalItemType(resolvedType);
-    setPendingItemType(null);
-    router.refresh();
-    onClose?.();
-  };
-
   const handleMoveToIdeas = async () => {
     await moveProjectToIdeas(project.id);
     setIsIdea(true);
@@ -529,8 +513,17 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
     if (type === 'idea') {
       await handleMoveToIdeas();
     } else if (isIdea) {
-      // Moving from idea → project/task: user still needs to pick a column
-      setPendingItemType(type);
+      // Move to the first available column automatically
+      const firstColumnId = columns[0]?.id;
+      if (firstColumnId) {
+        await moveIdeaToKanban(project.id, firstColumnId);
+      }
+      if (type === 'task') {
+        await updateProject(project.id, { is_task: true });
+      }
+      setIsIdea(false);
+      router.refresh();
+      onClose?.();
     } else {
       await updateProject(project.id, { is_task: type === 'task' });
       router.refresh();
@@ -1096,7 +1089,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
       setProjectGroups(groups);
       setAllTags(tagsData.map(t => ({ ...t, emoji: t.emoji ?? undefined, icon: t.icon ?? undefined })));
       setColumns(columnsData);
-      setIdeaMoveColumnId(columnsData[0]?.id || null);
     };
     loadData();
   }, []);
@@ -1711,33 +1703,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                 </Select>
               </div>
 
-              {isIdea && (
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 pb-2">
-                  <div className="flex items-center gap-3">
-                    <label className="text-sm text-muted-foreground min-w-[80px]">Column:</label>
-                    <Select value={ideaMoveColumnId || undefined} onValueChange={setIdeaMoveColumnId}>
-                      <SelectTrigger className="w-[200px] h-8">
-                        <SelectValue placeholder="Choose column" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {columns.map(col => (
-                          <SelectItem key={col.id} value={col.id}>
-                            {col.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={handleMoveIdeaToKanban}
-                    disabled={!ideaMoveColumnId}
-                  >
-                    Add to Board
-                  </Button>
-                </div>
-              )}
-              
               {/* Project Group Selector */}
               <div className="flex items-center gap-3 pb-2">
                 <label className="text-sm text-muted-foreground min-w-[80px]">Project:</label>
