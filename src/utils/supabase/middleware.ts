@@ -38,10 +38,15 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Refreshing the auth token
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Refreshing the auth token — wrapped in try/catch so a Supabase outage
+  // (e.g. paused project, network error) doesn't corrupt the page response.
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch {
+    // Treat as unauthenticated; login page will show a connection error
+  }
 
   if (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/auth')) {
       if (user) {
