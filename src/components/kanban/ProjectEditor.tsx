@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Project, Column } from './KanbanBoard';
 import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage, getColumns, moveIdeaToKanban, deleteProject } from '@/app/actions';
 import Image from 'next/image';
-import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images, ExternalLink, Pencil, FolderKanban, ListTodo, CheckCircle2, Circle } from 'lucide-react';
+import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images, ExternalLink, Pencil, FolderKanban, ListTodo, CheckCircle2, Circle, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -75,14 +75,23 @@ type TagMetadata = {
   icon?: string;
 };
 
+type IdeaNavigation = {
+  current: number;
+  total: number;
+  onPrev?: () => void;
+  onNext?: () => void;
+};
+
 type ProjectEditorProps = {
   project: Project;
   onClose?: () => void;
   isModal?: boolean;
   className?: string;
+  ideaNavigation?: IdeaNavigation;
+  onMoveToIdeas?: () => void;
 };
 
-export function ProjectEditor({ project, onClose, isModal = false, className }: ProjectEditorProps) {
+export function ProjectEditor({ project, onClose, isModal = false, className, ideaNavigation, onMoveToIdeas }: ProjectEditorProps) {
   const router = useRouter();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isFetchingOgImage, setIsFetchingOgImage] = useState(false);
@@ -1607,6 +1616,32 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
             </div>
           ) : (
             <div className="max-w-2xl mx-auto space-y-8 w-full px-4 sm:px-0">
+            {/* Idea prev/next navigation */}
+            {ideaNavigation && (
+              <div className="flex items-center justify-between -mb-4 pt-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={!ideaNavigation.onPrev}
+                  onClick={ideaNavigation.onPrev}
+                  className="gap-1"
+                >
+                  <ChevronLeft className="h-4 w-4" /> Prev
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  {ideaNavigation.current} / {ideaNavigation.total}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={!ideaNavigation.onNext}
+                  onClick={ideaNavigation.onNext}
+                  className="gap-1"
+                >
+                  Next <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
             {/* Title Section */}
             <div id="section-overview" className="space-y-2">
               <textarea
@@ -2277,6 +2312,11 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                   <p className="text-sm text-muted-foreground px-4 py-2">Saving...</p>
                 ) : (
                   <div className="flex items-center gap-2">
+                    {onMoveToIdeas && (
+                      <Button variant="outline" size="lg" onClick={onMoveToIdeas} className="gap-1.5">
+                        <Lightbulb className="h-4 w-4" /> Move to Ideas
+                      </Button>
+                    )}
                     <Button variant="destructive" onClick={handleDeleteProject} size="lg">
                       Delete
                     </Button>

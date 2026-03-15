@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Lightbulb, Link2, Search, X } from 'lucide-react';
+import { Lightbulb, Link2, Plus, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type Tag = {
@@ -25,6 +25,7 @@ type IdeasViewProps = {
   onIdeaClick: (idea: Project) => void;
   onMoveToKanban: (ideaId: string, columnId: string) => void;
   onDeleteIdea: (ideaId: string) => void;
+  onCreateIdea?: () => void;
 };
 
 const extractFirstUrl = (html?: string | null) => {
@@ -40,6 +41,7 @@ export function IdeasView({
   onIdeaClick,
   onMoveToKanban,
   onDeleteIdea,
+  onCreateIdea,
 }: IdeasViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -88,6 +90,11 @@ export function IdeasView({
           <Badge variant="secondary" className="ml-2">
             {filteredIdeas.length}
           </Badge>
+          {onCreateIdea && (
+            <Button size="sm" onClick={onCreateIdea} className="ml-auto">
+              <Plus className="h-4 w-4 mr-1" /> New Idea
+            </Button>
+          )}
         </div>
 
         <div className="flex flex-col gap-3">

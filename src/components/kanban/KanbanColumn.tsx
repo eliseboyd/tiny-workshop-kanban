@@ -9,7 +9,7 @@ import { Project, Column } from './KanbanBoard';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { Trash2, Plus, Eye, ListTodo, FolderKanban } from 'lucide-react';
+import { Trash2, Plus, Eye, ListTodo, FolderKanban, Lightbulb } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -35,9 +35,11 @@ type KanbanColumnProps = {
   isCreating?: boolean;
   onConfirmCreate?: (columnId: string, title: string, isTask?: boolean) => void;
   onCancelCreate?: () => void;
+  ideasCount?: number;
+  onSwitchToIdeas?: () => void;
 };
 
-export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisibility, onCardClick, onTitleChange, onDeleteColumn, onDeleteProject, onTogglePin, onMoveCard, onAddProject, cardSize, isCreating, onConfirmCreate, onCancelCreate }: KanbanColumnProps) {
+export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisibility, onCardClick, onTitleChange, onDeleteColumn, onDeleteProject, onTogglePin, onMoveCard, onAddProject, cardSize, isCreating, onConfirmCreate, onCancelCreate, ideasCount, onSwitchToIdeas }: KanbanColumnProps) {
   const {
     setNodeRef,
     attributes,
@@ -283,6 +285,17 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
                </Card>
             </div>
         )}
+      {ideasCount !== undefined && onSwitchToIdeas && (
+        <button
+          onClick={onSwitchToIdeas}
+          className="w-full mt-2 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 py-1 px-2 rounded hover:bg-muted/50 transition-colors"
+        >
+          <Lightbulb className="h-3 w-3 flex-shrink-0" />
+          {ideasCount > 0
+            ? `${ideasCount} idea${ideasCount !== 1 ? 's' : ''} in the Ideas tab →`
+            : 'Ideas are in the Ideas tab →'}
+        </button>
+      )}
       </div>
     </div>
   );
