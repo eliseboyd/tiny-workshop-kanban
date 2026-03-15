@@ -2311,13 +2311,20 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                       size="lg"
                       onClick={handleToggleCompleted}
                       className={cn(
+                        "group",
                         isCompleted
-                          ? "text-green-600 hover:text-green-700 hover:bg-green-500/10"
+                          ? "text-green-600 hover:text-muted-foreground hover:bg-muted"
                           : "text-muted-foreground"
                       )}
+                      title={isCompleted ? "Click to mark as incomplete" : "Mark as complete"}
                     >
                       {isCompleted ? (
-                        <><CheckCircle2 className="h-4 w-4 mr-2" />Completed</>
+                        <>
+                          <CheckCircle2 className="h-4 w-4 mr-2 group-hover:hidden" />
+                          <Circle className="h-4 w-4 mr-2 hidden group-hover:inline" />
+                          <span className="group-hover:hidden">Completed</span>
+                          <span className="hidden group-hover:inline">Mark Incomplete</span>
+                        </>
                       ) : (
                         <><Circle className="h-4 w-4 mr-2" />Mark Complete</>
                       )}
