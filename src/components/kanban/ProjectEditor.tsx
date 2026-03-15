@@ -89,9 +89,10 @@ type ProjectEditorProps = {
   className?: string;
   ideaNavigation?: IdeaNavigation;
   onMoveToIdeas?: () => void;
+  onProjectUpdate?: (id: string, updates: Partial<Project>) => void;
 };
 
-export function ProjectEditor({ project, onClose, isModal = false, className, ideaNavigation, onMoveToIdeas }: ProjectEditorProps) {
+export function ProjectEditor({ project, onClose, isModal = false, className, ideaNavigation, onMoveToIdeas, onProjectUpdate }: ProjectEditorProps) {
   const router = useRouter();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isFetchingOgImage, setIsFetchingOgImage] = useState(false);
@@ -496,7 +497,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
     const newIsCompleted = !isCompleted;
     setIsCompleted(newIsCompleted);
     await updateProject(project.id, { is_completed: newIsCompleted });
-    router.refresh();
+    onProjectUpdate?.(project.id, { isCompleted: newIsCompleted });
   };
 
   const handleMoveToIdeas = async () => {
