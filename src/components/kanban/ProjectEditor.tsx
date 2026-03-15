@@ -90,9 +90,10 @@ type ProjectEditorProps = {
   ideaNavigation?: IdeaNavigation;
   onMoveToIdeas?: () => void;
   onProjectUpdate?: (id: string, updates: Partial<Project>) => void;
+  onProjectDelete?: (id: string) => void;
 };
 
-export function ProjectEditor({ project, onClose, isModal = false, className, ideaNavigation, onMoveToIdeas, onProjectUpdate }: ProjectEditorProps) {
+export function ProjectEditor({ project, onClose, isModal = false, className, ideaNavigation, onMoveToIdeas, onProjectUpdate, onProjectDelete }: ProjectEditorProps) {
   const router = useRouter();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isFetchingOgImage, setIsFetchingOgImage] = useState(false);
@@ -381,6 +382,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
       return;
     }
 
+    onProjectDelete?.(project.id);
     onClose?.();
   };
   
