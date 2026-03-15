@@ -938,9 +938,10 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
             } : undefined,
           } : undefined}
           onMoveToIdeas={!editingProject.isIdea ? async () => {
-            await handleMoveProjectToIdeas(editingProject.id);
-            setIsModalOpen(false);
-            setActiveView('ideas');
+            // ProjectEditor handles the server call; just refresh our local state
+            const freshProjects = await getProjects();
+            setItems(mapProjects(freshProjects));
+            await refreshIdeas();
           } : undefined}
           onClose={async () => {
             setIsModalOpen(false);
