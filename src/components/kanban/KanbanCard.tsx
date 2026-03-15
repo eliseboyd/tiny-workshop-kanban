@@ -28,6 +28,41 @@ import {
 import { Button } from "@/components/ui/button"
 import { Trash2, Pin, ListTodo, MoveRight, ArrowRightLeft } from 'lucide-react';
 
+function getPatternImage(id: string): string {
+  const hash = id.split('').reduce((acc, c, i) => acc + c.charCodeAt(0) * (i + 1), 0);
+
+  // Use rgb() to avoid needing to URL-encode '#' in hex values
+  const colors = [
+    'rgb(148,163,184)', // slate
+    'rgb(167,139,250)', // violet
+    'rgb(96,165,250)',  // blue
+    'rgb(52,211,153)',  // emerald
+    'rgb(251,146,60)',  // orange
+    'rgb(244,114,182)', // pink
+    'rgb(45,212,191)',  // teal
+    'rgb(250,204,21)',  // amber
+  ];
+
+  const c = colors[hash % colors.length];
+
+  const svgs = [
+    // Diagonal hatching
+    `<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8'><path d='M-1,1 l2,-2 M0,8 l8,-8 M7,9 l2,-2' stroke='${c}' stroke-width='0.8' opacity='0.4'/></svg>`,
+    // Dots
+    `<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><circle cx='5' cy='5' r='1.5' fill='${c}' opacity='0.4'/></svg>`,
+    // Grid
+    `<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'><path d='M 12 0 L 0 0 0 12' fill='none' stroke='${c}' stroke-width='0.6' opacity='0.4'/></svg>`,
+    // Diamonds
+    `<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'><polygon points='6,0 12,6 6,12 0,6' fill='none' stroke='${c}' stroke-width='0.7' opacity='0.4'/></svg>`,
+    // Dotted grid
+    `<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'><circle cx='6' cy='6' r='0.9' fill='${c}' opacity='0.5'/><path d='M6,0 V12 M0,6 H12' stroke='${c}' stroke-width='0.4' opacity='0.2'/></svg>`,
+    // Chevrons
+    `<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><path d='M0,5 L5,0 L10,5 M0,10 L5,5 L10,10' fill='none' stroke='${c}' stroke-width='0.7' opacity='0.4'/></svg>`,
+  ];
+
+  return `url("data:image/svg+xml,${encodeURIComponent(svgs[(hash >> 4) % svgs.length])}")`;
+}
+
 type KanbanCardProps = {
   project: Project;
   onClick?: () => void;
@@ -165,16 +200,23 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
           }
         }}
       >
-        {project.imageUrl && !isCompact && (
-          <div className={cn("relative w-full bg-muted/20", imageHeight)}>
+        {!isCompact && (
+          <div className={cn("relative w-full overflow-hidden", imageHeight)}>
+            {project.imageUrl ? (
               <Image
                 src={project.imageUrl}
                 alt={project.title}
                 fill
                 className="object-cover"
               />
-            </div>
-          )}
+            ) : (
+              <div
+                className="w-full h-full bg-muted/40"
+                style={{ backgroundImage: getPatternImage(project.id) }}
+              />
+            )}
+          </div>
+        )}
         <CardHeader className={cn(contentPadding, "pb-2 space-y-0 relative")}>
           {project.pinned && (
             <Pin className="absolute top-2 right-2 h-3 w-3 text-muted-foreground/40 fill-current" />
