@@ -17,9 +17,10 @@ type ProjectModalProps = {
   onClose: () => void;
   ideaNavigation?: IdeaNavigation;
   onMoveToIdeas?: () => void;
+  onProjectUpdate?: (id: string, updates: Partial<Project>) => void;
 };
 
-export function ProjectModal({ project, isOpen, onClose, ideaNavigation, onMoveToIdeas }: ProjectModalProps) {
+export function ProjectModal({ project, isOpen, onClose, ideaNavigation, onMoveToIdeas, onProjectUpdate }: ProjectModalProps) {
   if (!project) return null;
   
   return (
@@ -32,6 +33,7 @@ export function ProjectModal({ project, isOpen, onClose, ideaNavigation, onMoveT
             isModal={true}
             ideaNavigation={ideaNavigation}
             onMoveToIdeas={onMoveToIdeas}
+            onProjectUpdate={onProjectUpdate}
         />
       </DialogContent>
     </Dialog>

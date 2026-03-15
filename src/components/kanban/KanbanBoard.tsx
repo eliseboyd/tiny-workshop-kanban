@@ -969,6 +969,11 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
             setItems(mapProjects(freshProjects));
             await refreshIdeas();
           } : undefined}
+          onProjectUpdate={(id, updates) => {
+            setItems(prev => prev.map(item =>
+              item.id === id ? { ...item, ...updates } : item
+            ));
+          }}
           onClose={async () => {
             setIsModalOpen(false);
             setEditingIdeaIndex(null);
