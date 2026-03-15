@@ -14,9 +14,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getSettings, updateSettings, getAllMediaFiles, deleteMediaFile, getAllTags, createTag, updateTag, deleteTag, getAllProjectGroups, createProjectGroup, updateProjectGroup, deleteProjectGroup, uploadFile } from '@/app/actions';
+import { getSettings, updateSettings, getAllMediaFiles, deleteMediaFile, getAllTags, createTag, updateTag, deleteTag, getAllProjectGroups, createProjectGroup, updateProjectGroup, deleteProjectGroup, uploadFile, getImageStyles, createImageStyle, updateImageStyle, deleteImageStyle, uploadImageBase64, type ImageStyle } from '@/app/actions';
 import { logout } from '@/app/login/actions';
-import { Loader2, LogOut, Trash2, Image as ImageIcon, FileText, Plus, Edit2, Upload, X, Code } from 'lucide-react';
+import { Loader2, LogOut, Trash2, Image as ImageIcon, FileText, Plus, Edit2, Upload, X, Code, Wand2, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 
 type SettingsModalProps = {
@@ -263,6 +263,16 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [newGroupEmoji, setNewGroupEmoji] = useState('');
   const [editingGroup, setEditingGroup] = useState<string | null>(null);
 
+  // Image Styles state
+  const [imageStyles, setImageStyles] = useState<ImageStyle[]>([]);
+  const [isLoadingStyles, setIsLoadingStyles] = useState(false);
+  const [editingStyle, setEditingStyle] = useState<ImageStyle | null>(null);
+  const [isStyleFormOpen, setIsStyleFormOpen] = useState(false);
+  const [styleFormName, setStyleFormName] = useState('');
+  const [styleFormPrompt, setStyleFormPrompt] = useState('');
+  const [styleFormImages, setStyleFormImages] = useState<string[]>([]);
+  const [styleFormUploading, setStyleFormUploading] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       setIsLoading(true);
@@ -289,6 +299,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   useEffect(() => {
     if (isOpen && activeTab === 'projects') {
       loadProjectGroups();
+    }
+  }, [isOpen, activeTab]);
+
+  useEffect(() => {
+    if (isOpen && activeTab === 'styles') {
+      loadImageStyles();
     }
   }, [isOpen, activeTab]);
 
@@ -418,6 +434,88 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     }
   };
 
+  // Image Styles handlers
+  const loadImageStyles = async () => {
+    setIsLoadingStyles(true);
+    try {
+      const styles = await getImageStyles();
+      setImageStyles(styles);
+    } catch (error) {
+      console.error('Failed to load image styles', error);
+    } finally {
+      setIsLoadingStyles(false);
+    }
+  };
+
+  const openNewStyleForm = () => {
+    setEditingStyle(null);
+    setStyleFormName('');
+    setStyleFormPrompt('');
+    setStyleFormImages([]);
+    setIsStyleFormOpen(true);
+  };
+
+  const openEditStyleForm = (style: ImageStyle) => {
+    setEditingStyle(style);
+    setStyleFormName(style.name);
+    setStyleFormPrompt(style.promptOverride);
+    setStyleFormImages(style.referenceImages);
+    setIsStyleFormOpen(true);
+  };
+
+  const handleStyleReferenceUpload = async (file: File) => {
+    setStyleFormUploading(true);
+    try {
+      const reader = new FileReader();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const url = await uploadImageBase64(dataUrl, file.name, file.type);
+      setStyleFormImages((prev) => [...prev, url]);
+    } catch (error) {
+      console.error('Failed to upload reference image', error);
+      alert('Failed to upload image');
+    } finally {
+      setStyleFormUploading(false);
+    }
+  };
+
+  const handleSaveStyle = async () => {
+    if (!styleFormName.trim()) return;
+    try {
+      if (editingStyle) {
+        await updateImageStyle(editingStyle.id, {
+          name: styleFormName.trim(),
+          promptOverride: styleFormPrompt,
+          referenceImages: styleFormImages,
+        });
+      } else {
+        await createImageStyle({
+          name: styleFormName.trim(),
+          promptOverride: styleFormPrompt,
+          referenceImages: styleFormImages,
+        });
+      }
+      setIsStyleFormOpen(false);
+      loadImageStyles();
+    } catch (error) {
+      console.error('Failed to save image style', error);
+      alert('Failed to save style');
+    }
+  };
+
+  const handleDeleteStyle = async (id: string, name: string) => {
+    if (!confirm(`Delete style "${name}"?`)) return;
+    try {
+      await deleteImageStyle(id);
+      loadImageStyles();
+    } catch (error) {
+      console.error('Failed to delete image style', error);
+    }
+  };
+
   // Icon upload handlers
   const handleTagIconUpload = async (tagName: string, file: File) => {
     try {
@@ -469,10 +567,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="tags">Tags</TabsTrigger>
             <TabsTrigger value="projects">Projects</TabsTrigger>
+            <TabsTrigger value="styles">AI Styles</TabsTrigger>
             <TabsTrigger value="media">Media</TabsTrigger>
             <TabsTrigger value="embed">Embed</TabsTrigger>
           </TabsList>
@@ -690,6 +789,154 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </div>
           </TabsContent>
           
+          <TabsContent value="styles" className="flex-1 overflow-y-auto">
+            <div className="space-y-4 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">AI Image Styles</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Create named styles with prompts and reference images to guide AI cover generation.
+                  </p>
+                </div>
+                {!isStyleFormOpen && (
+                  <Button size="sm" onClick={openNewStyleForm}>
+                    <Plus className="h-4 w-4 mr-1" /> New Style
+                  </Button>
+                )}
+              </div>
+
+              {isStyleFormOpen && (
+                <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                  <p className="text-sm font-medium">{editingStyle ? 'Edit Style' : 'New Style'}</p>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-muted-foreground">Name</label>
+                    <input
+                      className="w-full px-3 py-1.5 text-sm border rounded-md bg-background"
+                      placeholder="e.g. Sketchy, Watercolour, Minimal…"
+                      value={styleFormName}
+                      onChange={(e) => setStyleFormName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Style prompt <span className="font-normal opacity-70">— describe the look, medium, colour palette…</span>
+                    </label>
+                    <textarea
+                      className="w-full px-3 py-2 text-sm border rounded-md bg-background resize-none"
+                      rows={3}
+                      placeholder="Loose pencil sketch, cross-hatching, monochrome with subtle sepia tones…"
+                      value={styleFormPrompt}
+                      onChange={(e) => setStyleFormPrompt(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-muted-foreground">Reference images (up to 10)</label>
+                    <div className="flex flex-wrap gap-2">
+                      {styleFormImages.map((url, i) => (
+                        <div key={url} className="relative w-16 h-16 rounded overflow-hidden border group">
+                          <Image src={url} alt={`ref ${i + 1}`} width={64} height={64} className="object-cover w-full h-full" unoptimized />
+                          <button
+                            onClick={() => setStyleFormImages((prev) => prev.filter((_, idx) => idx !== i))}
+                            className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                          >
+                            <X className="h-4 w-4 text-white" />
+                          </button>
+                        </div>
+                      ))}
+                      {styleFormImages.length < 10 && (
+                        <button
+                          onClick={() => {
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.accept = 'image/*';
+                            input.multiple = true;
+                            input.onchange = async (e) => {
+                              const files = Array.from((e.target as HTMLInputElement).files ?? []);
+                              for (const file of files) {
+                                await handleStyleReferenceUpload(file);
+                              }
+                            };
+                            input.click();
+                          }}
+                          disabled={styleFormUploading}
+                          className="w-16 h-16 border-2 border-dashed rounded flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-50"
+                        >
+                          {styleFormUploading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4" />
+                              <span className="text-[10px] mt-0.5">Add</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-1">
+                    <Button variant="outline" size="sm" onClick={() => setIsStyleFormOpen(false)}>Cancel</Button>
+                    <Button size="sm" onClick={handleSaveStyle} disabled={!styleFormName.trim()}>
+                      {editingStyle ? 'Save Changes' : 'Create Style'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {isLoadingStyles ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : imageStyles.length === 0 && !isStyleFormOpen ? (
+                <div className="text-center py-10 text-muted-foreground">
+                  <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">No styles yet.</p>
+                  <p className="text-xs mt-1">Create a style to guide AI cover image generation.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {imageStyles.map((style) => (
+                    <div key={style.id} className="border rounded-lg overflow-hidden hover:border-primary/50 transition-colors">
+                      <div className="h-24 bg-muted/40 relative overflow-hidden">
+                        {style.referenceImages.length > 0 ? (
+                          <Image
+                            src={style.referenceImages[0]}
+                            alt={style.name}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Wand2 className="h-8 w-8 text-muted-foreground/40" />
+                          </div>
+                        )}
+                        {style.referenceImages.length > 1 && (
+                          <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+                            +{style.referenceImages.length - 1}
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-2">
+                        <p className="text-sm font-medium truncate">{style.name}</p>
+                        {style.promptOverride && (
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">{style.promptOverride}</p>
+                        )}
+                        <div className="flex gap-1 mt-2">
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs flex-1" onClick={() => openEditStyleForm(style)}>
+                            <Edit2 className="h-3 w-3 mr-1" /> Edit
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive hover:text-destructive" onClick={() => handleDeleteStyle(style.id, style.name)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
           <TabsContent value="embed" className="flex-1 overflow-y-auto">
             <div className="space-y-4 py-4">
               <div>

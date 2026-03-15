@@ -920,27 +920,173 @@ export async function updateSettings(data: Record<string, unknown>) {
   revalidatePath('/');
 }
 
+// --- Image Styles ---
+
+export type ImageStyle = {
+  id: string;
+  name: string;
+  promptOverride: string;
+  referenceImages: string[];
+  position: number;
+  createdAt: string;
+};
+
+export async function getImageStyles(): Promise<ImageStyle[]> {
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from('image_styles')
+    .select('*')
+    .order('position', { ascending: true });
+  if (error) {
+    console.error('Error fetching image styles:', error);
+    return [];
+  }
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    promptOverride: row.prompt_override,
+    referenceImages: row.reference_images ?? [],
+    position: row.position,
+    createdAt: row.created_at,
+  }));
+}
+
+export async function createImageStyle(data: {
+  name: string;
+  promptOverride: string;
+  referenceImages: string[];
+}): Promise<ImageStyle> {
+  const supabase = createServiceRoleClient();
+  const { data: existing } = await supabase
+    .from('image_styles')
+    .select('position')
+    .order('position', { ascending: false })
+    .limit(1)
+    .single();
+  const nextPosition = existing ? existing.position + 1 : 0;
+  const id = uuidv4();
+  const { data: row, error } = await supabase
+    .from('image_styles')
+    .insert({
+      id,
+      name: data.name,
+      prompt_override: data.promptOverride,
+      reference_images: data.referenceImages,
+      position: nextPosition,
+    })
+    .select()
+    .single();
+  if (error || !row) throw new Error(error?.message ?? 'Failed to create image style');
+  return {
+    id: row.id,
+    name: row.name,
+    promptOverride: row.prompt_override,
+    referenceImages: row.reference_images ?? [],
+    position: row.position,
+    createdAt: row.created_at,
+  };
+}
+
+export async function updateImageStyle(
+  id: string,
+  data: Partial<{ name: string; promptOverride: string; referenceImages: string[]; position: number }>
+): Promise<void> {
+  const supabase = createServiceRoleClient();
+  const dbData: Record<string, unknown> = {};
+  if (data.name !== undefined) dbData.name = data.name;
+  if (data.promptOverride !== undefined) dbData.prompt_override = data.promptOverride;
+  if (data.referenceImages !== undefined) dbData.reference_images = data.referenceImages;
+  if (data.position !== undefined) dbData.position = data.position;
+  const { error } = await supabase.from('image_styles').update(dbData).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteImageStyle(id: string): Promise<void> {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from('image_styles').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
 // --- AI & Upload ---
 
-export async function generateProjectImage(projectData: { title: string; description?: string }) {
+export async function generateProjectImage(
+  projectData: { title: string; description?: string },
+  styleId?: string
+) {
   const settings = await getSettings();
   const apiKey = process.env.GOOGLE_AI_API_KEY;
 
-  let enhancedPrompt = `${settings.aiPromptTemplate.replace('{title}', projectData.title).replace('{description}', projectData.description || '')}`;
-  
-  if (apiKey) {
-    try {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); 
-      const result = await model.generateContent(`Create a short, descriptive image generation prompt based on this context. Keep it under 100 words, focused on visual details. Context: ${enhancedPrompt}`);
-      enhancedPrompt = result.response.text();
-    } catch (e) {
-      console.warn("Gemini generation failed, using raw prompt", e);
+  // Resolve style-specific prompt base and reference images
+  let stylePromptBase = settings.aiPromptTemplate;
+  let referenceImages: string[] = [];
+
+  if (styleId) {
+    const styles = await getImageStyles();
+    const style = styles.find((s) => s.id === styleId);
+    if (style) {
+      if (style.promptOverride) stylePromptBase = style.promptOverride;
+      referenceImages = style.referenceImages ?? [];
     }
   }
 
-  // Clean up prompt for URL
-  const encodedPrompt = encodeURIComponent(enhancedPrompt.slice(0, 200).replace(/\n/g, ' ')); // Limit length and remove newlines
+  const basePrompt = stylePromptBase
+    .replace('{title}', projectData.title)
+    .replace('{description}', projectData.description ?? '');
+
+  let enhancedPrompt = basePrompt;
+
+  if (apiKey) {
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
+
+      if (referenceImages.length > 0) {
+        // Multimodal path: fetch reference images and pass to Gemini Vision
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+        const imageParts: { inlineData: { mimeType: string; data: string } }[] = [];
+        for (const imgUrl of referenceImages.slice(0, 5)) {
+          try {
+            const res = await fetch(imgUrl);
+            if (!res.ok) continue;
+            const contentType = res.headers.get('content-type') ?? 'image/jpeg';
+            const arrayBuf = await res.arrayBuffer();
+            const base64 = Buffer.from(arrayBuf).toString('base64');
+            imageParts.push({ inlineData: { mimeType: contentType, data: base64 } });
+          } catch {
+            // skip images that fail to fetch
+          }
+        }
+
+        if (imageParts.length > 0) {
+          const result = await model.generateContent([
+            ...imageParts,
+            {
+              text: `Here are example images defining a visual style. Generate a concise image-generation prompt in this exact style for a project named "${projectData.title}". Focus on line weight, colour palette, texture, rendering technique. Keep it under 100 words.`,
+            },
+          ]);
+          enhancedPrompt = result.response.text();
+        } else {
+          // All reference images failed — fall back to text enhancement
+          const model2 = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+          const result = await model2.generateContent(
+            `Create a short, descriptive image generation prompt based on this context. Keep it under 100 words, focused on visual details. Context: ${basePrompt}`
+          );
+          enhancedPrompt = result.response.text();
+        }
+      } else {
+        // Text-only path
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const result = await model.generateContent(
+          `Create a short, descriptive image generation prompt based on this context. Keep it under 100 words, focused on visual details. Context: ${basePrompt}`
+        );
+        enhancedPrompt = result.response.text();
+      }
+    } catch (e) {
+      console.warn('Gemini generation failed, using raw prompt', e);
+    }
+  }
+
+  const encodedPrompt = encodeURIComponent(enhancedPrompt.slice(0, 200).replace(/\n/g, ' '));
   const seed = Math.floor(Math.random() * 1000000);
   return `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}`;
 }

@@ -4,9 +4,9 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import { Project, Column } from './KanbanBoard';
-import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage, getColumns, moveIdeaToKanban, moveProjectToIdeas, deleteProject } from '@/app/actions';
+import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage, getColumns, moveIdeaToKanban, moveProjectToIdeas, deleteProject, getImageStyles, type ImageStyle } from '@/app/actions';
 import Image from 'next/image';
-import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images, ExternalLink, Pencil, FolderKanban, ListTodo, CheckCircle2, Circle, Lightbulb, Crop } from 'lucide-react';
+import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images, ExternalLink, Pencil, FolderKanban, ListTodo, CheckCircle2, Circle, Lightbulb, Crop, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -109,6 +109,8 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   const [isCropOpen, setIsCropOpen] = useState(false);
   const [cropInspirationItem, setCropInspirationItem] = useState<{ id: string; url: string } | null>(null);
   const [activeSection, setActiveSection] = useState('overview');
+  const [imageStyles, setImageStyles] = useState<ImageStyle[]>([]);
+  const [isStylePickerOpen, setIsStylePickerOpen] = useState(false);
   
   // Simple local state for immediate UI updates
   const [title, setTitle] = useState(project.title);
@@ -863,11 +865,12 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
     return () => window.removeEventListener('paste', handlePaste);
   }, [isHoveringCover, isHoveringInspiration, inspiration]);
   
-  const handleGenerateImage = async () => {
+  const handleGenerateImage = async (styleId?: string) => {
     if (!title) return;
+    setIsStylePickerOpen(false);
     setIsGenerating(true);
     try {
-      const generatedUrl = await generateProjectImage({ title, description: richContent });
+      const generatedUrl = await generateProjectImage({ title, description: richContent }, styleId);
       setImageUrl(generatedUrl);
       
       // Create attachment object for generated image
@@ -1084,20 +1087,35 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
     }
   }, [editingMaterialId]);
 
-  // Load project groups and tags
+  // Load project groups, tags, columns, and image styles
   useEffect(() => {
     const loadData = async () => {
-      const [groups, tagsData, columnsData] = await Promise.all([
+      const [groups, tagsData, columnsData, stylesData] = await Promise.all([
         getAllProjectGroups(),
         getAllTags(),
         getColumns(),
+        getImageStyles(),
       ]);
       setProjectGroups(groups);
       setAllTags(tagsData.map(t => ({ ...t, emoji: t.emoji ?? undefined, icon: t.icon ?? undefined })));
       setColumns(columnsData);
+      setImageStyles(stylesData);
     };
     loadData();
   }, []);
+
+  // Close style picker on any click outside picker panels
+  useEffect(() => {
+    if (!isStylePickerOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-style-picker]')) {
+        setIsStylePickerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isStylePickerOpen]);
   
   // Sync local state when project prop changes (e.g., after router.refresh() or idea navigation)
   useEffect(() => {
@@ -1386,20 +1404,60 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               <Upload className="h-4 w-4 mr-2" />
               Upload
             </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="flex-1 h-9 bg-background/90 backdrop-blur-sm hover:bg-background"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleGenerateImage();
-              }}
-              disabled={isGenerating || !title}
-            >
-              {isGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-              Create with AI
-            </Button>
+            <div className="relative flex-1" data-style-picker>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="w-full h-9 bg-background/90 backdrop-blur-sm hover:bg-background"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (imageStyles.length === 0) {
+                    handleGenerateImage();
+                  } else {
+                    setIsStylePickerOpen((prev) => !prev);
+                  }
+                }}
+                disabled={isGenerating || !title}
+              >
+                {isGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                Create with AI
+              </Button>
+              {isStylePickerOpen && (
+                <div className="absolute bottom-full mb-2 left-0 right-0 bg-background border rounded-lg shadow-lg z-30 p-2 max-h-56 overflow-y-auto">
+                  <p className="text-xs font-medium text-muted-foreground px-1 mb-2">Choose style</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      className="flex items-center gap-2 p-2 rounded-md border hover:border-primary hover:bg-muted/50 text-left transition-colors"
+                      onClick={() => handleGenerateImage()}
+                    >
+                      <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                        <Sparkles className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-xs font-medium truncate">Default</span>
+                    </button>
+                    {imageStyles.map((style) => (
+                      <button
+                        key={style.id}
+                        className="flex items-center gap-2 p-2 rounded-md border hover:border-primary hover:bg-muted/50 text-left transition-colors"
+                        onClick={() => handleGenerateImage(style.id)}
+                      >
+                        <div className="w-8 h-8 rounded overflow-hidden bg-muted flex-shrink-0">
+                          {style.referenceImages[0] ? (
+                            <Image src={style.referenceImages[0]} alt={style.name} width={32} height={32} className="w-full h-full object-cover" unoptimized />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Wand2 className="h-3.5 w-3.5 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-xs font-medium truncate">{style.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
             <Button
               type="button"
               variant="secondary"
@@ -1462,21 +1520,61 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                 </Button>
               </>
             )}
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleGenerateImage();
-              }}
-              disabled={isGenerating || !title}
-              title="Generate AI Cover"
-            >
-              {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-              <span className="ml-2">Generate Cover</span>
-            </Button>
+            <div className="relative" data-style-picker>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (imageStyles.length === 0) {
+                    handleGenerateImage();
+                  } else {
+                    setIsStylePickerOpen((prev) => !prev);
+                  }
+                }}
+                disabled={isGenerating || !title}
+                title="Generate AI Cover"
+              >
+                {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                <span className="ml-2">Generate Cover</span>
+              </Button>
+              {isStylePickerOpen && (
+                <div className="absolute bottom-full mb-2 right-0 bg-background border rounded-lg shadow-lg z-30 p-2 w-52 max-h-64 overflow-y-auto">
+                  <p className="text-xs font-medium text-muted-foreground px-1 mb-2">Choose style</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      className="flex items-center gap-2 p-2 rounded-md border hover:border-primary hover:bg-muted/50 text-left transition-colors"
+                      onClick={() => handleGenerateImage()}
+                    >
+                      <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                        <Sparkles className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-xs font-medium truncate">Default</span>
+                    </button>
+                    {imageStyles.map((style) => (
+                      <button
+                        key={style.id}
+                        className="flex items-center gap-2 p-2 rounded-md border hover:border-primary hover:bg-muted/50 text-left transition-colors"
+                        onClick={() => handleGenerateImage(style.id)}
+                      >
+                        <div className="w-8 h-8 rounded overflow-hidden bg-muted flex-shrink-0">
+                          {style.referenceImages[0] ? (
+                            <Image src={style.referenceImages[0]} alt={style.name} width={32} height={32} className="w-full h-full object-cover" unoptimized />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Wand2 className="h-3.5 w-3.5 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-xs font-medium truncate">{style.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
             <Button
               type="button"
               variant="secondary"
