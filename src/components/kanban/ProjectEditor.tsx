@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import { Project, Column } from './KanbanBoard';
-import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage, getColumns, moveIdeaToKanban, moveProjectToIdeas, deleteProject, getImageStyles, type ImageStyle } from '@/app/actions';
+import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage, getColumns, moveIdeaToKanban, moveProjectToIdeas, deleteProject, getImageStyles, saveImageFromUrl, type ImageStyle } from '@/app/actions';
 import Image from 'next/image';
 import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images, ExternalLink, Pencil, FolderKanban, ListTodo, CheckCircle2, Circle, Lightbulb, Crop, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -168,6 +168,11 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   const [activeSection, setActiveSection] = useState('overview');
   const [imageStyles, setImageStyles] = useState<ImageStyle[]>([]);
   const [isStylePickerOpen, setIsStylePickerOpen] = useState(false);
+  // Tracks a Pollinations URL that's being loaded by the hidden <img> loader
+  const [pendingPollinationsUrl, setPendingPollinationsUrl] = useState<string | null>(null);
+  const [isImagePending, setIsImagePending] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const imageLoadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Simple local state for immediate UI updates
   const [title, setTitle] = useState(project.title);
@@ -925,10 +930,10 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   const handleGenerateImage = async (styleId?: string) => {
     if (!title) return;
     setIsStylePickerOpen(false);
+    setGenerateError(null);
     setIsGenerating(true);
     try {
-      // Step 1: Get the Pollinations prompt URL from the server (fast — just builds the URL)
-      // Pass inspiration image URLs so Gemini can use them for content/subject context
+      // Step 1 (server, fast ~3-5s): Gemini enhances the prompt → returns Pollinations URL
       const inspirationUrls = inspiration
         .filter((a) => a.type.startsWith('image/'))
         .map((a) => a.url);
@@ -938,52 +943,61 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
         inspirationUrls
       );
 
-      // Step 2: Fetch the actual image from Pollinations in the browser (handles the generation wait)
-      // Pollinations can take up to 30s to generate; use a generous timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60_000);
-      let response: Response;
-      try {
-        response = await fetch(pollinationsUrl, { signal: controller.signal });
-      } finally {
-        clearTimeout(timeoutId);
-      }
-      if (!response.ok) throw new Error(`Image generation failed: ${response.status}`);
+      // Step 2: Hand off to the hidden <img> loader — browser fetches the URL without CORS
+      // restrictions, waits for Pollinations to generate (can take 15-30s), then onLoad fires.
+      if (imageLoadTimeoutRef.current) clearTimeout(imageLoadTimeoutRef.current);
+      imageLoadTimeoutRef.current = setTimeout(() => {
+        setIsImagePending(false);
+        setPendingPollinationsUrl(null);
+        setGenerateError('Image generation timed out. Please try again.');
+      }, 90_000);
 
-      const blob = await response.blob();
-      const mimeType = blob.type || 'image/jpeg';
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-
-      // Step 3: Upload to Supabase for a stable, permanent URL
-      const ext = mimeType.includes('png') ? 'png' : 'jpg';
-      const stableUrl = await uploadImageBase64(dataUrl, `ai-generated-${Date.now()}.${ext}`, mimeType);
-
-      // Step 4: Update state only once we have the final URL
-      setImageUrl(stableUrl);
-      const generatedAttachment = {
-        id: `generated-${Date.now()}`,
-        url: stableUrl,
-        name: `${title} - AI Generated`,
-        type: mimeType,
-        size: blob.size,
-      };
-      const newInspiration = [...inspiration, generatedAttachment];
-      setInspiration(newInspiration);
-
-      await updateProject(project.id, {
-        imageUrl: stableUrl,
-        inspiration: newInspiration,
-      });
+      setPendingPollinationsUrl(pollinationsUrl);
+      setIsImagePending(true);
     } catch (error) {
-      console.error('Failed to generate image', error);
+      console.error('Failed to generate image prompt', error);
+      setGenerateError('Failed to start generation. Please try again.');
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handlePollinationsLoad = async () => {
+    if (!pendingPollinationsUrl) return;
+    if (imageLoadTimeoutRef.current) clearTimeout(imageLoadTimeoutRef.current);
+    const url = pendingPollinationsUrl;
+    setPendingPollinationsUrl(null);
+    try {
+      // Step 3 (server, fast ~1-3s): image is now cached at Pollinations — re-fetch server-side
+      // and upload to Supabase for a permanent, stable URL
+      const stableUrl = await saveImageFromUrl(url);
+      const finalUrl = stableUrl ?? url;
+
+      setImageUrl(finalUrl);
+      const generatedAttachment = {
+        id: `generated-${Date.now()}`,
+        url: finalUrl,
+        name: `${title} - AI Generated`,
+        type: 'image/jpeg',
+        size: 0,
+      };
+      const newInspiration = [...inspiration, generatedAttachment];
+      setInspiration(newInspiration);
+      await updateProject(project.id, { imageUrl: finalUrl, inspiration: newInspiration });
+    } catch (err) {
+      console.error('Failed to save generated image', err);
+      // Fallback: use the Pollinations URL directly
+      setImageUrl(url);
+    } finally {
+      setIsImagePending(false);
+    }
+  };
+
+  const handlePollinationsError = () => {
+    if (imageLoadTimeoutRef.current) clearTimeout(imageLoadTimeoutRef.current);
+    setPendingPollinationsUrl(null);
+    setIsImagePending(false);
+    setGenerateError('Image generation failed. Please try again.');
   };
 
   const handleFetchOgImage = async () => {
@@ -1379,11 +1393,35 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               }}
             />
             
-            {isGenerating ? (
+            {/* Hidden image loader — loads Pollinations URL without CORS restrictions */}
+            {pendingPollinationsUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={pendingPollinationsUrl}
+                alt=""
+                className="hidden"
+                onLoad={handlePollinationsLoad}
+                onError={handlePollinationsError}
+              />
+            )}
+
+            {isGenerating || isImagePending ? (
               <div className="flex flex-col items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-8 w-8 animate-spin" />
-                <p className="text-sm">Generating cover image…</p>
-                <p className="text-xs opacity-60">This can take up to 30 seconds</p>
+                <p className="text-sm">
+                  {isGenerating ? 'Preparing your prompt…' : 'Generating cover image…'}
+                </p>
+                {isImagePending && <p className="text-xs opacity-60">This can take 15–30 seconds</p>}
+              </div>
+            ) : generateError ? (
+              <div className="flex flex-col items-center gap-3 text-muted-foreground px-6 text-center">
+                <p className="text-sm text-destructive">{generateError}</p>
+                <button
+                  className="text-xs underline opacity-70 hover:opacity-100"
+                  onClick={() => setGenerateError(null)}
+                >
+                  Dismiss
+                </button>
               </div>
             ) : isUploadingCover ? (
               <div className="flex flex-col items-center gap-2 text-muted-foreground animate-pulse">
@@ -1503,7 +1541,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                   e.stopPropagation();
                   setIsStylePickerOpen((prev) => !prev);
                 }}
-                disabled={isGenerating || !title}
+                disabled={isGenerating || isImagePending || !title}
               >
                 {isGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                 Create with AI
@@ -1588,7 +1626,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                   e.stopPropagation();
                   setIsStylePickerOpen((prev) => !prev);
                 }}
-                disabled={isGenerating || !title}
+                disabled={isGenerating || isImagePending || !title}
                 title="Generate AI Cover"
               >
                 {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}

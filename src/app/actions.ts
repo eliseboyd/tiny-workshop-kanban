@@ -920,6 +920,14 @@ export async function updateSettings(data: Record<string, unknown>) {
   revalidatePath('/');
 }
 
+/**
+ * Server-side re-fetch of an already-generated image URL (e.g. Pollinations cache hit)
+ * and upload to Supabase storage. Returns the stable Supabase URL, or null on failure.
+ */
+export async function saveImageFromUrl(url: string): Promise<string | null> {
+  return downloadAndUploadImage(url);
+}
+
 // --- Image Styles ---
 
 export type ImageStyle = {
