@@ -1699,29 +1699,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                   </button>
                 )}
                 
-                {/* Completed Status Toggle */}
-                <button
-                  onClick={handleToggleCompleted}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ml-auto",
-                    isCompleted 
-                      ? "bg-green-500/10 text-green-600 hover:bg-green-500/20" 
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  )}
-                  title={isCompleted ? "Mark as incomplete" : "Mark as complete"}
-                >
-                  {isCompleted ? (
-                    <>
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span>Completed</span>
-                    </>
-                  ) : (
-                    <>
-                      <Circle className="h-4 w-4" />
-                      <span>Mark Complete</span>
-                    </>
-                  )}
-                </button>
               </div>
 
               {isIdea && (
@@ -2322,21 +2299,40 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               )}
             </div>
 
-            {/* Done Button (Modal only) */}
+            {/* Footer (Modal only) */}
             {isModal && onClose && (
-              <div className="flex justify-end pt-8 pb-4 sticky bottom-0 bg-gradient-to-t from-background via-background to-transparent">
+              <div className="flex flex-col items-end gap-2 pt-8 pb-4 sticky bottom-0 bg-gradient-to-t from-background via-background to-transparent">
                 {isSaving ? (
                   <p className="text-sm text-muted-foreground px-4 py-2">Saving...</p>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <Button variant="destructive" onClick={handleDeleteProject} size="lg">
-                      Delete
+                    <Button
+                      variant="ghost"
+                      size="lg"
+                      onClick={handleToggleCompleted}
+                      className={cn(
+                        isCompleted
+                          ? "text-green-600 hover:text-green-700 hover:bg-green-500/10"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      {isCompleted ? (
+                        <><CheckCircle2 className="h-4 w-4 mr-2" />Completed</>
+                      ) : (
+                        <><Circle className="h-4 w-4 mr-2" />Mark Complete</>
+                      )}
                     </Button>
                     <Button onClick={handleClose} size="lg">
                       Done
                     </Button>
                   </div>
                 )}
+                <button
+                  onClick={handleDeleteProject}
+                  className="text-xs text-muted-foreground/50 hover:text-destructive transition-colors underline-offset-2 hover:underline"
+                >
+                  Delete Project
+                </button>
               </div>
             )}
           </div>
