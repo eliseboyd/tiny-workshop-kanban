@@ -207,7 +207,8 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
                 src={project.imageUrl}
                 alt={project.title}
                 fill
-                className="object-cover"
+                sizes="240px"
+                style={{ objectFit: 'cover' }}
               />
             ) : (
               <div
