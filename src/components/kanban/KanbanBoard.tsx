@@ -301,6 +301,10 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
     setActiveId(event.active.id as string);
   }
 
+  function isIdeaColumn(columnId: string) {
+    return cols.find(c => c.id === columnId)?.title.toLowerCase().includes('idea') ?? false;
+  }
+
   function handleDragOver(event: DragOverEvent) {
     const { active, over } = event;
     const overId = over?.id;
@@ -313,6 +317,9 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
     if (!activeContainer || !overContainer || activeContainer === overContainer) {
       return;
     }
+
+    // Block drops into idea columns
+    if (isIdeaColumn(overContainer)) return;
 
     // For DIFFERENT containers, we update state during drag over to show preview
     setItems((prev) => {
@@ -372,6 +379,18 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
     // Handle Item Sorting
     const activeContainer = findContainer(activeId);
     const overContainer = findContainer(overId);
+
+    // Block drops into idea columns
+    if (overContainer && isIdeaColumn(overContainer)) {
+      // Restore item to its original column in case handleDragOver moved it
+      if (activeContainer && overContainer !== activeContainer) {
+        setItems(prev => prev.map(item =>
+          item.id === activeId ? { ...item, status: activeContainer } : item
+        ));
+      }
+      setActiveId(null);
+      return;
+    }
 
     if (activeContainer && overContainer) {
        const activeIndex = items.findIndex((i) => i.id === activeId);

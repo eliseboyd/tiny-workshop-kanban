@@ -156,6 +156,21 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
           )}
         </div>
       </div>
+      {/* Idea column — static, no drop target */}
+      {ideasCount !== undefined ? (
+        <button
+          onClick={onSwitchToIdeas}
+          className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-amber-300/50 dark:border-amber-700/40 text-amber-600/70 dark:text-amber-400/60 hover:text-amber-600 dark:hover:text-amber-400 hover:border-amber-400/70 dark:hover:border-amber-600/60 hover:bg-amber-50/50 dark:hover:bg-amber-900/10 transition-all"
+        >
+          <Lightbulb className="h-8 w-8" />
+          <span className="text-sm font-medium text-center leading-snug px-2">
+            {ideasCount > 0
+              ? `${ideasCount} idea${ideasCount !== 1 ? 's' : ''} in the Ideas tab`
+              : 'Ideas are in the Ideas tab'}
+          </span>
+          <span className="text-xs opacity-60">Click to open →</span>
+        </button>
+      ) : (
       <div className="flex flex-1 flex-col gap-2 min-h-0 overflow-y-auto" data-column-scroll>
         {/* Add Project Button - At Top for easy access */}
         {onAddProject && !isCreating && (
@@ -285,18 +300,8 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
                </Card>
             </div>
         )}
-      {ideasCount !== undefined && onSwitchToIdeas && (
-        <button
-          onClick={onSwitchToIdeas}
-          className="w-full mt-2 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 py-1 px-2 rounded hover:bg-muted/50 transition-colors"
-        >
-          <Lightbulb className="h-3 w-3 flex-shrink-0" />
-          {ideasCount > 0
-            ? `${ideasCount} idea${ideasCount !== 1 ? 's' : ''} in the Ideas tab →`
-            : 'Ideas are in the Ideas tab →'}
-        </button>
-      )}
       </div>
+      )}
     </div>
   );
 }
