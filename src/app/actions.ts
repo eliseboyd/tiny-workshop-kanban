@@ -1118,15 +1118,18 @@ export async function generateProjectImage(
   }
 
   // Strip markdown formatting from Gemini output and clean whitespace
+  // Keep prompt short — long prompts can cause Pollinations to fail
   const cleanPrompt = enhancedPrompt
-    .replace(/[*_`#]/g, '')
+    .replace(/[*_`#[\]]/g, '')
     .replace(/\n+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
     .trim()
-    .slice(0, 200);
+    .slice(0, 150);
 
   const encodedPrompt = encodeURIComponent(cleanPrompt);
   const seed = Math.floor(Math.random() * 1000000);
-  return `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}&nologo=true&enhance=false&width=960&height=540`;
+  // Use flux-schnell model: faster, more reliable. Avoid extra params that can cause failures.
+  return `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}&model=flux-schnell&nologo=true`;
 }
 
 export async function uploadFile(formData: FormData) {
