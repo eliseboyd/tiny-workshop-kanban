@@ -107,6 +107,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   const [showInspirationPicker, setShowInspirationPicker] = useState(false);
   const [isCoverPickerOpen, setIsCoverPickerOpen] = useState(false);
   const [isCropOpen, setIsCropOpen] = useState(false);
+  const [cropInspirationItem, setCropInspirationItem] = useState<{ id: string; url: string } | null>(null);
   const [activeSection, setActiveSection] = useState('overview');
   
   // Simple local state for immediate UI updates
@@ -1235,7 +1236,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
       >
         
         {/* Header / Cover Image */}
-        <div className="relative group/cover">
+        <div className="relative group">
           <div 
             ref={imageAreaRef}
             className={cn(
@@ -2255,6 +2256,20 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                             >
                               <Images className="h-4 w-4" />
                             </Button>
+                            {item.type.startsWith('image/') && (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                className="h-8 w-8 p-0 pointer-events-auto"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setCropInspirationItem({ id: item.id, url: item.url });
+                                }}
+                                title="Crop image"
+                              >
+                                <Crop className="h-4 w-4" />
+                              </Button>
+                            )}
                             <Button 
                               size="sm" 
                               variant="secondary" 
@@ -2362,7 +2377,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
         showSetCoverButton={true}
       />
 
-      {/* Image crop modal */}
+      {/* Cover image crop modal */}
       {imageUrl && (
         <ImageCropModal
           imageUrl={imageUrl}
@@ -2372,6 +2387,29 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
           onSave={async (newUrl) => {
             setImageUrl(newUrl);
             await updateProject(project.id, { imageUrl: newUrl });
+          }}
+        />
+      )}
+
+      {/* Inspiration image crop modal */}
+      {cropInspirationItem && (
+        <ImageCropModal
+          imageUrl={cropInspirationItem.url}
+          isOpen={!!cropInspirationItem}
+          onClose={() => setCropInspirationItem(null)}
+          upload={uploadImageBase64}
+          onSave={async (newUrl) => {
+            const oldUrl = cropInspirationItem.url;
+            const newInspiration = inspiration.map(item =>
+              item.id === cropInspirationItem.id ? { ...item, url: newUrl } : item
+            );
+            setInspiration(newInspiration);
+            const updateData: Record<string, unknown> = { inspiration: newInspiration };
+            if (imageUrl === oldUrl) {
+              setImageUrl(newUrl);
+              updateData.imageUrl = newUrl;
+            }
+            await updateProject(project.id, updateData);
           }}
         />
       )}
