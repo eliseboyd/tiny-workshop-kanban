@@ -71,3 +71,12 @@ export const standalonePlans = pgTable('standalone_plans', {
   notes: text('notes'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
+
+export const imageStyles = pgTable('image_styles', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  promptOverride: text('prompt_override').notNull().default(''),
+  referenceImages: text('reference_images').array().default([]),
+  position: integer('position').notNull().default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
