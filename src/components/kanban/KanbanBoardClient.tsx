@@ -1,7 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import type { Project, SettingsData, Column } from './KanbanBoard';
+import type { SettingsData, Column } from './KanbanBoard';
+import type { StandalonePlan } from '@/app/actions';
 
 function KanbanSkeleton() {
   return (
@@ -51,6 +52,11 @@ type KanbanBoardClientProps = {
   initialSettings: SettingsData;
   initialColumns: Column[];
   initialIdeas: Record<string, unknown>[];
+  initialTags: unknown[];
+  initialProjectGroups: unknown[];
+  initialWidgets: unknown[];
+  initialMaterials: unknown[];
+  initialPlans: Array<StandalonePlan & { source: 'standalone' | 'project' }>;
 };
 
 export function KanbanBoardClient(props: KanbanBoardClientProps) {

@@ -113,11 +113,16 @@ type KanbanBoardProps = {
   initialSettings: SettingsData;
   initialColumns: Column[];
   initialIdeas?: Record<string, unknown>[];
+  initialTags?: unknown[];
+  initialProjectGroups?: unknown[];
+  initialWidgets?: unknown[];
+  initialMaterials?: unknown[];
+  initialPlans?: Array<StandalonePlan & { source: 'standalone' | 'project' }>;
 };
 
 import { v4 as uuidv4 } from 'uuid';
 
-export function KanbanBoard({ initialProjects, initialSettings, initialColumns, initialIdeas = [] }: KanbanBoardProps) {
+export function KanbanBoard({ initialProjects, initialSettings, initialColumns, initialIdeas = [], initialTags = [], initialProjectGroups = [], initialWidgets = [], initialMaterials = [], initialPlans = [] }: KanbanBoardProps) {
   const router = useRouter();
   
   // Hasmounted state to prevent hydration errors
@@ -161,10 +166,15 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
   const [hiddenGroups, setHiddenGroups] = useState<string[]>(initialSettings.hiddenProjects || []);
   const [showUntagged, setShowUntagged] = useState(false);
   const [showUngrouped, setShowUngrouped] = useState(false);
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
-  const [widgets, setWidgets] = useState<Widget[]>([]);
-  const [materials, setMaterials] = useState<MaterialItem[]>([]);
+  const [tags, setTags] = useState<Tag[]>(
+    (initialTags as Array<Tag & { emoji?: string | null; icon?: string | null }>).map(t => ({ ...t, emoji: t.emoji ?? undefined, icon: t.icon ?? undefined }))
+  );
+  const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>(
+    (initialProjectGroups as Array<ProjectGroup & { emoji?: string | null; icon?: string | null }>).map(g => ({ ...g, emoji: g.emoji ?? undefined, icon: g.icon ?? undefined }))
+  );
+  const [widgets, setWidgets] = useState<Widget[]>(initialWidgets as unknown as Widget[]);
+  const [materials, setMaterials] = useState<MaterialItem[]>(initialMaterials as unknown as MaterialItem[]);
+  const [allPlans, setAllPlans] = useState<Array<StandalonePlan & { source: 'standalone' | 'project' }>>(initialPlans);
 
   // Board title editing state
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -173,7 +183,6 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
 
   // View state: 'overview' (both), 'dashboard', 'kanban', 'plans', 'completed'
   const [activeView, setActiveView] = useLocalStorage<'overview' | 'dashboard' | 'kanban' | 'plans' | 'completed' | 'ideas'>('kanban-view', 'overview');
-  const [allPlans, setAllPlans] = useState<Array<StandalonePlan & { source: 'standalone' | 'project' }>>([]);
   const [ideas, setIdeas] = useState<Project[]>(mapProjects(initialIdeas));
   const [editingIdeaIndex, setEditingIdeaIndex] = useState<number | null>(null);
   
@@ -194,8 +203,8 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
     setCols(initialColumns);
   }, [initialColumns]);
 
-  // Dashboard loading state
-  const [isDashboardLoading, setIsDashboardLoading] = useState(true);
+  // Dashboard loading state — starts false because data is server-prefetched
+  const [isDashboardLoading, setIsDashboardLoading] = useState(false);
 
   // Collect all unique tags from all items
   const loadTagsAndGroups = async () => {
