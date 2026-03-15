@@ -870,27 +870,50 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
     setIsStylePickerOpen(false);
     setIsGenerating(true);
     try {
-      const generatedUrl = await generateProjectImage({ title, description: richContent }, styleId);
-      setImageUrl(generatedUrl);
-      
-      // Create attachment object for generated image
+      // Step 1: Get the Pollinations prompt URL from the server (fast — just builds the URL)
+      const pollinationsUrl = await generateProjectImage({ title, description: richContent }, styleId);
+
+      // Step 2: Fetch the actual image from Pollinations in the browser (handles the generation wait)
+      // Pollinations can take up to 30s to generate; use a generous timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60_000);
+      let response: Response;
+      try {
+        response = await fetch(pollinationsUrl, { signal: controller.signal });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+      if (!response.ok) throw new Error(`Image generation failed: ${response.status}`);
+
+      const blob = await response.blob();
+      const mimeType = blob.type || 'image/jpeg';
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      // Step 3: Upload to Supabase for a stable, permanent URL
+      const ext = mimeType.includes('png') ? 'png' : 'jpg';
+      const stableUrl = await uploadImageBase64(dataUrl, `ai-generated-${Date.now()}.${ext}`, mimeType);
+
+      // Step 4: Update state only once we have the final URL
+      setImageUrl(stableUrl);
       const generatedAttachment = {
         id: `generated-${Date.now()}`,
-        url: generatedUrl,
+        url: stableUrl,
         name: `${title} - AI Generated`,
-        type: 'image/png',
-        size: 0 // Size unknown for generated images
+        type: mimeType,
+        size: blob.size,
       };
-      
-      // Also add to inspiration
       const newInspiration = [...inspiration, generatedAttachment];
       setInspiration(newInspiration);
-      
-      await updateProject(project.id, { 
-        imageUrl: generatedUrl,
-        inspiration: newInspiration 
+
+      await updateProject(project.id, {
+        imageUrl: stableUrl,
+        inspiration: newInspiration,
       });
-      router.refresh();
     } catch (error) {
       console.error('Failed to generate image', error);
     } finally {
@@ -1291,10 +1314,11 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               }}
             />
             
-            {isGenerating && !imageUrl ? (
-              <div className="flex flex-col items-center gap-2 text-muted-foreground animate-pulse">
+            {isGenerating ? (
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-8 w-8 animate-spin" />
-                <p className="text-sm">Creating your cover image...</p>
+                <p className="text-sm">Generating cover image…</p>
+                <p className="text-xs opacity-60">This can take up to 30 seconds</p>
               </div>
             ) : isUploadingCover ? (
               <div className="flex flex-col items-center gap-2 text-muted-foreground animate-pulse">
