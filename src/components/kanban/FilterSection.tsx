@@ -1,5 +1,6 @@
 'use client';
 
+import { ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,7 @@ type FilterSectionProps = {
   onToggleGroupVisibility: (groupId: string) => void;
   onToggleUntagged: () => void;
   onToggleUngrouped: () => void;
+  actions?: ReactNode;
 };
 
 export function FilterSection({
@@ -51,12 +53,14 @@ export function FilterSection({
   onGroupToggle,
   onClearFilters,
   onToggleUntagged,
+  actions,
 }: FilterSectionProps) {
   const visibleTags = tags.filter(tag => !hiddenTags.includes(tag.name));
   const visibleGroups = projectGroups.filter(group => !hiddenGroups.includes(group.id));
   const hasActiveFilters = activeTags.length > 0 || activeGroups.length > 0 || showUntagged || showUngrouped;
+  const hasFilters = tags.length > 0 || projectGroups.length > 0;
 
-  if (tags.length === 0 && projectGroups.length === 0) {
+  if (!hasFilters && !actions) {
     return null;
   }
 
@@ -139,11 +143,18 @@ export function FilterSection({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-xs ml-auto"
+              className="h-6 px-2 text-xs"
               onClick={onClearFilters}
             >
               Clear
             </Button>
+          )}
+
+          {/* Injected actions (e.g. Add Column / New Project) */}
+          {actions && (
+            <div className="ml-auto flex items-center gap-2">
+              {actions}
+            </div>
           )}
         </div>
       </div>

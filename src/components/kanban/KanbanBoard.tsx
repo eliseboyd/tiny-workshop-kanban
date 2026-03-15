@@ -15,7 +15,7 @@ import { DashboardSection } from './DashboardSection';
 import { ModeToggle } from '@/components/mode-toggle';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Menu, LayoutDashboard, Columns3, LayoutGrid, FileStack, CheckCircle2, Lightbulb } from 'lucide-react';
+import { Menu, LayoutDashboard, Columns3, FileStack, CheckCircle2, Lightbulb } from 'lucide-react';
 import { PlansView } from './PlansView';
 import { CompletedProjectsView } from './CompletedProjectsView';
 import { IdeasView } from './IdeasView';
@@ -181,8 +181,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
   const [titleInput, setTitleInput] = useState(initialSettings.boardTitle);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
-  // View state: 'overview' (both), 'dashboard', 'kanban', 'plans', 'completed'
-  const [activeView, setActiveView] = useLocalStorage<'overview' | 'dashboard' | 'kanban' | 'plans' | 'completed' | 'ideas'>('kanban-view', 'overview');
+  const [activeView, setActiveView] = useLocalStorage<'dashboard' | 'kanban' | 'plans' | 'completed' | 'ideas'>('kanban-view', 'dashboard');
   const [ideas, setIdeas] = useState<Project[]>(mapProjects(initialIdeas));
   const [editingIdeaIndex, setEditingIdeaIndex] = useState<number | null>(null);
   
@@ -220,8 +219,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
   const loadDashboardData = async () => {
     await loadTagsAndGroups();
 
-    // Only load widgets, materials, and plans if in overview or dashboard view
-    if (activeView === 'overview' || activeView === 'dashboard') {
+    if (activeView === 'dashboard') {
       const [widgetsData, materialsData, plansData] = await Promise.all([
         getAllWidgets(),
         getAllMaterials(),
@@ -240,14 +238,15 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
   };
 
   useEffect(() => {
-    // Only load dashboard data when needed (overview or dashboard view)
-    if (activeView === 'overview' || activeView === 'dashboard') {
+    if (activeView === 'dashboard') {
       loadDashboardData();
     } else if (activeView === 'plans') {
       loadDashboardData();
     } else if (activeView === 'ideas') {
       loadTagsAndGroups();
       getIdeas().then((data) => setIdeas(mapProjects(data)));
+    } else if (activeView === 'kanban') {
+      loadTagsAndGroups();
     }
   }, [activeView]);
 
@@ -797,12 +796,8 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
 
             {/* View Tabs */}
             <div className="px-4 py-2 border-b bg-muted/30 overflow-x-auto">
-              <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'overview' | 'dashboard' | 'kanban' | 'plans' | 'completed' | 'ideas')}>
+              <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'dashboard' | 'kanban' | 'plans' | 'completed' | 'ideas')}>
                 <TabsList className="w-auto">
-                  <TabsTrigger value="overview" className="gap-1.5">
-                    <LayoutGrid className="h-4 w-4" />
-                    <span className="hidden md:inline">Overview</span>
-                  </TabsTrigger>
                   <TabsTrigger value="dashboard" className="gap-1.5">
                     <LayoutDashboard className="h-4 w-4" />
                     <span className="hidden md:inline">Dashboard</span>
@@ -827,8 +822,8 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
               </Tabs>
             </div>
 
-            {/* Dashboard Section - shown in overview and dashboard views */}
-            {(activeView === 'overview' || activeView === 'dashboard') && (
+            {/* Dashboard Section */}
+            {activeView === 'dashboard' && (
               <DashboardSection
                   tags={dashboardTags}
                   projectGroups={dashboardProjectGroups}
@@ -841,12 +836,12 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
                   onProjectCardClick={handleEditProject}
                   onRefreshWidgets={loadDashboardData}
                   isLoading={isDashboardLoading}
-                  isDashboardOnly={activeView === 'dashboard'}
+                  isDashboardOnly={true}
               />
             )}
 
-            {/* Filter Section - shown in overview and kanban views */}
-            {(activeView === 'overview' || activeView === 'kanban') && (
+            {/* Filter Section + toolbar actions - shown in kanban view */}
+            {activeView === 'kanban' && (
               <FilterSection
                   tags={tags}
                   projectGroups={projectGroups}
@@ -863,22 +858,23 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
                   onToggleGroupVisibility={handleToggleGroupVisibility}
                   onToggleUntagged={handleToggleUntagged}
                   onToggleUngrouped={handleToggleUngrouped}
+                  actions={
+                    <>
+                      <Button variant="outline" size="sm" onClick={handleCreateColumn}>
+                        <KanbanSquareDashed className="mr-2 h-4 w-4" /> Add Column
+                      </Button>
+                      <Button size="sm" onClick={() => cols.length > 0 && setIsCreatingInColumn(cols[0].id)}>
+                        <Plus className="mr-2 h-4 w-4" /> New Project
+                      </Button>
+                    </>
+                  }
               />
             )}
         </div>
 
-        {/* Kanban Board - shown in overview and kanban views */}
-        {(activeView === 'overview' || activeView === 'kanban') && (
+        {/* Kanban Board */}
+        {activeView === 'kanban' && (
           <div className="flex flex-col flex-1 min-h-0">
-            {/* Kanban Toolbar */}
-            <div className="flex items-center justify-end gap-2 px-4 py-2 border-b bg-muted/20">
-              <Button variant="outline" size="sm" onClick={handleCreateColumn}>
-                <KanbanSquareDashed className="mr-2 h-4 w-4" /> Add Column
-              </Button>
-              <Button size="sm" onClick={() => cols.length > 0 && setIsCreatingInColumn(cols[0].id)}>
-                <Plus className="mr-2 h-4 w-4" /> New Project
-              </Button>
-            </div>
             <ClientDndWrapper
                 items={items}
                 cols={cols}
