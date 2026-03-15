@@ -94,6 +94,63 @@ type ProjectEditorProps = {
   onProjectDelete?: (id: string) => void;
 };
 
+function StylePicker({
+  imageStyles,
+  onSelect,
+  className,
+}: {
+  imageStyles: ImageStyle[];
+  onSelect: (styleId?: string) => void;
+  className?: string;
+}) {
+  return (
+    <div className={cn('bg-background border rounded-lg shadow-lg z-30 p-2 max-h-64 overflow-y-auto', className)}>
+      <p className="text-xs font-medium text-muted-foreground px-1 mb-2">Choose style</p>
+      <div className="grid grid-cols-2 gap-1.5">
+        <button
+          className="flex items-center gap-2 p-2 rounded-md border hover:border-primary hover:bg-muted/50 text-left transition-colors"
+          onClick={() => onSelect(undefined)}
+        >
+          <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
+            <Sparkles className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <span className="text-xs font-medium truncate">Default</span>
+        </button>
+        {imageStyles.map((style) => (
+          <button
+            key={style.id}
+            className="flex items-center gap-2 p-2 rounded-md border hover:border-primary hover:bg-muted/50 text-left transition-colors"
+            onClick={() => onSelect(style.id)}
+          >
+            <div className="w-8 h-8 rounded overflow-hidden bg-muted flex-shrink-0">
+              {style.referenceImages[0] ? (
+                <Image
+                  src={style.referenceImages[0]}
+                  alt={style.name}
+                  width={32}
+                  height={32}
+                  className="w-full h-full object-cover"
+                  unoptimized
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Wand2 className="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+            <span className="text-xs font-medium truncate">{style.name}</span>
+          </button>
+        ))}
+      </div>
+      {imageStyles.length === 0 && (
+        <p className="text-[10px] text-muted-foreground px-1 mt-2">
+          Add styles in Settings → AI Styles
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function ProjectEditor({ project, onClose, isModal = false, className, ideaNavigation, onMoveToIdeas, onProjectUpdate, onProjectDelete }: ProjectEditorProps) {
   const router = useRouter();
   const [isGenerating, setIsGenerating] = useState(false);
@@ -1444,11 +1501,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                 className="w-full h-9 bg-background/90 backdrop-blur-sm hover:bg-background"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (imageStyles.length === 0) {
-                    handleGenerateImage();
-                  } else {
-                    setIsStylePickerOpen((prev) => !prev);
-                  }
+                  setIsStylePickerOpen((prev) => !prev);
                 }}
                 disabled={isGenerating || !title}
               >
@@ -1456,38 +1509,11 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                 Create with AI
               </Button>
               {isStylePickerOpen && (
-                <div className="absolute bottom-full mb-2 left-0 right-0 bg-background border rounded-lg shadow-lg z-30 p-2 max-h-56 overflow-y-auto">
-                  <p className="text-xs font-medium text-muted-foreground px-1 mb-2">Choose style</p>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <button
-                      className="flex items-center gap-2 p-2 rounded-md border hover:border-primary hover:bg-muted/50 text-left transition-colors"
-                      onClick={() => handleGenerateImage()}
-                    >
-                      <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                        <Sparkles className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <span className="text-xs font-medium truncate">Default</span>
-                    </button>
-                    {imageStyles.map((style) => (
-                      <button
-                        key={style.id}
-                        className="flex items-center gap-2 p-2 rounded-md border hover:border-primary hover:bg-muted/50 text-left transition-colors"
-                        onClick={() => handleGenerateImage(style.id)}
-                      >
-                        <div className="w-8 h-8 rounded overflow-hidden bg-muted flex-shrink-0">
-                          {style.referenceImages[0] ? (
-                            <Image src={style.referenceImages[0]} alt={style.name} width={32} height={32} className="w-full h-full object-cover" unoptimized />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Wand2 className="h-3.5 w-3.5 text-muted-foreground" />
-                            </div>
-                          )}
-                        </div>
-                        <span className="text-xs font-medium truncate">{style.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <StylePicker
+                  imageStyles={imageStyles}
+                  onSelect={handleGenerateImage}
+                  className="absolute bottom-full mb-2 left-0 right-0"
+                />
               )}
             </div>
             <Button
@@ -1560,11 +1586,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                 className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (imageStyles.length === 0) {
-                    handleGenerateImage();
-                  } else {
-                    setIsStylePickerOpen((prev) => !prev);
-                  }
+                  setIsStylePickerOpen((prev) => !prev);
                 }}
                 disabled={isGenerating || !title}
                 title="Generate AI Cover"
@@ -1573,38 +1595,11 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                 <span className="ml-2">Generate Cover</span>
               </Button>
               {isStylePickerOpen && (
-                <div className="absolute bottom-full mb-2 right-0 bg-background border rounded-lg shadow-lg z-30 p-2 w-52 max-h-64 overflow-y-auto">
-                  <p className="text-xs font-medium text-muted-foreground px-1 mb-2">Choose style</p>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <button
-                      className="flex items-center gap-2 p-2 rounded-md border hover:border-primary hover:bg-muted/50 text-left transition-colors"
-                      onClick={() => handleGenerateImage()}
-                    >
-                      <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                        <Sparkles className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <span className="text-xs font-medium truncate">Default</span>
-                    </button>
-                    {imageStyles.map((style) => (
-                      <button
-                        key={style.id}
-                        className="flex items-center gap-2 p-2 rounded-md border hover:border-primary hover:bg-muted/50 text-left transition-colors"
-                        onClick={() => handleGenerateImage(style.id)}
-                      >
-                        <div className="w-8 h-8 rounded overflow-hidden bg-muted flex-shrink-0">
-                          {style.referenceImages[0] ? (
-                            <Image src={style.referenceImages[0]} alt={style.name} width={32} height={32} className="w-full h-full object-cover" unoptimized />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Wand2 className="h-3.5 w-3.5 text-muted-foreground" />
-                            </div>
-                          )}
-                        </div>
-                        <span className="text-xs font-medium truncate">{style.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <StylePicker
+                  imageStyles={imageStyles}
+                  onSelect={handleGenerateImage}
+                  className="absolute bottom-full mb-2 right-0 w-52"
+                />
               )}
             </div>
             <Button
