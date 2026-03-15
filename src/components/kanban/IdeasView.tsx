@@ -147,6 +147,7 @@ export function IdeasView({
                 onMoveToColumn={(columnId) => onMoveToKanban(idea.id, columnId)}
                 columns={columns}
                 size="small"
+                className="h-full"
               />
             </div>
           ))}

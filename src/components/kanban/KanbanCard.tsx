@@ -73,9 +73,10 @@ type KanbanCardProps = {
   currentColumnId?: string;
   size?: string; // compact, small, medium
   columnTitle?: string;
+  className?: string;
 };
 
-export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToColumn, columns = [], currentColumnId, size = 'medium', columnTitle }: KanbanCardProps) {
+export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToColumn, columns = [], currentColumnId, size = 'medium', columnTitle, className }: KanbanCardProps) {
   // Touch handling to distinguish between scroll and tap
   const touchStartPos = useRef<{ x: number; y: number; time: number } | null>(null);
   const [isTouchDevice, setIsTouchDevice] = useState(() =>
@@ -179,7 +180,7 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
   const cardListeners = (isTouchDevice || contextMenuOpen) ? {} : listeners;
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...cardListeners}>
+    <div ref={setNodeRef} style={style} {...attributes} {...cardListeners} className={className}>
       <ContextMenu onOpenChange={setContextMenuOpen}>
       <ContextMenuTrigger asChild>
       <Card 
@@ -187,7 +188,8 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
           "hover:shadow-md transition-all p-0 gap-0 overflow-hidden select-none relative group",
           !isTouchDevice && "cursor-grab active:cursor-grabbing",
           !contextMenuOpen && !isTouchDevice && "active:scale-[0.98] active:shadow-lg",
-          project.pinned && "border-l-2 border-l-primary/30"
+          project.pinned && "border-l-2 border-l-primary/30",
+          className
         )}
         onClick={handleClick}
         onTouchStart={handleTouchStart}
