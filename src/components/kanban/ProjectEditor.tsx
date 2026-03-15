@@ -2299,22 +2299,32 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               )}
             </div>
 
+            {/* Delete link — inside the scroll area, below all content */}
+            {isModal && (
+              <div className="flex justify-center pt-8 pb-2">
+                <button
+                  onClick={handleDeleteProject}
+                  className="text-xs text-muted-foreground/40 hover:text-destructive transition-colors underline-offset-2 hover:underline"
+                >
+                  Delete Project
+                </button>
+              </div>
+            )}
+
             {/* Footer (Modal only) */}
             {isModal && onClose && (
-              <div className="flex flex-col items-end gap-2 pt-8 pb-4 sticky bottom-0 bg-gradient-to-t from-background via-background to-transparent">
+              <div className="flex justify-end pt-4 pb-4 sticky bottom-0 bg-gradient-to-t from-background via-background to-transparent">
                 {isSaving ? (
                   <p className="text-sm text-muted-foreground px-4 py-2">Saving...</p>
                 ) : (
                   <div className="flex items-center gap-2">
                     <Button
-                      variant="ghost"
+                      variant="secondary"
                       size="lg"
                       onClick={handleToggleCompleted}
                       className={cn(
                         "group",
-                        isCompleted
-                          ? "text-green-600 hover:text-muted-foreground hover:bg-muted"
-                          : "text-muted-foreground"
+                        isCompleted && "text-green-600 hover:text-muted-foreground"
                       )}
                       title={isCompleted ? "Click to mark as incomplete" : "Mark as complete"}
                     >
@@ -2334,12 +2344,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                     </Button>
                   </div>
                 )}
-                <button
-                  onClick={handleDeleteProject}
-                  className="text-xs text-muted-foreground/50 hover:text-destructive transition-colors underline-offset-2 hover:underline"
-                >
-                  Delete Project
-                </button>
               </div>
             )}
           </div>
