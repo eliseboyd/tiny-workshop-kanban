@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Trash2, Plus, Eye, ListTodo, FolderKanban, Lightbulb } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -126,6 +127,10 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
         )}
         
         <div className="flex items-center gap-1">
+          {/* Idea count badge */}
+          {ideasCount !== undefined && (
+            <Badge variant="secondary" className="text-xs h-5 px-1.5">{ideasCount}</Badge>
+          )}
           {/* Hide column button */}
           {onToggleVisibility && (
             <Button
@@ -160,15 +165,15 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
       {ideasCount !== undefined ? (
         <button
           onClick={onSwitchToIdeas}
-          className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-amber-300/50 dark:border-amber-700/40 text-amber-600/70 dark:text-amber-400/60 hover:text-amber-600 dark:hover:text-amber-400 hover:border-amber-400/70 dark:hover:border-amber-600/60 hover:bg-amber-50/50 dark:hover:bg-amber-900/10 transition-all"
+          className="flex flex-1 flex-col items-start justify-start gap-2 pt-4 px-2 rounded-lg border-2 border-dashed border-muted-foreground/20 text-muted-foreground hover:text-foreground hover:border-muted-foreground/40 hover:bg-muted/30 transition-all"
         >
-          <Lightbulb className="h-8 w-8" />
-          <span className="text-sm font-medium text-center leading-snug px-2">
+          <Lightbulb className="h-8 w-8 self-center mt-4" />
+          <span className="text-sm font-medium text-center w-full leading-snug">
             {ideasCount > 0
               ? `${ideasCount} idea${ideasCount !== 1 ? 's' : ''} in the Ideas tab`
               : 'Ideas are in the Ideas tab'}
           </span>
-          <span className="text-xs opacity-60">Click to open →</span>
+          <span className="text-xs opacity-60 w-full text-center">Click to open →</span>
         </button>
       ) : (
       <div className="flex flex-1 flex-col gap-2 min-h-0 overflow-y-auto" data-column-scroll>
