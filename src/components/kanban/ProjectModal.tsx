@@ -4,13 +4,22 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Project } from './KanbanBoard';
 import { ProjectEditor } from './ProjectEditor';
 
+type IdeaNavigation = {
+  current: number;
+  total: number;
+  onPrev?: () => void;
+  onNext?: () => void;
+};
+
 type ProjectModalProps = {
   project: Project;
   isOpen: boolean;
   onClose: () => void;
+  ideaNavigation?: IdeaNavigation;
+  onMoveToIdeas?: () => void;
 };
 
-export function ProjectModal({ project, isOpen, onClose }: ProjectModalProps) {
+export function ProjectModal({ project, isOpen, onClose, ideaNavigation, onMoveToIdeas }: ProjectModalProps) {
   if (!project) return null;
   
   return (
@@ -21,6 +30,8 @@ export function ProjectModal({ project, isOpen, onClose }: ProjectModalProps) {
             project={project}
             onClose={onClose}
             isModal={true}
+            ideaNavigation={ideaNavigation}
+            onMoveToIdeas={onMoveToIdeas}
         />
       </DialogContent>
     </Dialog>

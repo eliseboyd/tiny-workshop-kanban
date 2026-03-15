@@ -577,6 +577,40 @@ export async function moveIdeaToKanban(ideaId: string, status: string) {
   revalidatePath('/');
 }
 
+export async function createIdea(title: string) {
+  const supabase = createServiceRoleClient();
+  const id = uuidv4();
+  const { error } = await supabase.from('projects').insert({
+    id,
+    title,
+    status: 'todo',
+    position: 0,
+    is_idea: true,
+    is_task: false,
+  });
+
+  if (error) {
+    console.error('Error creating idea:', JSON.stringify(error, null, 2));
+  }
+
+  revalidatePath('/');
+  return id;
+}
+
+export async function moveProjectToIdeas(projectId: string) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from('projects')
+    .update({ is_idea: true })
+    .eq('id', projectId);
+
+  if (error) {
+    console.error('Error moving project to ideas:', JSON.stringify(error, null, 2));
+  }
+
+  revalidatePath('/');
+}
+
 export async function toggleProjectPinned(id: string, pinned: boolean) {
   const supabase = createServiceRoleClient();
   

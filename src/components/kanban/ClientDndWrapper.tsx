@@ -45,6 +45,8 @@ type ClientDndWrapperProps = {
   onConfirmCreate: (columnId: string, title: string, isTask?: boolean) => void;
   onCancelCreate: () => void;
   onMoveCard: (projectId: string, newColumnId: string) => void;
+  ideasCount?: number;
+  onSwitchToIdeas?: () => void;
 };
 
 export function ClientDndWrapper({
@@ -68,6 +70,8 @@ export function ClientDndWrapper({
   onConfirmCreate,
   onCancelCreate,
   onMoveCard,
+  ideasCount,
+  onSwitchToIdeas,
 }: ClientDndWrapperProps) {
   const sensors = useSensors(
     // Mouse sensor - instant drag for desktop (no delay)
@@ -147,6 +151,7 @@ export function ClientDndWrapper({
             }
             
             // Render normal column when visible
+            const isIdeaColumn = col.title.toLowerCase().includes('idea');
             return (
               <KanbanColumn
                 key={col.id}
@@ -155,6 +160,8 @@ export function ClientDndWrapper({
                 columns={cols}
                 isHidden={false}
                 onToggleVisibility={() => onToggleColumnVisibility(col.id)}
+                ideasCount={isIdeaColumn ? ideasCount : undefined}
+                onSwitchToIdeas={isIdeaColumn ? onSwitchToIdeas : undefined}
                 items={filteredItems
                   .filter((i) => i.status === col.id)
                   .sort((a, b) => {

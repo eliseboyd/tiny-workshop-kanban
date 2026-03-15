@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Settings, KanbanSquareDashed } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/use-local-storage';
-import { updateProjectStatus, updateSettings, updateColumn, createColumn, deleteColumn, deleteProject, updateColumnsOrder, updateColumnOrder, getAllTags, getAllProjectGroups, getAllWidgets, getAllMaterials, getProjects, getAllPlans, StandalonePlan, toggleProjectPinned, getIdeas, moveIdeaToKanban } from '@/app/actions';
+import { updateProjectStatus, updateSettings, updateColumn, createColumn, deleteColumn, deleteProject, updateColumnsOrder, updateColumnOrder, getAllTags, getAllProjectGroups, getAllWidgets, getAllMaterials, getProjects, getAllPlans, StandalonePlan, toggleProjectPinned, getIdeas, moveIdeaToKanban, createIdea, moveProjectToIdeas } from '@/app/actions';
 
 import { ClientDndWrapper } from './ClientDndWrapper';
 
@@ -174,6 +174,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   const [activeView, setActiveView] = useLocalStorage<'overview' | 'dashboard' | 'kanban' | 'plans' | 'completed' | 'ideas'>('kanban-view', 'overview');
   const [allPlans, setAllPlans] = useState<Array<StandalonePlan & { source: 'standalone' | 'project' }>>([]);
   const [ideas, setIdeas] = useState<Project[]>([]);
+  const [editingIdeaIndex, setEditingIdeaIndex] = useState<number | null>(null);
   
   // Hidden columns state (array of column IDs)
   const [hiddenColumns, setHiddenColumns] = useLocalStorage<string[]>('hidden-columns', []);
@@ -446,6 +447,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
 
   const handleEditProject = (project: Project) => {
     setEditingProject(project);
+    setEditingIdeaIndex(null);
     setNewProjectColumnId(undefined);
     setIsModalOpen(true);
   };
@@ -547,6 +549,32 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
       const freshProjects = await getProjects();
       setItems(mapProjects(freshProjects));
       await refreshIdeas();
+  };
+
+  const handleCreateIdea = async () => {
+      const id = await createIdea('New Idea');
+      const freshIdeas = await getIdeas();
+      const mapped = mapProjects(freshIdeas);
+      setIdeas(mapped);
+      const newIdea = mapped.find((i: Project) => i.id === id);
+      if (newIdea) {
+          const newIndex = mapped.length - 1;
+          setEditingIdeaIndex(newIndex);
+          handleEditProject(newIdea);
+      }
+  };
+
+  const handleMoveProjectToIdeas = async (projectId: string) => {
+      await moveProjectToIdeas(projectId);
+      const freshProjects = await getProjects();
+      setItems(mapProjects(freshProjects));
+      await refreshIdeas();
+  };
+
+  const handleEditIdea = (idea: Project) => {
+      const idx = ideas.findIndex(i => i.id === idea.id);
+      setEditingIdeaIndex(idx >= 0 ? idx : null);
+      handleEditProject(idea);
   };
 
   const handleTogglePin = async (id: string, pinned: boolean) => {
@@ -842,6 +870,8 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
                 isCreatingInColumn={isCreatingInColumn}
                 onConfirmCreate={handleConfirmCreate}
                 onCancelCreate={handleCancelCreate}
+                ideasCount={ideas.length}
+                onSwitchToIdeas={() => setActiveView('ideas')}
             />
           </div>
         )}
@@ -852,9 +882,10 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
             ideas={ideas}
             tags={tags}
             columns={cols}
-            onIdeaClick={handleEditProject}
+            onIdeaClick={handleEditIdea}
             onMoveToKanban={handleMoveIdeaToKanban}
             onDeleteIdea={handleDeleteIdea}
+            onCreateIdea={handleCreateIdea}
           />
         )}
 
@@ -892,8 +923,28 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
         <ProjectModal
           project={editingProject}
           isOpen={isModalOpen}
+          ideaNavigation={editingIdeaIndex !== null ? {
+            current: editingIdeaIndex + 1,
+            total: ideas.length,
+            onPrev: editingIdeaIndex > 0 ? () => {
+              const newIdx = editingIdeaIndex - 1;
+              setEditingIdeaIndex(newIdx);
+              setEditingProject(ideas[newIdx]);
+            } : undefined,
+            onNext: editingIdeaIndex < ideas.length - 1 ? () => {
+              const newIdx = editingIdeaIndex + 1;
+              setEditingIdeaIndex(newIdx);
+              setEditingProject(ideas[newIdx]);
+            } : undefined,
+          } : undefined}
+          onMoveToIdeas={!editingProject.isIdea ? async () => {
+            await handleMoveProjectToIdeas(editingProject.id);
+            setIsModalOpen(false);
+            setActiveView('ideas');
+          } : undefined}
           onClose={async () => {
             setIsModalOpen(false);
+            setEditingIdeaIndex(null);
             // Refresh projects and dashboard data when modal closes
             const freshProjects = await getProjects();
             setItems(mapProjects(freshProjects));
