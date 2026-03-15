@@ -6,12 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Project, Column } from './KanbanBoard';
 import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage, getColumns, moveIdeaToKanban, moveProjectToIdeas, deleteProject } from '@/app/actions';
 import Image from 'next/image';
-import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images, ExternalLink, Pencil, FolderKanban, ListTodo, CheckCircle2, Circle, Lightbulb } from 'lucide-react';
+import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images, ExternalLink, Pencil, FolderKanban, ListTodo, CheckCircle2, Circle, Lightbulb, Crop } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Lightbox, type LightboxItem } from '@/components/ui/lightbox';
+import { ImageCropModal } from './ImageCropModal';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -105,6 +106,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   const [uploadingInspirationCount, setUploadingInspirationCount] = useState(0);
   const [showInspirationPicker, setShowInspirationPicker] = useState(false);
   const [isCoverPickerOpen, setIsCoverPickerOpen] = useState(false);
+  const [isCropOpen, setIsCropOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('overview');
   
   // Simple local state for immediate UI updates
@@ -1346,19 +1348,28 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
           {/* Mobile: Buttons at bottom */}
           <div className="md:hidden absolute bottom-4 left-4 right-4 flex gap-2 z-20">
             {imageUrl && (
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="h-9 bg-background/90 backdrop-blur-sm hover:bg-background"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemoveCover();
-                }}
-                title="Remove Cover"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="h-9 bg-background/90 backdrop-blur-sm hover:bg-background"
+                  onClick={(e) => { e.stopPropagation(); setIsCropOpen(true); }}
+                  title="Crop Image"
+                >
+                  <Crop className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="h-9 bg-background/90 backdrop-blur-sm hover:bg-background"
+                  onClick={(e) => { e.stopPropagation(); handleRemoveCover(); }}
+                  title="Remove Cover"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </>
             )}
             <Button
               type="button"
@@ -1425,20 +1436,30 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
             imageUrl && "opacity-0 group-hover:opacity-100"
           )}>
             {imageUrl && (
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemoveCover();
-                }}
-                title="Remove Cover"
-              >
-                <X className="h-3 w-3" />
-                <span className="ml-2">Remove</span>
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                  onClick={(e) => { e.stopPropagation(); setIsCropOpen(true); }}
+                  title="Crop Image"
+                >
+                  <Crop className="h-3 w-3" />
+                  <span className="ml-2">Crop</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                  onClick={(e) => { e.stopPropagation(); handleRemoveCover(); }}
+                  title="Remove Cover"
+                >
+                  <X className="h-3 w-3" />
+                  <span className="ml-2">Remove</span>
+                </Button>
+              </>
             )}
             <Button
               type="button"
@@ -2340,6 +2361,20 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
         showDeleteButton={true}
         showSetCoverButton={true}
       />
+
+      {/* Image crop modal */}
+      {imageUrl && (
+        <ImageCropModal
+          imageUrl={imageUrl}
+          isOpen={isCropOpen}
+          onClose={() => setIsCropOpen(false)}
+          upload={uploadImageBase64}
+          onSave={async (newUrl) => {
+            setImageUrl(newUrl);
+            await updateProject(project.id, { imageUrl: newUrl });
+          }}
+        />
+      )}
     </div>
   );
 }
