@@ -577,13 +577,13 @@ export async function moveIdeaToKanban(ideaId: string, status: string) {
   revalidatePath('/');
 }
 
-export async function createIdea(title: string) {
+export async function createIdea(title: string, status = 'todo') {
   const supabase = createServiceRoleClient();
   const id = uuidv4();
   const { error } = await supabase.from('projects').insert({
     id,
     title,
-    status: 'todo',
+    status,
     position: 0,
     is_idea: true,
     is_task: false,

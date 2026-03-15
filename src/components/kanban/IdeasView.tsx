@@ -1,15 +1,30 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import Image from 'next/image';
+import { useState, useEffect, useCallback, useId, useMemo } from 'react';
 import { Project, Column } from './KanbanBoard';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { KanbanCard } from './KanbanCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Lightbulb, Link2, Plus, Search, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Lightbulb, Plus, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  DndContext,
+  DragOverlay,
+  DragStartEvent,
+  DragEndEvent,
+  DragOverEvent,
+  MouseSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  pointerWithin,
+  closestCorners,
+  type CollisionDetection,
+} from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { updateProjectStatus } from '@/app/actions';
 
 type Tag = {
   name: string;
@@ -28,14 +43,8 @@ type IdeasViewProps = {
   onCreateIdea?: () => void;
 };
 
-const extractFirstUrl = (html?: string | null) => {
-  if (!html) return null;
-  const match = html.match(/href=["']([^"']+)["']/i);
-  return match?.[1] || null;
-};
-
 export function IdeasView({
-  ideas,
+  ideas: propIdeas,
   tags,
   columns,
   onIdeaClick,
@@ -43,236 +52,219 @@ export function IdeasView({
   onDeleteIdea,
   onCreateIdea,
 }: IdeasViewProps) {
+  const [localIdeas, setLocalIdeas] = useState<Project[]>(propIdeas);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [moveTargets, setMoveTargets] = useState<Record<string, string>>({});
 
-  const filteredIdeas = useMemo(() => {
-    return ideas.filter(idea => {
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const matchesTitle = idea.title.toLowerCase().includes(query);
-        const matchesDescription = idea.description?.toLowerCase().includes(query);
-        if (!matchesTitle && !matchesDescription) return false;
-      }
+  const dndContextId = useId();
 
-      if (selectedTags.length > 0) {
-        const ideaTags = idea.tags || [];
-        const hasSelectedTag = selectedTags.some(tag => ideaTags.includes(tag));
-        if (!hasSelectedTag) return false;
-      }
+  // Keep local copy in sync when parent refreshes
+  useEffect(() => {
+    setLocalIdeas(propIdeas);
+  }, [propIdeas]);
 
-      return true;
-    });
-  }, [ideas, searchQuery, selectedTags]);
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
-  const toggleTag = (tagName: string) => {
-    setSelectedTags(prev =>
-      prev.includes(tagName)
-        ? prev.filter(t => t !== tagName)
-        : [...prev, tagName]
+  const customCollisionDetection = useCallback<CollisionDetection>((args) => {
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) return pointerCollisions;
+    return closestCorners(args);
+  }, []);
+
+  function findContainer(id: string) {
+    if (columns.find(c => c.id === id)) return id;
+    return localIdeas.find(i => i.id === id)?.status ?? null;
+  }
+
+  function handleDragStart(e: DragStartEvent) {
+    setActiveId(e.active.id as string);
+  }
+
+  function handleDragOver(e: DragOverEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const from = findContainer(active.id as string);
+    const to = findContainer(over.id as string);
+    if (!from || !to || from === to) return;
+    setLocalIdeas(prev =>
+      prev.map(idea => idea.id === active.id ? { ...idea, status: to } : idea)
     );
-  };
+  }
 
-  const clearFilters = () => {
-    setSearchQuery('');
-    setSelectedTags([]);
-  };
+  function handleDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    setActiveId(null);
+    if (!over) return;
+    const activeIdea = localIdeas.find(i => i.id === active.id);
+    if (!activeIdea) return;
+    const to = findContainer(over.id as string);
+    if (!to || to === activeIdea.status) return;
+    const destCount = localIdeas.filter(i => i.status === to && i.id !== active.id).length;
+    updateProjectStatus(active.id as string, to, destCount);
+  }
 
+  // Ideas grouped by column, with unmatched ideas falling into the first column
+  const ideaColumns = useMemo(() => {
+    const firstColId = columns[0]?.id;
+    return columns.map(col => {
+      const colIdeas = localIdeas.filter(idea => {
+        const inThisCol =
+          idea.status === col.id ||
+          (!columns.find(c => c.id === idea.status) && col.id === firstColId);
+        if (!inThisCol) return false;
+
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          if (
+            !idea.title.toLowerCase().includes(q) &&
+            !idea.description?.toLowerCase().includes(q)
+          ) return false;
+        }
+        if (selectedTags.length > 0) {
+          if (!selectedTags.some(t => idea.tags?.includes(t))) return false;
+        }
+        return true;
+      }).sort((a, b) => a.position - b.position);
+
+      return { col, ideas: colIdeas };
+    });
+  }, [localIdeas, columns, searchQuery, selectedTags]);
+
+  const totalVisible = ideaColumns.reduce((sum, { ideas }) => sum + ideas.length, 0);
   const hasActiveFilters = searchQuery || selectedTags.length > 0;
+  const activeIdea = localIdeas.find(i => i.id === activeId);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex-none p-6 pb-4 border-b">
-        <div className="flex items-center gap-2 mb-4">
-          <Lightbulb className="h-6 w-6 text-amber-500" />
-          <h2 className="text-2xl font-bold">Ideas</h2>
-          <Badge variant="secondary" className="ml-2">
-            {filteredIdeas.length}
-          </Badge>
-          {onCreateIdea && (
-            <Button size="sm" onClick={onCreateIdea} className="ml-auto">
-              <Plus className="h-4 w-4 mr-1" /> New Idea
+      {/* Toolbar — mirrors the kanban toolbar style */}
+      <div className="flex items-center justify-end gap-2 px-4 py-2 border-b bg-muted/20 flex-wrap">
+        <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
+          <div className="relative w-48 shrink-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="Search ideas..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-8 text-sm"
+            />
+          </div>
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { setSearchQuery(''); setSelectedTags([]); }}
+            >
+              <X className="h-4 w-4 mr-1" /> Clear
             </Button>
           )}
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search ideas..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                <X className="h-4 w-4 mr-1" /> Clear
-              </Button>
-            )}
-          </div>
-
           {tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 min-w-0 overflow-hidden">
               {tags.map(tag => (
                 <Badge
                   key={tag.name}
                   variant={selectedTags.includes(tag.name) ? 'default' : 'outline'}
-                  className={cn(
-                    'cursor-pointer transition-all hover:scale-105',
-                    selectedTags.includes(tag.name) && 'ring-2 ring-offset-1 ring-offset-background'
-                  )}
+                  className={cn('cursor-pointer text-xs transition-all hover:scale-105', selectedTags.includes(tag.name) && 'ring-2 ring-offset-1 ring-offset-background')}
                   style={selectedTags.includes(tag.name) ? { backgroundColor: tag.color, borderColor: tag.color } : {}}
-                  onClick={() => toggleTag(tag.name)}
+                  onClick={() =>
+                    setSelectedTags(prev =>
+                      prev.includes(tag.name) ? prev.filter(t => t !== tag.name) : [...prev, tag.name]
+                    )
+                  }
                 >
-                  {tag.emoji && <span className="mr-1">{tag.emoji}</span>}
+                  {tag.emoji && <span className="mr-0.5">{tag.emoji}</span>}
                   {tag.name}
-                  {selectedTags.includes(tag.name) && (
-                    <X className="ml-1 h-3 w-3" />
-                  )}
+                  {selectedTags.includes(tag.name) && <X className="ml-1 h-3 w-3" />}
                 </Badge>
               ))}
             </div>
           )}
         </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-6">
-        {filteredIdeas.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <Lightbulb className="h-16 w-16 text-muted-foreground/20 mb-4" />
-            <h3 className="text-lg font-semibold text-muted-foreground mb-2">
-              {hasActiveFilters ? 'No ideas match your filters' : 'No ideas yet'}
-            </h3>
-            <p className="text-sm text-muted-foreground max-w-md">
-              {hasActiveFilters
-                ? 'Try adjusting your filters to see more results.'
-                : 'Capture inspiration here before moving projects to the Kanban board.'}
-            </p>
-          </div>
-        ) : (
-          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
-            {filteredIdeas.map(idea => {
-              const link = extractFirstUrl(idea.richContent);
-              const selectedColumn = moveTargets[idea.id] || columns[0]?.id;
-
-              return (
-                <Card
-                  key={idea.id}
-                  className="break-inside-avoid cursor-pointer hover:shadow-lg transition-all group overflow-hidden"
-                  onClick={() => onIdeaClick(idea)}
-                >
-                  {idea.imageUrl && (
-                    <div className="relative w-full h-40 overflow-hidden bg-muted">
-                      <Image
-                        src={idea.imageUrl}
-                        alt={idea.title}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform"
-                      />
-                    </div>
-                  )}
-                  <CardContent className={cn('p-4', !idea.imageUrl && 'pt-4')}>
-                    <h3 className="font-semibold text-sm mb-1.5 line-clamp-2">
-                      {idea.title}
-                    </h3>
-                    {idea.description && (
-                      <p className="text-xs text-muted-foreground mb-2 line-clamp-3">
-                        {idea.description}
-                      </p>
-                    )}
-                    {link && (
-                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground mb-2">
-                        <Link2 className="h-3 w-3" />
-                        <a
-                          href={link}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={(event) => event.stopPropagation()}
-                          className="truncate hover:underline"
-                        >
-                          {link}
-                        </a>
-                      </div>
-                    )}
-                    {idea.tags && idea.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {idea.tags.slice(0, 3).map(tagName => {
-                          const tag = tags.find(t => t.name === tagName);
-                          return (
-                            <Badge
-                              key={tagName}
-                              variant="secondary"
-                              className="text-[10px] px-1.5 py-0"
-                              style={tag ? { backgroundColor: tag.color + '20', color: tag.color } : {}}
-                            >
-                              {tag?.emoji && <span className="mr-0.5">{tag.emoji}</span>}
-                              {tagName}
-                            </Badge>
-                          );
-                        })}
-                        {idea.tags.length > 3 && (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                            +{idea.tags.length - 3}
-                          </Badge>
-                        )}
-                      </div>
-                    )}
-                    <div className="flex flex-col gap-2">
-                      <Select
-                        value={selectedColumn}
-                        onValueChange={(value) =>
-                          setMoveTargets(prev => ({ ...prev, [idea.id]: value }))
-                        }
-                      >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="Choose column" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {columns.map(col => (
-                            <SelectItem key={col.id} value={col.id}>
-                              {col.title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="flex-1 h-8 text-xs"
-                          disabled={!selectedColumn}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            if (selectedColumn) {
-                              onMoveToKanban(idea.id, selectedColumn);
-                            }
-                          }}
-                        >
-                          Move to Kanban
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 text-xs"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onDeleteIdea(idea.id);
-                          }}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+        {onCreateIdea && (
+          <Button size="sm" onClick={onCreateIdea}>
+            <Plus className="mr-2 h-4 w-4" /> New Idea
+          </Button>
         )}
       </div>
+
+      {/* Kanban-style column layout */}
+      {columns.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center flex-col gap-3 text-muted-foreground">
+          <Lightbulb className="h-12 w-12 opacity-20" />
+          <p className="text-sm">Add columns in the Kanban view first.</p>
+        </div>
+      ) : (
+        <DndContext
+          id={dndContextId}
+          sensors={sensors}
+          collisionDetection={customCollisionDetection}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="flex flex-1 w-full gap-4 p-4 overflow-x-auto snap-x snap-mandatory md:snap-none select-none min-h-0">
+            {ideaColumns.map(({ col, ideas }) => (
+              <div
+                key={col.id}
+                className="flex w-[85vw] md:w-60 md:min-w-[240px] shrink-0 snap-center md:snap-align-none flex-col rounded-lg bg-neutral-100 p-3 dark:bg-neutral-900"
+                data-column-id={col.id}
+              >
+                {/* Column header */}
+                <div className="mb-3 h-6 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-neutral-500 dark:text-neutral-400">
+                    {col.title}
+                  </h3>
+                  <Badge variant="secondary" className="text-xs h-5">
+                    {ideas.length}
+                  </Badge>
+                </div>
+
+                {/* Cards */}
+                <SortableContext items={ideas.map(i => i.id)} strategy={verticalListSortingStrategy}>
+                  <div className="flex flex-1 flex-col gap-2 min-h-0 overflow-y-auto" data-column-scroll>
+                    {ideas.map(idea => (
+                      <KanbanCard
+                        key={idea.id}
+                        project={idea}
+                        onClick={() => onIdeaClick(idea)}
+                        onDelete={() => onDeleteIdea(idea.id)}
+                        onMoveToColumn={(columnId) => onMoveToKanban(idea.id, columnId)}
+                        columns={columns}
+                        currentColumnId={col.id}
+                        size="small"
+                        columnTitle={col.title}
+                      />
+                    ))}
+                    {ideas.length === 0 && (
+                      <div className="flex-1 min-h-[60px] rounded-lg border-2 border-dashed border-neutral-200 dark:border-neutral-800 flex items-center justify-center">
+                        <p className="text-xs text-muted-foreground">No ideas</p>
+                      </div>
+                    )}
+                  </div>
+                </SortableContext>
+              </div>
+            ))}
+          </div>
+
+          <DragOverlay>
+            {activeIdea ? <KanbanCard project={activeIdea} size="small" /> : null}
+          </DragOverlay>
+        </DndContext>
+      )}
+
+      {/* Empty state when filters return nothing */}
+      {columns.length > 0 && totalVisible === 0 && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <Lightbulb className="h-16 w-16 text-muted-foreground/20 mb-4" />
+          <p className="text-sm text-muted-foreground">
+            {hasActiveFilters ? 'No ideas match your filters.' : 'No ideas yet. Create one to get started.'}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
