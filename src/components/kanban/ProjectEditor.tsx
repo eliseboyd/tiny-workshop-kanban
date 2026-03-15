@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import { Project, Column } from './KanbanBoard';
-import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage, getColumns, moveIdeaToKanban, deleteProject } from '@/app/actions';
+import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage, getColumns, moveIdeaToKanban, moveProjectToIdeas, deleteProject } from '@/app/actions';
 import Image from 'next/image';
 import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images, ExternalLink, Pencil, FolderKanban, ListTodo, CheckCircle2, Circle, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -511,6 +511,12 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
     setIsIdea(false);
     router.refresh();
     onClose?.();
+  };
+
+  const handleMoveToIdeas = async () => {
+    await moveProjectToIdeas(project.id);
+    setIsIdea(true);
+    onMoveToIdeas?.();
   };
   
   // Materials handlers
@@ -1681,6 +1687,17 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                     </>
                   )}
                 </button>
+
+                {onMoveToIdeas && !isIdea && (
+                  <button
+                    onClick={handleMoveToIdeas}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors bg-amber-500/10 text-amber-600 hover:bg-amber-500/20"
+                    title="Move to Ideas"
+                  >
+                    <Lightbulb className="h-4 w-4" />
+                    <span>Move to Ideas</span>
+                  </button>
+                )}
                 
                 {/* Completed Status Toggle */}
                 <button
@@ -2312,11 +2329,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                   <p className="text-sm text-muted-foreground px-4 py-2">Saving...</p>
                 ) : (
                   <div className="flex items-center gap-2">
-                    {onMoveToIdeas && (
-                      <Button variant="outline" size="lg" onClick={onMoveToIdeas} className="gap-1.5">
-                        <Lightbulb className="h-4 w-4" /> Move to Ideas
-                      </Button>
-                    )}
                     <Button variant="destructive" onClick={handleDeleteProject} size="lg">
                       Delete
                     </Button>
