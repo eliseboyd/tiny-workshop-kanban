@@ -111,9 +111,12 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   const [richContent, setRichContent] = useState(project.richContent || '');
   const [tags, setTags] = useState<string[]>(project.tags || []);
   const [parentProjectId, setParentProjectId] = useState<string | null>(project.parentProjectId || null);
-  const [isTask, setIsTask] = useState<boolean>(project.isTask || false);
   const [isCompleted, setIsCompleted] = useState<boolean>(project.isCompleted || false);
   const [isIdea, setIsIdea] = useState<boolean>(project.isIdea || false);
+  const [localItemType, setLocalItemType] = useState<'project' | 'task' | 'idea'>(
+    project.isIdea ? 'idea' : project.isTask ? 'task' : 'project'
+  );
+  const [pendingItemType, setPendingItemType] = useState<'project' | 'task' | null>(null);
   const [columns, setColumns] = useState<Column[]>([]);
   const [ideaMoveColumnId, setIdeaMoveColumnId] = useState<string | null>(null);
   const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
@@ -489,13 +492,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
     router.refresh();
   };
   
-  // Task type handler
-  const handleToggleTaskType = async () => {
-    const newIsTask = !isTask;
-    setIsTask(newIsTask);
-    await updateProject(project.id, { is_task: newIsTask });
-    router.refresh();
-  };
   
   // Completed status handler
   const handleToggleCompleted = async () => {
@@ -508,7 +504,13 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   const handleMoveIdeaToKanban = async () => {
     if (!ideaMoveColumnId) return;
     await moveIdeaToKanban(project.id, ideaMoveColumnId);
+    if (pendingItemType === 'task') {
+      await updateProject(project.id, { is_task: true });
+    }
+    const resolvedType = pendingItemType ?? 'project';
     setIsIdea(false);
+    setLocalItemType(resolvedType);
+    setPendingItemType(null);
     router.refresh();
     onClose?.();
   };
@@ -516,7 +518,23 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   const handleMoveToIdeas = async () => {
     await moveProjectToIdeas(project.id);
     setIsIdea(true);
+    setLocalItemType('idea');
     onMoveToIdeas?.();
+  };
+
+  const handleTypeChange = async (newType: string) => {
+    const type = newType as 'project' | 'task' | 'idea';
+    if (type === localItemType) return;
+    setLocalItemType(type);
+    if (type === 'idea') {
+      await handleMoveToIdeas();
+    } else if (isIdea) {
+      // Moving from idea → project/task: user still needs to pick a column
+      setPendingItemType(type);
+    } else {
+      await updateProject(project.id, { is_task: type === 'task' });
+      router.refresh();
+    }
   };
   
   // Materials handlers
@@ -1083,11 +1101,11 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
     loadData();
   }, []);
   
-  // Sync local state when project prop changes (e.g., after router.refresh())
+  // Sync local state when project prop changes (e.g., after router.refresh() or idea navigation)
   useEffect(() => {
-    setIsTask(project.isTask || false);
-  }, [project.isTask]);
-  
+    setLocalItemType(project.isIdea ? 'idea' : project.isTask ? 'task' : 'project');
+  }, [project.isTask, project.isIdea]);
+
   useEffect(() => {
     setIsCompleted(project.isCompleted || false);
   }, [project.isCompleted]);
@@ -1663,48 +1681,40 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                 style={{ height: 'auto' }}
               />
               
-              {/* Task/Project Type Toggle */}
-              <div className="flex items-center gap-2 pb-2">
-                <button
-                  onClick={handleToggleTaskType}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors",
-                    isTask 
-                      ? "bg-blue-500/10 text-blue-600 hover:bg-blue-500/20" 
-                      : "bg-violet-500/10 text-violet-600 hover:bg-violet-500/20"
-                  )}
-                  title={isTask ? "Switch to Project" : "Switch to Task"}
-                >
-                  {isTask ? (
-                    <>
-                      <ListTodo className="h-4 w-4" />
-                      <span>Task</span>
-                    </>
-                  ) : (
-                    <>
-                      <FolderKanban className="h-4 w-4" />
-                      <span>Project</span>
-                    </>
-                  )}
-                </button>
-
-                {onMoveToIdeas && !isIdea && (
-                  <button
-                    onClick={handleMoveToIdeas}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors bg-amber-500/10 text-amber-600 hover:bg-amber-500/20"
-                    title="Move to Ideas"
-                  >
-                    <Lightbulb className="h-4 w-4" />
-                    <span>Move to Ideas</span>
-                  </button>
-                )}
-                
+              {/* Type selector */}
+              <div className="flex items-center gap-3 pb-2">
+                <label className="text-sm text-muted-foreground min-w-[80px]">Type:</label>
+                <Select value={localItemType} onValueChange={handleTypeChange}>
+                  <SelectTrigger className="w-[140px] h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="project">
+                      <div className="flex items-center gap-2">
+                        <FolderKanban className="h-4 w-4 text-violet-600" />
+                        <span>Project</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="task">
+                      <div className="flex items-center gap-2">
+                        <ListTodo className="h-4 w-4 text-blue-600" />
+                        <span>Task</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="idea">
+                      <div className="flex items-center gap-2">
+                        <Lightbulb className="h-4 w-4 text-amber-500" />
+                        <span>Idea</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {isIdea && (
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 pb-2">
                   <div className="flex items-center gap-3">
-                    <label className="text-sm text-muted-foreground min-w-[80px]">Move to:</label>
+                    <label className="text-sm text-muted-foreground min-w-[80px]">Column:</label>
                     <Select value={ideaMoveColumnId || undefined} onValueChange={setIdeaMoveColumnId}>
                       <SelectTrigger className="w-[200px] h-8">
                         <SelectValue placeholder="Choose column" />
@@ -1723,7 +1733,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                     onClick={handleMoveIdeaToKanban}
                     disabled={!ideaMoveColumnId}
                   >
-                    Move to Kanban
+                    Add to Board
                   </Button>
                 </div>
               )}
