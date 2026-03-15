@@ -112,11 +112,12 @@ type KanbanBoardProps = {
   initialProjects: Record<string, unknown>[]; // Loosely typed as we map them
   initialSettings: SettingsData;
   initialColumns: Column[];
+  initialIdeas?: Record<string, unknown>[];
 };
 
 import { v4 as uuidv4 } from 'uuid';
 
-export function KanbanBoard({ initialProjects, initialSettings, initialColumns }: KanbanBoardProps) {
+export function KanbanBoard({ initialProjects, initialSettings, initialColumns, initialIdeas = [] }: KanbanBoardProps) {
   const router = useRouter();
   
   // Hasmounted state to prevent hydration errors
@@ -173,7 +174,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   // View state: 'overview' (both), 'dashboard', 'kanban', 'plans', 'completed'
   const [activeView, setActiveView] = useLocalStorage<'overview' | 'dashboard' | 'kanban' | 'plans' | 'completed' | 'ideas'>('kanban-view', 'overview');
   const [allPlans, setAllPlans] = useState<Array<StandalonePlan & { source: 'standalone' | 'project' }>>([]);
-  const [ideas, setIdeas] = useState<Project[]>([]);
+  const [ideas, setIdeas] = useState<Project[]>(mapProjects(initialIdeas));
   const [editingIdeaIndex, setEditingIdeaIndex] = useState<number | null>(null);
   
   // Hidden columns state (array of column IDs)
@@ -571,7 +572,8 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns }
   };
 
   const handleCreateIdea = async () => {
-      const id = await createIdea('New Idea');
+      const firstColumnId = cols[0]?.id || 'todo';
+      const id = await createIdea('New Idea', firstColumnId);
       const freshIdeas = await getIdeas();
       const mapped = mapProjects(freshIdeas);
       setIdeas(mapped);
