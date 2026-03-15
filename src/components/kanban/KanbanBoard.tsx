@@ -963,16 +963,22 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
               setEditingProject(ideas[newIdx]);
             } : undefined,
           } : undefined}
-          onMoveToIdeas={!editingProject.isIdea ? async () => {
-            // ProjectEditor handles the server call; just refresh our local state
-            const freshProjects = await getProjects();
-            setItems(mapProjects(freshProjects));
-            await refreshIdeas();
+          onMoveToIdeas={!editingProject.isIdea ? () => {
+            // Optimistically move from board items → ideas without a server round-trip
+            const moved = items.find(p => p.id === editingProject.id);
+            if (moved) {
+              setItems(prev => prev.filter(p => p.id !== editingProject.id));
+              setIdeas(prev => [...prev, { ...moved, isIdea: true }]);
+            }
           } : undefined}
           onProjectUpdate={(id, updates) => {
             setItems(prev => prev.map(item =>
               item.id === id ? { ...item, ...updates } : item
             ));
+          }}
+          onProjectDelete={(id) => {
+            setItems(prev => prev.filter(item => item.id !== id));
+            setIdeas(prev => prev.filter(item => item.id !== id));
           }}
           onClose={async () => {
             setIsModalOpen(false);
