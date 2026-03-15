@@ -1011,21 +1011,22 @@ export async function deleteImageStyle(id: string): Promise<void> {
 
 export async function generateProjectImage(
   projectData: { title: string; description?: string },
-  styleId?: string
+  styleId?: string,
+  inspirationImageUrls?: string[]
 ) {
   const settings = await getSettings();
   const apiKey = process.env.GOOGLE_AI_API_KEY;
 
   // Resolve style-specific prompt base and reference images
   let stylePromptBase = settings.aiPromptTemplate;
-  let referenceImages: string[] = [];
+  let styleImages: string[] = [];
 
   if (styleId) {
     const styles = await getImageStyles();
     const style = styles.find((s) => s.id === styleId);
     if (style) {
       if (style.promptOverride) stylePromptBase = style.promptOverride;
-      referenceImages = style.referenceImages ?? [];
+      styleImages = style.referenceImages ?? [];
     }
   }
 
@@ -1033,48 +1034,70 @@ export async function generateProjectImage(
     .replace('{title}', projectData.title)
     .replace('{description}', projectData.description ?? '');
 
+  // Filter inspiration to images only (exclude PDFs/plans etc.)
+  const contentImages = (inspirationImageUrls ?? []).filter((u) =>
+    /\.(jpe?g|png|webp|gif|avif)(\?|$)/i.test(u) ||
+    u.includes('supabase') // trust supabase-hosted images regardless of extension
+  );
+
   let enhancedPrompt = basePrompt;
 
   if (apiKey) {
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
 
-      if (referenceImages.length > 0) {
-        // Multimodal path: fetch reference images and pass to Gemini Vision
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
-        const imageParts: { inlineData: { mimeType: string; data: string } }[] = [];
-        for (const imgUrl of referenceImages.slice(0, 5)) {
+      // Convert a list of image URLs to Gemini inline-data parts (skip failures)
+      const fetchImageParts = async (urls: string[], limit: number) => {
+        const parts: { inlineData: { mimeType: string; data: string } }[] = [];
+        for (const imgUrl of urls.slice(0, limit)) {
           try {
             const res = await fetch(imgUrl);
             if (!res.ok) continue;
             const contentType = res.headers.get('content-type') ?? 'image/jpeg';
-            const arrayBuf = await res.arrayBuffer();
-            const base64 = Buffer.from(arrayBuf).toString('base64');
-            imageParts.push({ inlineData: { mimeType: contentType, data: base64 } });
+            if (!contentType.startsWith('image/')) continue;
+            const base64 = Buffer.from(await res.arrayBuffer()).toString('base64');
+            parts.push({ inlineData: { mimeType: contentType, data: base64 } });
           } catch {
-            // skip images that fail to fetch
+            // skip unreachable images
           }
         }
+        return parts;
+      };
 
-        if (imageParts.length > 0) {
-          const result = await model.generateContent([
-            ...imageParts,
-            {
-              text: `Here are example images defining a visual style. Generate a concise image-generation prompt in this exact style for a project named "${projectData.title}". Focus on line weight, colour palette, texture, rendering technique. Keep it under 100 words.`,
-            },
-          ]);
+      const hasStyleImages = styleImages.length > 0;
+      const hasContentImages = contentImages.length > 0;
+
+      if (hasStyleImages || hasContentImages) {
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+        // Style images first (define the look), content images second (define the subject)
+        const styleParts = hasStyleImages ? await fetchImageParts(styleImages, 4) : [];
+        const contentParts = hasContentImages ? await fetchImageParts(contentImages, 4) : [];
+        const allParts = [...styleParts, ...contentParts];
+
+        if (allParts.length > 0) {
+          const sections: string[] = [];
+          if (styleParts.length > 0) {
+            sections.push(`The first ${styleParts.length} image(s) define the visual STYLE to use — pay close attention to their line weight, rendering technique, colour palette, and texture.`);
+          }
+          if (contentParts.length > 0) {
+            sections.push(`The next ${contentParts.length} image(s) are INSPIRATION CONTENT for the project — use the subjects, objects, and themes you see in them.`);
+          }
+          sections.push(
+            `Generate a concise image-generation prompt (under 100 words) for a project named "${projectData.title}" that combines the${styleParts.length > 0 ? ' style' : ''} elements above${contentParts.length > 0 ? ' with the content/subject matter shown' : ''}. Be specific about visual style, composition, and what to depict.`
+          );
+
+          const result = await model.generateContent([...allParts, { text: sections.join(' ') }]);
           enhancedPrompt = result.response.text();
         } else {
-          // All reference images failed — fall back to text enhancement
-          const model2 = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-          const result = await model2.generateContent(
+          // All image fetches failed — text-only fallback
+          const result = await model.generateContent(
             `Create a short, descriptive image generation prompt based on this context. Keep it under 100 words, focused on visual details. Context: ${basePrompt}`
           );
           enhancedPrompt = result.response.text();
         }
       } else {
-        // Text-only path
+        // No images at all — text-only path
         const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
         const result = await model.generateContent(
           `Create a short, descriptive image generation prompt based on this context. Keep it under 100 words, focused on visual details. Context: ${basePrompt}`

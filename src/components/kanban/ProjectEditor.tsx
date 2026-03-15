@@ -871,7 +871,15 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
     setIsGenerating(true);
     try {
       // Step 1: Get the Pollinations prompt URL from the server (fast — just builds the URL)
-      const pollinationsUrl = await generateProjectImage({ title, description: richContent }, styleId);
+      // Pass inspiration image URLs so Gemini can use them for content/subject context
+      const inspirationUrls = inspiration
+        .filter((a) => a.type.startsWith('image/'))
+        .map((a) => a.url);
+      const pollinationsUrl = await generateProjectImage(
+        { title, description: richContent },
+        styleId,
+        inspirationUrls
+      );
 
       // Step 2: Fetch the actual image from Pollinations in the browser (handles the generation wait)
       // Pollinations can take up to 30s to generate; use a generous timeout
