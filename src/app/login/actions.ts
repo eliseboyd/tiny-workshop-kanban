@@ -10,10 +10,12 @@ export async function login(formData: FormData) {
   const password = formData.get('password') as string;
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  let error;
+  try {
+    ({ error } = await supabase.auth.signInWithPassword({ email, password }));
+  } catch {
+    return redirect(`/login?message=${encodeURIComponent('Unable to connect. The service may be temporarily unavailable — please try again shortly.')}`);
+  }
 
   if (error) {
     console.error('Login Error:', error);
