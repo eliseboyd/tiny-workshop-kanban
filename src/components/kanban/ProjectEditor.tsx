@@ -88,6 +88,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
   const [isFetchingOgImage, setIsFetchingOgImage] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isDraggingPlans, setIsDraggingPlans] = useState(false);
+  const [isDraggingInspiration, setIsDraggingInspiration] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [isUploadingInspiration, setIsUploadingInspiration] = useState(false);
   const [uploadingInspirationCount, setUploadingInspirationCount] = useState(0);
@@ -965,6 +966,59 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
     }
   };
   
+  // Inspiration drag and drop
+  const handleInspirationDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingInspiration(true);
+  };
+
+  const handleInspirationDragLeave = (e: React.DragEvent) => {
+    e.stopPropagation();
+    setIsDraggingInspiration(false);
+  };
+
+  const handleInspirationDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingInspiration(false);
+
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploadingInspiration(true);
+    const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+    setUploadingInspirationCount(imageFiles.length);
+
+    try {
+      const newAttachments: Attachment[] = [];
+      for (let i = 0; i < imageFiles.length; i++) {
+        const compressedFile = await compressImage(imageFiles[i]);
+        const fd = new FormData();
+        fd.append('file', compressedFile);
+        const result = await uploadFile(fd);
+        newAttachments.push(result);
+        setUploadingInspirationCount(imageFiles.length - i - 1);
+      }
+      if (newAttachments.length > 0) {
+        const newInspiration = [...inspiration, ...newAttachments];
+        setInspiration(newInspiration);
+        const updateData: Record<string, unknown> = { inspiration: newInspiration };
+        if (imageFiles.length === 1 && !imageUrl) {
+          setImageUrl(newAttachments[0].url);
+          updateData.imageUrl = newAttachments[0].url;
+        }
+        await updateProject(project.id, updateData);
+        router.refresh();
+      }
+    } catch (error) {
+      console.error('Failed to upload inspiration via drag and drop', error);
+    } finally {
+      setIsUploadingInspiration(false);
+      setUploadingInspirationCount(0);
+    }
+  };
+
   // Section navigation
   const scrollToSection = (section: string) => {
     setActiveSection(section);
@@ -1973,10 +2027,14 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
               id="section-inspiration" 
               className={cn(
                 "space-y-4 pt-8 border-t rounded-lg transition-all",
-                isHoveringInspiration && "ring-2 ring-primary/30 bg-muted/20 p-4 -m-4"
+                isDraggingInspiration && "ring-2 ring-primary/50 bg-primary/5 p-4 -m-4",
+                !isDraggingInspiration && isHoveringInspiration && "ring-2 ring-primary/30 bg-muted/20 p-4 -m-4"
               )}
               onMouseEnter={() => setIsHoveringInspiration(true)}
               onMouseLeave={() => setIsHoveringInspiration(false)}
+              onDragOver={handleInspirationDragOver}
+              onDragLeave={handleInspirationDragLeave}
+              onDrop={handleInspirationDrop}
             >
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold">Inspiration</h2>
@@ -1987,7 +2045,12 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                       <span>Uploading {uploadingInspirationCount} image{uploadingInspirationCount > 1 ? 's' : ''}...</span>
                     </div>
                   )}
-                  {isHoveringInspiration && !isUploadingInspiration && (
+                  {isDraggingInspiration && (
+                    <p className="text-xs text-primary font-medium">
+                      Drop files here
+                    </p>
+                  )}
+                  {!isDraggingInspiration && isHoveringInspiration && !isUploadingInspiration && (
                     <p className="text-xs text-muted-foreground hidden md:block">
                       Paste from clipboard (Ctrl+V)
                     </p>
@@ -2003,9 +2066,15 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                 onChange={handleInspirationUpload}
               />
               {inspiration.length === 0 ? (
-                <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground flex flex-col items-center gap-2 hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => document.getElementById('inspiration-upload')?.click()}>
-                  <Sparkles className="h-8 w-8 opacity-50" />
-                  <p>Add inspiration images</p>
+                <div
+                  className={cn(
+                    "border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground flex flex-col items-center gap-2 hover:bg-muted/10 transition-colors cursor-pointer",
+                    isDraggingInspiration && "border-primary bg-primary/10"
+                  )}
+                  onClick={() => document.getElementById('inspiration-upload')?.click()}
+                >
+                  <Sparkles className={cn("h-8 w-8 opacity-50", isDraggingInspiration && "text-primary opacity-100")} />
+                  <p>{isDraggingInspiration ? "Drop to upload" : "Upload or drag & drop inspiration images"}</p>
                 </div>
               ) : (
                 <>
@@ -2185,9 +2254,15 @@ export function ProjectEditor({ project, onClose, isModal = false, className }: 
                           </div>
                         </div>
                       ))}
-                      <div className="break-inside-avoid border-2 border-dashed rounded-lg aspect-square flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/10 cursor-pointer" onClick={() => document.getElementById('inspiration-upload')?.click()}>
-                        <Plus className="h-8 w-8 opacity-50 mb-1" />
-                        <span className="text-xs">Add</span>
+                      <div
+                        className={cn(
+                          "break-inside-avoid border-2 border-dashed rounded-lg aspect-square flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/10 cursor-pointer",
+                          isDraggingInspiration && "border-primary bg-primary/10"
+                        )}
+                        onClick={() => document.getElementById('inspiration-upload')?.click()}
+                      >
+                        <Plus className={cn("h-8 w-8 opacity-50 mb-1", isDraggingInspiration && "text-primary opacity-100")} />
+                        <span className="text-xs">{isDraggingInspiration ? "Drop here" : "Add"}</span>
                       </div>
                     </div>
                   </div>
