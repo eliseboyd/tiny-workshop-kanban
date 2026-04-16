@@ -9,51 +9,61 @@ import { writeFile, mkdir } from 'fs/promises';
 import type { IncomingMessage } from 'http';
 import https from 'https';
 import path from 'path';
+import { safeFetch } from '@/utils/safe-fetch';
+import { getSupabaseUrl } from '@/utils/supabase/env';
 
-// Helper function to download image from URL and upload to Supabase
-async function downloadAndUploadImage(imageUrl: string): Promise<string | null> {
+function getSupabaseHost(): string | null {
+  const url = getSupabaseUrl();
+  if (!url) return null;
   try {
-    // Fetch the image
-    const response = await fetch(imageUrl);
-    if (!response.ok) {
-      return null;
-    }
-    
-    // Get the image as a buffer
+    return new URL(url).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+// Helper function to download an image from a URL and upload it to Supabase.
+// Caller supplies the SSRF allowlist; we enforce image/* on the response so
+// non-image bodies (e.g. HTML, JSON, secrets) can never be stored publicly.
+async function downloadAndUploadImage(
+  imageUrl: string,
+  opts: { allowedHosts?: ReadonlyArray<string> } = {}
+): Promise<string | null> {
+  try {
+    const response = await safeFetch(imageUrl, { allowedHosts: opts.allowedHosts });
+    if (!response.ok) return null;
+
+    const contentType = response.headers.get('content-type') ?? '';
+    if (!contentType.toLowerCase().startsWith('image/')) return null;
+
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    
-    // Determine file extension from content-type or URL
-    const contentType = response.headers.get('content-type');
+
     let fileExt = '.jpg';
-    if (contentType?.includes('png')) fileExt = '.png';
-    else if (contentType?.includes('webp')) fileExt = '.webp';
-    else if (contentType?.includes('gif')) fileExt = '.gif';
-    else if (contentType?.includes('jpeg') || contentType?.includes('jpg')) fileExt = '.jpg';
-    
+    if (contentType.includes('png')) fileExt = '.png';
+    else if (contentType.includes('webp')) fileExt = '.webp';
+    else if (contentType.includes('gif')) fileExt = '.gif';
+    else if (contentType.includes('avif')) fileExt = '.avif';
+    else if (contentType.includes('jpeg') || contentType.includes('jpg')) fileExt = '.jpg';
+
     const fileName = `og-${uuidv4()}${fileExt}`;
-    
-    // Upload to Supabase Storage
+
     const supabase = createServiceRoleClient();
     const { error: uploadError } = await supabase.storage
       .from('board-uploads')
       .upload(fileName, buffer, {
         cacheControl: '3600',
         upsert: false,
-        contentType: contentType || 'image/jpeg'
+        contentType,
       });
-    
-    if (uploadError) {
-      return null;
-    }
-    
-    // Get public URL
+    if (uploadError) return null;
+
     const { data: { publicUrl } } = supabase.storage
       .from('board-uploads')
       .getPublicUrl(fileName);
-    
+
     return publicUrl;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -923,9 +933,15 @@ export async function updateSettings(data: Record<string, unknown>) {
 /**
  * Server-side re-fetch of an already-generated image URL (e.g. Pollinations cache hit)
  * and upload to Supabase storage. Returns the stable Supabase URL, or null on failure.
+ *
+ * Restricted to the Pollinations host (plus the configured Supabase host for
+ * legitimate re-saves) so this action cannot be used as an SSRF primitive.
  */
 export async function saveImageFromUrl(url: string): Promise<string | null> {
-  return downloadAndUploadImage(url);
+  const supabaseHost = getSupabaseHost();
+  const allowedHosts: string[] = ['image.pollinations.ai'];
+  if (supabaseHost) allowedHosts.push(supabaseHost);
+  return downloadAndUploadImage(url, { allowedHosts });
 }
 
 // --- Image Styles ---
@@ -1042,11 +1058,21 @@ export async function generateProjectImage(
     .replace('{title}', projectData.title)
     .replace('{description}', projectData.description ?? '');
 
-  // Filter inspiration to images only (exclude PDFs/plans etc.)
-  const contentImages = (inspirationImageUrls ?? []).filter((u) =>
-    /\.(jpe?g|png|webp|gif|avif)(\?|$)/i.test(u) ||
-    u.includes('supabase') // trust supabase-hosted images regardless of extension
-  );
+  // Only fetch images from our own Supabase storage. Any other host is rejected
+  // up front so attacker-controlled URLs in inspiration/style data can't be used
+  // to probe internal services (SSRF) via the server-side fetch below.
+  const supabaseHost = getSupabaseHost();
+  const allowedImageHosts = supabaseHost ? [supabaseHost] : [];
+  const isAllowedImageUrl = (u: string): boolean => {
+    if (allowedImageHosts.length === 0) return false;
+    try {
+      const host = new URL(u).hostname.toLowerCase();
+      return allowedImageHosts.includes(host);
+    } catch {
+      return false;
+    }
+  };
+  const contentImages = (inspirationImageUrls ?? []).filter(isAllowedImageUrl);
 
   let enhancedPrompt = basePrompt;
 
@@ -1054,23 +1080,28 @@ export async function generateProjectImage(
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
 
-      // Convert a list of image URLs to Gemini inline-data parts (skip failures)
+      // Convert a list of image URLs to Gemini inline-data parts (skip failures).
+      // safeFetch enforces the host allowlist, blocks private IPs, and manually
+      // follows redirects so a 3xx can't escape the allowlist.
       const fetchImageParts = async (urls: string[], limit: number) => {
         const parts: { inlineData: { mimeType: string; data: string } }[] = [];
         for (const imgUrl of urls.slice(0, limit)) {
           try {
-            const res = await fetch(imgUrl);
+            const res = await safeFetch(imgUrl, { allowedHosts: allowedImageHosts });
             if (!res.ok) continue;
-            const contentType = res.headers.get('content-type') ?? 'image/jpeg';
+            const contentType = (res.headers.get('content-type') ?? 'image/jpeg').toLowerCase();
             if (!contentType.startsWith('image/')) continue;
             const base64 = Buffer.from(await res.arrayBuffer()).toString('base64');
             parts.push({ inlineData: { mimeType: contentType, data: base64 } });
           } catch {
-            // skip unreachable images
+            // skip unreachable / disallowed images
           }
         }
         return parts;
       };
+
+      // Filter style reference images to the same allowlist.
+      styleImages = styleImages.filter(isAllowedImageUrl);
 
       const hasStyleImages = styleImages.length > 0;
       const hasContentImages = contentImages.length > 0;
