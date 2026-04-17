@@ -90,6 +90,8 @@ Claude **mobile** cannot run a local stdio MCP. Use the deployed app’s **remot
 
    `https://YOUR_DEPLOYED_HOST/api/mcp`
 
+   Use your real production host (custom domain or `*.netlify.app`) with **no space** before `/api/mcp`.
+
 4. Configure the connector to send **`Authorization: Bearer <your token>`** on each request (some UIs call this an API key or auth header).
 
 The server uses the MCP **Streamable HTTP** transport (GET / POST / DELETE). CORS is open (`*`) so browser-based clients can reach the endpoint; protection is the Bearer token—**keep it secret** and rotate if leaked.

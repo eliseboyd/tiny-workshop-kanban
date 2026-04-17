@@ -3,7 +3,15 @@ import { updateSession } from '@/utils/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  if (pathname.startsWith('/shortcuts/') || pathname.startsWith('/api/shortcuts') || pathname.endsWith('.shortcut')) {
+  // Bearer-authenticated API routes must not go through the Supabase session gate,
+  // or external clients (Claude remote MCP, Shortcuts → /api/capture) get a login redirect.
+  if (
+    pathname.startsWith('/shortcuts/') ||
+    pathname.startsWith('/api/shortcuts') ||
+    pathname.startsWith('/api/capture') ||
+    pathname.startsWith('/api/mcp') ||
+    pathname.endsWith('.shortcut')
+  ) {
     return NextResponse.next();
   }
   return await updateSession(request);
