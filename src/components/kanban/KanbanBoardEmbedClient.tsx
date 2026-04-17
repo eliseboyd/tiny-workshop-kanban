@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import type { Project, SettingsData, Column } from './KanbanBoard';
+import type { SettingsData, Column } from './KanbanBoard';
 
 const KanbanBoardEmbed = dynamic(
   () => import('./KanbanBoardEmbed').then(mod => ({ default: mod.KanbanBoardEmbed })),
@@ -9,7 +9,7 @@ const KanbanBoardEmbed = dynamic(
 );
 
 type KanbanBoardEmbedClientProps = {
-  initialProjects: Project[];
+  initialProjects: Record<string, unknown>[];
   initialSettings: SettingsData;
   initialColumns: Column[];
 };

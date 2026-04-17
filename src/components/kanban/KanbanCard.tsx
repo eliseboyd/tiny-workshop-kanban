@@ -7,7 +7,7 @@ import { Project, Column } from './KanbanBoard';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 import {
   ContextMenu,
@@ -27,6 +27,12 @@ import {
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Trash2, Pin, ListTodo, MoveRight, ArrowRightLeft } from 'lucide-react';
+
+// Tiny neutral-gray placeholder (1x1 PNG) shown while the real cover image
+// loads. Keeps cards from flashing a blank rectangle when images come from
+// slow external origins (pollinations.ai) or the Supabase CDN cold path.
+const CARD_BLUR_DATA_URL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkaAAAAIUAhMvrAjgAAAAASUVORK5CYII=';
 
 function getPatternImage(id: string): string {
   const hash = id.split('').reduce((acc, c, i) => acc + c.charCodeAt(0) * (i + 1), 0);
@@ -79,9 +85,14 @@ type KanbanCardProps = {
 export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToColumn, columns = [], currentColumnId, size = 'medium', columnTitle, className }: KanbanCardProps) {
   // Touch handling to distinguish between scroll and tap
   const touchStartPos = useRef<{ x: number; y: number; time: number } | null>(null);
-  const [isTouchDevice, setIsTouchDevice] = useState(() =>
-    typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0)
-  );
+  // Start as false so server and first client render match; detect after mount.
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const touch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time post-mount touch detection to avoid SSR hydration mismatch
+    if (touch) setIsTouchDevice(true);
+  }, []);
   const [longPressTriggered, setLongPressTriggered] = useState(false);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const [moveSheetOpen, setMoveSheetOpen] = useState(false);
@@ -211,6 +222,8 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
                 fill
                 sizes="240px"
                 style={{ objectFit: 'cover' }}
+                placeholder="blur"
+                blurDataURL={CARD_BLUR_DATA_URL}
               />
             ) : (
               <div

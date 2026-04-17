@@ -27,12 +27,13 @@ export function KanbanBoardEmbed({ initialProjects, initialSettings, initialColu
   const mapProjects = (projs: Record<string, unknown>[]): Project[] => {
     return projs.map(p => ({
       ...p,
-      richContent: p.rich_content || p.richContent,
-      imageUrl: p.image_url || p.imageUrl,
-      materialsList: p.materials_list || p.materialsList,
-      parentProjectId: p.parent_project_id || p.parentProjectId,
-      plans: p.plans,
-      inspiration: p.inspiration,
+      richContent: (p.rich_content ?? p.richContent ?? null) as string | null,
+      imageUrl: (p.image_url ?? p.imageUrl ?? null) as string | null,
+      materialsList: (p.materials_list ?? p.materialsList ?? null) as string | null,
+      parentProjectId: (p.parent_project_id ?? p.parentProjectId ?? null) as string | null,
+      plans: (p.plans ?? null) as string | null,
+      inspiration: (p.inspiration ?? null) as string | null,
+      attachments: (p.attachments ?? null) as Record<string, unknown>[] | null,
     })) as unknown as Project[];
   };
 

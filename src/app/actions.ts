@@ -13,8 +13,9 @@ import path from 'path';
 // Helper function to download image from URL and upload to Supabase
 async function downloadAndUploadImage(imageUrl: string): Promise<string | null> {
   try {
-    // Fetch the image
-    const response = await fetch(imageUrl);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    const response = await fetch(imageUrl, { signal: controller.signal }).finally(() => clearTimeout(timer));
     if (!response.ok) {
       return null;
     }
@@ -38,7 +39,7 @@ async function downloadAndUploadImage(imageUrl: string): Promise<string | null> 
     const { error: uploadError } = await supabase.storage
       .from('board-uploads')
       .upload(fileName, buffer, {
-        cacheControl: '3600',
+        cacheControl: '31536000, immutable',
         upsert: false,
         contentType: contentType || 'image/jpeg'
       });
@@ -146,23 +147,26 @@ async function fetchOpenGraphImage(url: string): Promise<string | null> {
           reject(new Error(`Redirect not followed: ${res.statusCode}`));
           return;
         }
-        
+
         // Some sites may block server requests - fail gracefully
         if (res.statusCode === 403) {
           resolve(''); // Return empty string instead of error
           return;
         }
-        
+
         if (res.statusCode !== 200) {
           reject(new Error(`HTTP ${res.statusCode}`));
           return;
         }
-        
+
         let data = '';
         res.on('data', (chunk: Buffer | string) => data += chunk);
         res.on('end', () => resolve(data));
       });
-      
+
+      // Bound the whole request so updateProject never hangs on a slow origin.
+      const timeout = setTimeout(() => req.destroy(new Error('OG fetch timeout')), 3000);
+      req.on('close', () => clearTimeout(timeout));
       req.on('error', reject);
       req.end();
     });
@@ -263,20 +267,26 @@ function extractPlatformImage(url: string): string | null {
 
 // --- Projects ---
 
+// Card-level columns only — heavy columns (rich_content, plans, inspiration,
+// materials_list, attachments) are fetched on-demand via getProject() when the
+// modal opens.
+const PROJECT_CARD_COLUMNS =
+  'id, title, description, status, position, image_url, tags, parent_project_id, is_task, is_completed, is_idea, pinned, created_at';
+
 export async function getProjects() {
   // Use service role client to bypass RLS for server-side reads
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from('projects')
-    .select('*')
+    .select(PROJECT_CARD_COLUMNS)
     .or('is_idea.is.null,is_idea.eq.false')
     .order('position', { ascending: true });
-    
+
   if (error) {
     console.error('Error fetching projects:', JSON.stringify(error, null, 2));
     return [];
   }
-  
+
   return data;
 }
 
@@ -284,7 +294,7 @@ export async function getIdeas() {
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from('projects')
-    .select('*')
+    .select(PROJECT_CARD_COLUMNS)
     .eq('is_idea', true)
     .order('created_at', { ascending: false });
 
@@ -1147,7 +1157,7 @@ export async function uploadFile(formData: FormData) {
   const { error: uploadError } = await supabase.storage
     .from('board-uploads')
     .upload(fileName, file, {
-      cacheControl: '3600',
+      cacheControl: '31536000, immutable',
       upsert: false
     });
 
@@ -1192,7 +1202,7 @@ export async function uploadImageBase64(base64Data: string, fileName: string, fi
       .from('board-uploads')
       .upload(storageFileName, buffer, {
         contentType: fileType || 'image/jpeg',
-        cacheControl: '3600',
+        cacheControl: '31536000, immutable',
         upsert: false
       });
 

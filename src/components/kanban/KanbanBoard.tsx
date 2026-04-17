@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   DragStartEvent,
@@ -11,19 +11,27 @@ import { arrayMove } from '@dnd-kit/sortable';
 import { ProjectModal } from './ProjectModal';
 import { SettingsModal } from './SettingsModal';
 import { FilterSection } from './FilterSection';
+import dynamic from 'next/dynamic';
 import { DashboardSection } from './DashboardSection';
 import { ModeToggle } from '@/components/mode-toggle';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Menu, LayoutDashboard, Columns3, FileStack, CheckCircle2, Lightbulb } from 'lucide-react';
-import { PlansView } from './PlansView';
-import { CompletedProjectsView } from './CompletedProjectsView';
-import { IdeasView } from './IdeasView';
+// Tab views are only rendered when the user switches to them — lazy-load so
+// their code isn't in the initial board bundle.
+const TabViewFallback = () => (
+  <div className="flex-1 flex items-center justify-center p-8 text-sm text-muted-foreground">
+    Loading…
+  </div>
+);
+const PlansView = dynamic(() => import('./PlansView').then(m => ({ default: m.PlansView })), { loading: TabViewFallback });
+const CompletedProjectsView = dynamic(() => import('./CompletedProjectsView').then(m => ({ default: m.CompletedProjectsView })), { loading: TabViewFallback });
+const IdeasView = dynamic(() => import('./IdeasView').then(m => ({ default: m.IdeasView })), { loading: TabViewFallback });
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Settings, KanbanSquareDashed } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/use-local-storage';
-import { updateProjectStatus, updateSettings, updateColumn, createColumn, deleteColumn, deleteProject, updateColumnsOrder, updateColumnOrder, getAllTags, getAllProjectGroups, getAllWidgets, getAllMaterials, getProjects, getAllPlans, StandalonePlan, toggleProjectPinned, getIdeas, moveIdeaToKanban, createIdea, moveProjectToIdeas } from '@/app/actions';
+import { updateProjectStatus, updateSettings, updateColumn, createColumn, createProject, deleteColumn, deleteProject, updateColumnsOrder, updateColumnOrder, getAllTags, getAllProjectGroups, getAllWidgets, getAllMaterials, getProjects, getProject, getAllPlans, StandalonePlan, toggleProjectPinned, getIdeas, moveIdeaToKanban, createIdea, moveProjectToIdeas } from '@/app/actions';
 
 import { ClientDndWrapper } from './ClientDndWrapper';
 
@@ -132,19 +140,23 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
     setHasMounted(true);
   }, []);
 
-  // Map snake_case to camelCase for frontend state
+  // Map snake_case to camelCase for frontend state. Heavy fields (rich_content,
+  // plans, inspiration, materials_list, attachments) are intentionally omitted
+  // from list queries for performance — they default to null here and are
+  // hydrated when a project modal opens via getProject().
   const mapProjects = (projs: Record<string, unknown>[]): Project[] => {
       return projs.map(p => ({
           ...p,
-          richContent: p.rich_content || p.richContent,
-          imageUrl: p.image_url || p.imageUrl,
-          materialsList: p.materials_list || p.materialsList,
-          parentProjectId: p.parent_project_id || p.parentProjectId,
-          isTask: p.is_task || p.isTask || false,
-          isCompleted: p.is_completed || p.isCompleted || false,
-          isIdea: p.is_idea || p.isIdea || false,
-          plans: p.plans,
-          inspiration: p.inspiration,
+          richContent: (p.rich_content ?? p.richContent ?? null) as string | null,
+          imageUrl: (p.image_url ?? p.imageUrl ?? null) as string | null,
+          materialsList: (p.materials_list ?? p.materialsList ?? null) as string | null,
+          parentProjectId: (p.parent_project_id ?? p.parentProjectId ?? null) as string | null,
+          isTask: Boolean(p.is_task ?? p.isTask ?? false),
+          isCompleted: Boolean(p.is_completed ?? p.isCompleted ?? false),
+          isIdea: Boolean(p.is_idea ?? p.isIdea ?? false),
+          plans: (p.plans ?? null) as string | null,
+          inspiration: (p.inspiration ?? null) as string | null,
+          attachments: (p.attachments ?? null) as Record<string, unknown>[] | null,
       })) as unknown as Project[];
   };
 
@@ -158,6 +170,9 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
   const [newProjectColumnId, setNewProjectColumnId] = useState<string | undefined>(undefined);
   
   const [isCreatingInColumn, setIsCreatingInColumn] = useState<string | null>(null);
+  // Tracks background server-action work so the UI can show subtle pending
+  // state without blocking interaction (drag, create, reorder).
+  const [, startServerTransition] = useTransition();
 
   // Filter state
   const [activeTags, setActiveTags] = useState<string[]>([]);
@@ -202,8 +217,11 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
     setCols(initialColumns);
   }, [initialColumns]);
 
-  // Dashboard loading state — starts false because data is server-prefetched
-  const [isDashboardLoading, setIsDashboardLoading] = useState(false);
+  // Dashboard loading state — starts true when we have no prefetched data
+  // (widgets/materials/plans are now loaded client-side for faster first paint).
+  const [isDashboardLoading, setIsDashboardLoading] = useState(
+    initialWidgets.length === 0 && initialMaterials.length === 0 && initialPlans.length === 0
+  );
 
   // Collect all unique tags from all items
   const loadTagsAndGroups = async () => {
@@ -439,10 +457,12 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
            newItems = arrayMove(items, activeIndex, overIndex);
            setItems(newItems);
            
-           // Persist reorder
+           // Persist reorder in a transition so React can keep the UI interactive.
            const columnItems = newItems.filter(i => i.status === activeContainer);
            const projectIds = columnItems.map(i => i.id);
-           updateColumnOrder(activeContainer, projectIds);
+           startServerTransition(() => {
+               updateColumnOrder(activeContainer, projectIds);
+           });
        } else {
            // Cross-column logic
            
@@ -452,8 +472,10 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
            const safeIndex = Math.min(Math.max(0, newIndex), destItemIds.length);
            destItemIds.splice(safeIndex, 0, activeId);
            
-           // 2. Update Backend
-           updateColumnOrder(overContainer, destItemIds);
+           // 2. Update Backend (non-blocking)
+           startServerTransition(() => {
+               updateColumnOrder(overContainer, destItemIds);
+           });
            
            // 3. Update UI (Insert into correct position in flat list)
            const nextItemId = destItemIds[safeIndex + 1];
@@ -473,10 +495,25 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
     setActiveId(null);
   }
 
-  const handleEditProject = (project: Project) => {
-    setEditingProject(project);
+  // Fetch the full project row (heavy columns like rich_content, plans,
+  // inspiration, materials_list, attachments are omitted from list queries).
+  const hydrateProject = async (project: Project): Promise<Project> => {
+    try {
+      const full = await getProject(project.id);
+      if (full) {
+        return mapProjects([full as unknown as Record<string, unknown>])[0];
+      }
+    } catch (e) {
+      console.error('Failed to hydrate project', e);
+    }
+    return project;
+  };
+
+  const handleEditProject = async (project: Project) => {
     setEditingIdeaIndex(null);
     setNewProjectColumnId(undefined);
+    const hydrated = await hydrateProject(project);
+    setEditingProject(hydrated);
     setIsModalOpen(true);
   };
 
@@ -510,27 +547,33 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
           
           setItems(prev => [...prev, optimisticProject]);
 
-          // Actually create
-          await import('@/app/actions').then(mod => mod.createProject({ 
-              title, 
-              status: columnId,
-              position: position,
-              is_task: isTask || false,
-          }));
+          // Persist to server. If it fails, roll back the optimistic card.
+          try {
+              await createProject({
+                  title,
+                  status: columnId,
+                  position: position,
+                  is_task: isTask || false,
+              });
+          } catch (err) {
+              console.error('createProject failed, rolling back optimistic card', err);
+              setItems(prev => prev.filter(i => i.id !== tempId));
+              return;
+          }
           
-          // Scroll to bottom of column to show the new card
-          setTimeout(() => {
+          // Scroll to bottom of column to show the new card. Two rAFs: the first
+          // waits for React's commit, the second waits for layout so
+          // scrollHeight reflects the new card.
+          requestAnimationFrame(() => requestAnimationFrame(() => {
               const columnElement = document.querySelector(`[data-column-id="${columnId}"]`);
-              if (columnElement) {
-                  const scrollContainer = columnElement.querySelector('[data-column-scroll]');
-                  if (scrollContainer) {
-                      scrollContainer.scrollTo({
-                          top: scrollContainer.scrollHeight,
-                          behavior: 'smooth'
-                      });
-                  }
+              const scrollContainer = columnElement?.querySelector('[data-column-scroll]');
+              if (scrollContainer) {
+                  scrollContainer.scrollTo({
+                      top: scrollContainer.scrollHeight,
+                      behavior: 'smooth',
+                  });
               }
-          }, 100);
+          }));
       }
   };
 
@@ -952,15 +995,15 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
           ideaNavigation={editingIdeaIndex !== null ? {
             current: editingIdeaIndex + 1,
             total: ideas.length,
-            onPrev: editingIdeaIndex > 0 ? () => {
+            onPrev: editingIdeaIndex > 0 ? async () => {
               const newIdx = editingIdeaIndex - 1;
               setEditingIdeaIndex(newIdx);
-              setEditingProject(ideas[newIdx]);
+              setEditingProject(await hydrateProject(ideas[newIdx]));
             } : undefined,
-            onNext: editingIdeaIndex < ideas.length - 1 ? () => {
+            onNext: editingIdeaIndex < ideas.length - 1 ? async () => {
               const newIdx = editingIdeaIndex + 1;
               setEditingIdeaIndex(newIdx);
-              setEditingProject(ideas[newIdx]);
+              setEditingProject(await hydrateProject(ideas[newIdx]));
             } : undefined,
           } : undefined}
           onMoveToIdeas={!editingProject.isIdea ? () => {

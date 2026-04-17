@@ -41,10 +41,12 @@ function KanbanSkeleton() {
   );
 }
 
-// Import KanbanBoard dynamically with no SSR to avoid hydration issues with localStorage
+// Render KanbanBoard on the server so first paint shows real content. The
+// localStorage-backed settings (active tab, hidden columns) defer their real
+// value to a post-mount read in useLocalStorage to avoid hydration mismatches.
 const KanbanBoard = dynamic(
   () => import('./KanbanBoard').then(mod => ({ default: mod.KanbanBoard })),
-  { ssr: false, loading: () => <KanbanSkeleton /> }
+  { loading: () => <KanbanSkeleton /> }
 );
 
 type KanbanBoardClientProps = {
