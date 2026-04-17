@@ -974,7 +974,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
         styleId,
         inspirationUrls
       );
-      console.log('[AI Generate] Pollinations URL:', pollinationsUrl);
       startPollinationsLoad(pollinationsUrl);
     } catch (error) {
       console.error('[AI Generate] Failed to build prompt:', error);
@@ -1032,7 +1031,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
           params.styleId,
           params.inspirationUrls
         );
-        console.log(`[AI Generate] Retry ${attempt + 1} URL:`, pollinationsUrl);
         startPollinationsLoad(pollinationsUrl);
       } catch (err) {
         console.error('[AI Generate] Retry failed:', err);
