@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import { Project, Column } from './KanbanBoard';
 import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage, getColumns, moveIdeaToKanban, moveProjectToIdeas, deleteProject, getImageStyles, saveImageFromUrl, type ImageStyle } from '@/app/actions';
@@ -33,6 +32,19 @@ const PDFViewer = dynamic(() => import('@/components/ui/pdf-viewer').then(mod =>
     </div>
   )
 });
+
+// Code-split tiptap (~150KB) — the editor only mounts when a project modal opens.
+const RichTextEditor = dynamic(
+  () => import('@/components/ui/rich-text-editor').then(mod => ({ default: mod.RichTextEditor })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="min-h-[200px] w-full rounded-md border bg-muted/20 p-3 text-sm text-muted-foreground">
+        Loading editor…
+      </div>
+    ),
+  }
+);
 
 type Attachment = { id: string; url: string; name: string; type: string; size: number };
 type Material = { id: string; text: string; toBuy: boolean; toBuild: boolean };

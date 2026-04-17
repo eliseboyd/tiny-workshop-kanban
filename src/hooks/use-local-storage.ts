@@ -1,28 +1,31 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((prev: T) => T)) => void] {
-  // State to store our value - initialize with value from localStorage if available
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    if (typeof window === 'undefined') {
-      return initialValue;
-    }
+  // Always start with initialValue so server and first client render match,
+  // avoiding hydration mismatches. Read from localStorage after mount.
+  const [storedValue, setStoredValue] = useState<T>(initialValue);
+  const hydratedRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
     try {
       const item = window.localStorage.getItem(key);
       if (item && item !== 'undefined' && item !== 'null') {
-        return JSON.parse(item);
+        setStoredValue(JSON.parse(item));
       }
-      return initialValue;
     } catch (error) {
       console.error('Error loading from localStorage:', error);
-      return initialValue;
+    } finally {
+      hydratedRef.current = true;
     }
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
 
-  // Update localStorage whenever the value changes
+  // Update localStorage whenever the value changes, but only after the initial
+  // hydration read completes so we don't overwrite the stored value with the
+  // initialValue on first mount.
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
+    if (typeof window === 'undefined' || !hydratedRef.current) return;
     try {
       window.localStorage.setItem(key, JSON.stringify(storedValue));
     } catch (error) {
