@@ -16,14 +16,6 @@ function getSupabaseHost(): string | null {
   const url = getSupabaseUrl();
   if (!url) return null;
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5000);
-    const response = await fetch(imageUrl, { signal: controller.signal }).finally(() => clearTimeout(timer));
-    if (!response.ok) {
-      return null;
-    }
-    
-    // Get the image as a buffer
     return new URL(url).hostname.toLowerCase();
   } catch {
     return null;
@@ -237,6 +229,24 @@ async function fetchOpenGraphImage(url: string): Promise<string | null> {
   } catch (error) {
     return null;
   }
+}
+
+function escapeHtmlForCapture(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+async function getFirstColumnId(): Promise<string> {
+  const supabase = createServiceRoleClient();
+  const { data } = await supabase
+    .from('columns')
+    .select('id')
+    .order('order', { ascending: true })
+    .limit(1);
+  return data?.[0]?.id ?? 'todo';
 }
 
 // Helper function to extract URLs from text
@@ -622,6 +632,66 @@ export async function createIdea(title: string, status = 'todo') {
 
   revalidatePath('/');
   return id;
+}
+
+export type QuickCaptureResult = {
+  id: string;
+  /** Optional hint (e.g. link preview image could not be fetched). */
+  notice?: string;
+};
+
+/**
+ * Fast capture without LLM: saves your text as an idea (first line = title, rest = description).
+ * Optional URL enriches with link + OG preview image. Use the Kanban MCP from Claude for tagging/linking.
+ */
+export async function quickCapture(
+  text: string,
+  sourceUrl?: string | null
+): Promise<QuickCaptureResult> {
+  const trimmed = text.trim();
+  const paramUrl = sourceUrl?.trim() ? cleanUrl(sourceUrl.trim()) : null;
+  const urlsFromText = extractUrls(trimmed);
+  const allUrls = [...new Set([...urlsFromText, ...(paramUrl ? [paramUrl] : [])])];
+  const primaryUrl = allUrls[0];
+  const effectiveText = trimmed || primaryUrl || 'Untitled';
+
+  const status = await getFirstColumnId();
+
+  const lines = effectiveText.split(/\r?\n/);
+  const rawTitle = (lines[0] ?? effectiveText).trim() || 'New idea';
+  const title = rawTitle.slice(0, 500);
+  const body =
+    lines.length > 1 ? lines.slice(1).join('\n').trim().slice(0, 2000) : '';
+
+  const id = await createIdea(title, status);
+
+  const updates: Record<string, unknown> = {};
+  if (body) {
+    updates.description = body;
+  }
+
+  if (primaryUrl) {
+    const linkHtml = `<p><a href="${escapeHtmlForCapture(primaryUrl)}">${escapeHtmlForCapture(primaryUrl)}</a></p>`;
+    if (trimmed && trimmed !== primaryUrl) {
+      updates.richContent = `<p>${escapeHtmlForCapture(trimmed)}</p>${linkHtml}`;
+    } else {
+      updates.richContent = linkHtml;
+    }
+  }
+
+  if (Object.keys(updates).length > 0) {
+    await updateProject(id, updates);
+  }
+
+  let notice: string | undefined;
+  if (primaryUrl) {
+    const og = await fetchAndSetOgImage(id);
+    if (!og.success && og.error) {
+      notice = `Saved idea; preview image: ${og.error}`;
+    }
+  }
+
+  return { id, ...(notice ? { notice } : {}) };
 }
 
 export async function moveProjectToIdeas(projectId: string) {
