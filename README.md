@@ -23,29 +23,40 @@ A simple Kanban board application built with Next.js, Shadcn UI, and SQLite.
 
 3. Open [http://localhost:3000](http://localhost:3000) with your browser.
 
-## iOS Share Sheet Quick Add
+## Quick capture (web and HTTP)
 
-You can add links directly to Ideas from iOS using a Shortcuts share sheet action.
-First, generate a Quick Add token in **Settings → Quick Add**, then click **Install iOS Shortcut**.
-If the import says the URL is invalid, open `/shortcuts/quick-add.signed.shortcut` in Safari to install.
+The **Quick capture** field saves your text as an idea: **first line = title**, remaining lines = **description** (no server-side LLM). If you paste a URL, the card gets a link and a **preview image** from Open Graph when possible.
 
-1. Open the Shortcuts app on iOS.
-2. Create a new shortcut named "Add to Project Board".
-3. Add these actions (manual setup only if you prefer not to use the install button):
-   - Get URLs from Shortcut Input
-   - Get Contents of URL
-     - Method: POST
-     - URL: `https://your-netlify-url.netlify.app/api/quick-add`
-      - Headers: `Content-Type: application/json`
-     - Request Body: JSON
-       - `{ "url": [URL] }`
-4. Enable "Show in Share Sheet".
-5. Share any page from Safari and choose the shortcut.
+## Claude / MCP (tagging and linking)
 
-Include a header:
-- `Authorization: Bearer your_quick_add_token` (or `x-quick-add-token`)
+For **searching the board**, **adding tags**, and **linking to parent projects**, use the **Kanban MCP server** from Claude or Cursor. It talks to the same Supabase data as the app.
 
-If you want to include a note, add a "Text" action and send `{ "url": [URL], "note": [Text] }`.
+See **[mcp/kanban/README.md](mcp/kanban/README.md)** for install, env vars (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`), and Cursor / Claude Desktop config.
+
+## POST /api/capture (iOS, scripts)
+
+Set `QUICK_CAPTURE_TOKEN` in `.env.local` (and in Netlify) to a long random string. Same capture behavior as the web field (plain text + optional URL).
+
+**Headers:** `Authorization: Bearer <QUICK_CAPTURE_TOKEN>` and `Content-Type: application/json`.
+
+**Body (JSON):** at least one of `text` or `url` is required.
+
+```json
+{ "text": "Optional note or pasted content", "url": "https://example.com/page" }
+```
+
+**iOS Shortcut (Share Sheet):**
+
+1. Open the Shortcuts app and create a shortcut (for example **Add to Kanban**).
+2. Use **Get URLs from Input** (or **Get Clipboard**) when sharing from Safari.
+3. Add **Get Contents of URL** with:
+   - Method: **POST**
+   - URL: `https://your-deployment.netlify.app/api/capture` (your real site URL)
+   - Headers: `Content-Type` = `application/json`, `Authorization` = `Bearer YOUR_TOKEN_HERE`
+   - Request Body: JSON with the shared URL in the `url` field (Shortcuts: build a dictionary with keys `text` and `url`, and set `url` to the shortcut input). Add a **Text** or **Ask for Input** action if you want to populate `text` with a note.
+4. Turn on **Show in Share Sheet** for Safari and other apps.
+
+If `QUICK_CAPTURE_TOKEN` is unset, the route responds with `503` and the feature is off.
 
 ## Database
 

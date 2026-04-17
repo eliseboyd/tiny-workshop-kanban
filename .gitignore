@@ -2,6 +2,8 @@
 
 # dependencies
 /node_modules
+mcp/kanban/node_modules
+mcp/kanban/dist
 /.pnp
 .pnp.*
 .yarn/*

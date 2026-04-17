@@ -130,7 +130,8 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
   const imageHeight = isCompact ? 'h-0 hidden' : isSmall ? 'h-32' : 'h-40';
   const contentPadding = isCompact ? 'p-2' : 'p-4';
   const titleSize = isCompact ? 'text-sm' : 'text-base';
-  const showDescription = false;
+  /** Ideas (and other small cards) show AI summary; compact strip stays title-only. */
+  const showDescription = !isCompact && isSmall && !!project.description?.trim();
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setIsTouchDevice(true);

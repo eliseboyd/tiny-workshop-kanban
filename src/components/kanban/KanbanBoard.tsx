@@ -17,6 +17,8 @@ import { ModeToggle } from '@/components/mode-toggle';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Menu, LayoutDashboard, Columns3, FileStack, CheckCircle2, Lightbulb } from 'lucide-react';
+import { AICaptureInput } from './AICaptureInput';
+
 // Tab views are only rendered when the user switches to them — lazy-load so
 // their code isn't in the initial board bundle.
 const TabViewFallback = () => (
@@ -835,6 +837,45 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
                   <Settings className="h-4 w-4" />
                 </Button>
             </div>
+            </div>
+
+            <div className="px-4 py-2 border-b bg-muted/20">
+              <AICaptureInput
+                onBeginCapture={() => {
+                  const id = `optimistic-${uuidv4()}`;
+                  const colId = cols[0]?.id ?? 'todo';
+                  setIdeas((prev) => [
+                    {
+                      id,
+                      title: 'Capturing…',
+                      description: null,
+                      richContent: null,
+                      materialsList: null,
+                      plans: null,
+                      inspiration: null,
+                      imageUrl: null,
+                      tags: null,
+                      attachments: null,
+                      status: colId,
+                      position: -1,
+                      createdAt: new Date(),
+                      updatedAt: new Date(),
+                      isTask: false,
+                      isIdea: true,
+                    } as Project,
+                    ...prev,
+                  ]);
+                  return id;
+                }}
+                onEndCapture={(tempId) =>
+                  setIdeas((prev) => prev.filter((p) => p.id !== tempId))
+                }
+                onCaptured={async () => {
+                  await refreshIdeas();
+                  setActiveView('ideas');
+                  await loadTagsAndGroups();
+                }}
+              />
             </div>
 
             {/* View Tabs */}
