@@ -80,6 +80,26 @@ Add to **Cursor Settings → MCP** (or `.cursor/mcp.json`), adjusting the path:
 
 Restart Claude after editing.
 
+### Claude Desktop: “Connectors” URL vs `claude_desktop_config.json`
+
+**Settings → Connectors → Add custom connector** (remote URL) is unreliable for many **Bearer-only** MCP servers: the UI is built around **OAuth**, and **Streamable HTTP** can fail in Desktop even when the same URL works in **Claude Code** ([upstream discussion](https://github.com/anthropics/claude-code/issues/23736)). You may see **“Couldn’t reach the MCP server”** with no way to paste a Bearer token.
+
+**What works well on Desktop:**
+
+1. **stdio** (recommended) — use the JSON block above with `command` + `args` + `env`.
+2. **Remote URL in the config file** (not the Connectors UI): fully quit Claude Desktop, edit `claude_desktop_config.json`, add an entry with `url` and `headers`:
+
+```json
+"kanban-remote": {
+  "url": "https://YOUR_HOST/api/mcp",
+  "headers": {
+    "Authorization": "Bearer YOUR_REMOTE_MCP_TOKEN"
+  }
+}
+```
+
+Use the **same** token value as `REMOTE_MCP_TOKEN` (or `QUICK_CAPTURE_TOKEN`) on Netlify. Save the file, then reopen Claude Desktop.
+
 ## Claude mobile / remote MCP (Streamable HTTP)
 
 Claude **mobile** cannot run a local stdio MCP. Use the deployed app’s **remote MCP** endpoint instead (same tools as stdio, backed by Supabase).

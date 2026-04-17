@@ -69,7 +69,12 @@ async function handleMcp(req: Request): Promise<Response> {
   }
 
   const supabase = createServiceRoleClient();
-  const transport = new WebStandardStreamableHTTPServerTransport();
+  // JSON responses instead of SSE for the POST body — helps some clients (e.g. Claude Desktop
+  // custom connectors) that mishandle Streamable HTTP + event-stream on remote URLs.
+  const transport = new WebStandardStreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+    enableJsonResponse: true,
+  });
   const server = createKanbanMcpServer(supabase);
   await server.connect(transport);
   const res = await transport.handleRequest(req);
