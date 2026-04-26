@@ -87,6 +87,7 @@ export function Lightbox({
         size="icon"
         className="absolute top-4 right-4 z-10 text-white hover:bg-white/10"
         onClick={onClose}
+        aria-label="Close"
       >
         <X className="h-6 w-6" />
       </Button>
@@ -102,6 +103,7 @@ export function Lightbox({
               e.stopPropagation();
               goToPrev();
             }}
+            aria-label="Previous image"
           >
             <ChevronLeft className="h-8 w-8" />
           </Button>
@@ -113,6 +115,7 @@ export function Lightbox({
               e.stopPropagation();
               goToNext();
             }}
+            aria-label="Next image"
           >
             <ChevronRight className="h-8 w-8" />
           </Button>

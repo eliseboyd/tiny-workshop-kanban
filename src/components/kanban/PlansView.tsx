@@ -8,14 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { 
+import {
   StandalonePlan,
   uploadFile,
   createStandalonePlan,
   updateStandalonePlan,
   deleteStandalonePlan,
-  getAllPlans 
+  getAllPlans
 } from '@/app/actions';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 type Project = {
   id: string;
@@ -30,6 +31,7 @@ type PlansViewProps = {
 
 export function PlansView({ initialPlans, projects, onPlanClick }: PlansViewProps) {
   const router = useRouter();
+  const confirmDialog = useConfirm();
   const [plans, setPlans] = useState(initialPlans);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -168,7 +170,13 @@ export function PlansView({ initialPlans, projects, onPlanClick }: PlansViewProp
   // Handle deleting a standalone plan
   const handleDeletePlan = async (planId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('Are you sure you want to delete this plan?')) return;
+    const ok = await confirmDialog({
+      title: 'Delete plan?',
+      description: 'This plan will be permanently removed.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     
     try {
       await deleteStandalonePlan(planId);

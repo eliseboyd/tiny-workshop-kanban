@@ -7,7 +7,7 @@ import { Project, Column } from './KanbanBoard';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 
 import {
   ContextMenu,
@@ -114,6 +114,8 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
     disabled: longPressTriggered, // Disable drag when long press menu is open
   });
 
+  const patternImage = useMemo(() => getPatternImage(project?.id ?? ''), [project?.id]);
+
   if (!project) return null;
 
   const style = {
@@ -134,7 +136,6 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
   const showDescription = !isCompact && isSmall && !!project.description?.trim();
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    setIsTouchDevice(true);
     touchStartPos.current = {
       x: e.touches[0].clientX,
       y: e.touches[0].clientY,
@@ -192,7 +193,22 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
   const cardListeners = (isTouchDevice || contextMenuOpen) ? {} : listeners;
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...cardListeners} className={className}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...cardListeners}
+      role="button"
+      tabIndex={0}
+      aria-label={`Open project: ${project.title}`}
+      onKeyDown={(e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && !isDragging) {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+      className={className}
+    >
       <ContextMenu onOpenChange={setContextMenuOpen}>
       <ContextMenuTrigger asChild>
       <Card 
@@ -229,7 +245,7 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
             ) : (
               <div
                 className="w-full h-full bg-muted/40"
-                style={{ backgroundImage: getPatternImage(project.id) }}
+                style={{ backgroundImage: patternImage }}
               />
             )}
           </div>
@@ -277,15 +293,16 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
         
         {/* Mobile Move Button - Only show on touch devices when columns available */}
         {isTouchDevice && columns && columns.length > 1 && onMoveToColumn && (
-          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity md:hidden">
+          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity md:hidden">
             <Sheet open={moveSheetOpen} onOpenChange={setMoveSheetOpen}>
               <SheetTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button
                   size="sm"
                   variant="secondary"
-                  className="h-7 px-2 shadow-md"
+                  className="h-9 px-3 shadow-md"
+                  aria-label="Move card to column"
                 >
-                  <ArrowRightLeft className="h-3 w-3 mr-1" />
+                  <ArrowRightLeft className="h-4 w-4 mr-1" />
                   Move
                 </Button>
               </SheetTrigger>

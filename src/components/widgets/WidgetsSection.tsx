@@ -192,7 +192,7 @@ type WidgetsSectionProps = {
   tags: Tag[];
   projectGroups: ProjectGroup[];
   onProjectClick: (project: Project) => void;
-  onRefresh?: () => void;
+  onRefresh?: () => void | Promise<void>;
   isLoading?: boolean;
 };
 
@@ -233,11 +233,11 @@ export function WidgetsSection({
     setIsAddDialogOpen(true);
   };
 
-  const handleCloseDialog = () => {
+  const handleCloseDialog = async () => {
     setIsAddDialogOpen(false);
     setEditingWidget(null);
     // Refresh data after dialog closes (widget may have been added/edited)
-    onRefresh?.();
+    await onRefresh?.();
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {

@@ -40,7 +40,8 @@ type WidgetConfig = {
 
 type AddWidgetDialogProps = {
   isOpen: boolean;
-  onClose: () => void;
+  /** Called after save or when closing; may be async (e.g. refetch widgets). */
+  onClose: () => void | Promise<void>;
   tags: Tag[];
   projectGroups: ProjectGroup[];
   projects?: Project[];
@@ -146,10 +147,12 @@ export function AddWidgetDialog({
   );
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Sync state when editingWidget changes (e.g., opening dialog to edit)
   useEffect(() => {
     if (isOpen) {
+      setSaveError(null);
       if (editingWidget) {
         setStep('config');
         setSelectedType(editingWidget.type);
@@ -246,6 +249,7 @@ export function AddWidgetDialog({
     }
 
     setIsSaving(true);
+    setSaveError(null);
 
     try {
       const config: Record<string, unknown> = {
@@ -279,8 +283,9 @@ export function AddWidgetDialog({
         if (accentLucide.trim()) config.accentLucide = accentLucide.trim();
       }
 
-      if (editingWidget?.id) {
-        await updateWidget(editingWidget.id, {
+      const widgetId = editingWidget && 'id' in editingWidget ? (editingWidget as { id: string }).id : undefined;
+      if (widgetId) {
+        await updateWidget(widgetId, {
           title: title.trim(),
           config,
         });
@@ -292,16 +297,24 @@ export function AddWidgetDialog({
         });
       }
 
-      router.refresh();
-      handleClose();
+      await router.refresh();
+      await handleClose();
     } catch (error) {
       console.error('Failed to save widget:', error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof error === 'object' && error !== null && 'message' in error
+            ? String((error as { message: unknown }).message)
+            : 'Could not save widget. Check the database migration for this widget type, then try again.';
+      setSaveError(message);
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
+    setSaveError(null);
     // Reset state
     setStep('type');
     setSelectedType(null);
@@ -318,7 +331,7 @@ export function AddWidgetDialog({
     setAccentColor('');
     setAccentEmoji('');
     setAccentLucide('');
-    onClose();
+    await Promise.resolve(onClose());
   };
 
   const handleDelete = async () => {
@@ -328,8 +341,8 @@ export function AddWidgetDialog({
       setIsDeleting(true);
       try {
         await deleteWidget(editingWidget.id);
-        router.refresh();
-        handleClose();
+        await router.refresh();
+        await handleClose();
       } catch (error) {
         console.error('Failed to delete widget:', error);
       } finally {
@@ -340,7 +353,7 @@ export function AddWidgetDialog({
 
   const canSave = () => {
     if (!selectedType || !title.trim()) return false;
-    if (selectedType === 'todo-list' && !filterId) return false;
+    if (selectedType === 'todo-list' && filterType !== 'all' && !filterId) return false;
     if (selectedType === 'materials-shopping' && filterType !== 'all' && !filterId) return false;
     if (selectedType === 'project-todos' && !projectId) return false;
     if (selectedType === 'tag-lane-board' && !filterId) return false;
@@ -349,23 +362,24 @@ export function AddWidgetDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {editingWidget ? 'Edit Widget' : step === 'type' ? 'Add Widget' : 'Configure Widget'}
-          </DialogTitle>
-          <DialogDescription>
-            {step === 'type' 
-              ? 'Choose a widget type to add to your dashboard'
-              : 'Configure your widget settings'
-            }
-          </DialogDescription>
-        </DialogHeader>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && void handleClose()}>
+      <DialogContent className="flex !max-w-none max-h-[min(92vh,860px)] w-[calc(100%-2rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:w-full">
+        <div className="shrink-0 border-b px-6 py-4">
+          <DialogHeader className="space-y-1.5 text-left">
+            <DialogTitle>
+              {editingWidget ? 'Edit Widget' : step === 'type' ? 'Add Widget' : 'Configure Widget'}
+            </DialogTitle>
+            <DialogDescription>
+              {step === 'type'
+                ? 'Choose a widget type to add to your dashboard'
+                : 'Configure your widget settings'}
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
         {step === 'type' ? (
           /* Type Selection */
-          <div className="grid gap-3 py-4">
+          <div className="grid max-h-[min(60vh,480px)] gap-3 overflow-y-auto px-6 py-4">
             {WIDGET_TYPES.map((type) => (
               <button
                 key={type.id}
@@ -387,8 +401,9 @@ export function AddWidgetDialog({
             ))}
           </div>
         ) : (
-          /* Configuration */
-          <div className="space-y-6 py-4">
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="grid min-h-0 flex-1 grid-cols-1 gap-x-8 gap-y-5 overflow-y-auto px-6 py-4 md:grid-cols-2">
+              <div className="min-w-0 space-y-5">
             {/* Title */}
             <div className="space-y-2">
               <Label htmlFor="widget-title">Widget Title</Label>
@@ -409,7 +424,7 @@ export function AddWidgetDialog({
               </div>
             )}
 
-            {/* Tag lane: filter, layout, accent */}
+            {/* Tag lane: filter + layout (accents in right column) */}
             {selectedType === 'tag-lane-board' && (
               <div className="space-y-5">
                 <div className="space-y-2">
@@ -445,7 +460,7 @@ export function AddWidgetDialog({
                 </div>
                 <div className="space-y-2">
                   <Label>{filterType === 'tag' ? 'Tag' : 'Project group'}</Label>
-                  <Select value={filterId} onValueChange={setFilterId}>
+                  <Select value={filterId || undefined} onValueChange={setFilterId}>
                     <SelectTrigger>
                       <SelectValue placeholder={filterType === 'tag' ? 'Choose a tag…' : 'Choose a group…'} />
                     </SelectTrigger>
@@ -520,6 +535,169 @@ export function AddWidgetDialog({
                     Mini board sets widget width to 2 columns. Shows To do and In progress only.
                   </p>
                 </div>
+              </div>
+            )}
+
+            {/* Active Projects Type Selection */}
+            {selectedType === 'active-projects' && (
+              <div className="space-y-2">
+                <Label>Show</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={showType === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setShowType('all')}
+                    className="flex-1"
+                  >
+                    All
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={showType === 'projects' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setShowType('projects')}
+                    className="flex-1 gap-2"
+                  >
+                    <FolderKanban className="h-4 w-4" />
+                    Projects
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={showType === 'tasks' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setShowType('tasks')}
+                    className="flex-1 gap-2"
+                  >
+                    <ListTodo className="h-4 w-4" />
+                    Tasks
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Project Selection (for project-todos) */}
+            {selectedType === 'project-todos' && (
+              <div className="space-y-2">
+                <Label>Select Project</Label>
+                <Select value={projectId || undefined} onValueChange={setProjectId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a project..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground text-center">
+                        No projects available
+                      </div>
+                    ) : (
+                      projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.title}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Filter Type (for todo-list and materials-shopping; not tag-lane-board) */}
+            {(selectedType === 'todo-list' || selectedType === 'materials-shopping') && (
+              <div className="space-y-2">
+                <Label>Filter By</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={filterType === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFilterType('all')}
+                    className="flex-1"
+                  >
+                    All Projects
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={filterType === 'tag' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFilterType('tag')}
+                    className="flex-1 gap-2"
+                  >
+                    <Tags className="h-4 w-4" />
+                    Tag
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={filterType === 'project-group' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFilterType('project-group')}
+                    className="flex-1 gap-2"
+                  >
+                    <FolderKanban className="h-4 w-4" />
+                    Project Group
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Filter Selection (for todo-list and materials-shopping) */}
+            {(selectedType === 'todo-list' || selectedType === 'materials-shopping') && filterType !== 'all' && (
+              <div className="space-y-2">
+                <Label>
+                  {filterType === 'tag' ? 'Select Tag' : 'Select Project Group'}
+                </Label>
+                <Select value={filterId || undefined} onValueChange={setFilterId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={`Choose a ${filterType === 'tag' ? 'tag' : 'project group'}...`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filterType === 'tag' ? (
+                      tags.length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground text-center">
+                          No tags available
+                        </div>
+                      ) : (
+                        tags.map((tag) => (
+                          <SelectItem key={tag.name} value={tag.name}>
+                            <div className="flex items-center gap-2">
+                              {tag.emoji && <span>{tag.emoji}</span>}
+                              <span>#{tag.name}</span>
+                              <div 
+                                className="w-2.5 h-2.5 rounded-full ml-auto" 
+                                style={{ backgroundColor: tag.color }}
+                              />
+                            </div>
+                          </SelectItem>
+                        ))
+                      )
+                    ) : (
+                      projectGroups.length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground text-center">
+                          No project groups available
+                        </div>
+                      ) : (
+                        projectGroups.map((group) => (
+                          <SelectItem key={group.id} value={group.id}>
+                            <div className="flex items-center gap-2">
+                              {group.emoji && <span>{group.emoji}</span>}
+                              <span>{group.name}</span>
+                              <div 
+                                className="w-2.5 h-2.5 rounded-full ml-auto" 
+                                style={{ backgroundColor: group.color }}
+                              />
+                            </div>
+                          </SelectItem>
+                        ))
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            </div>
+            <div className="min-w-0 space-y-5">
+            {selectedType === 'tag-lane-board' && (
+              <div className="space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="accent-headline">Headline (optional)</Label>
                   <Input
@@ -586,162 +764,6 @@ export function AddWidgetDialog({
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-            )}
-
-            {/* Active Projects Type Selection */}
-            {selectedType === 'active-projects' && (
-              <div className="space-y-2">
-                <Label>Show</Label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={showType === 'all' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setShowType('all')}
-                    className="flex-1"
-                  >
-                    All
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={showType === 'projects' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setShowType('projects')}
-                    className="flex-1 gap-2"
-                  >
-                    <FolderKanban className="h-4 w-4" />
-                    Projects
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={showType === 'tasks' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setShowType('tasks')}
-                    className="flex-1 gap-2"
-                  >
-                    <ListTodo className="h-4 w-4" />
-                    Tasks
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Project Selection (for project-todos) */}
-            {selectedType === 'project-todos' && (
-              <div className="space-y-2">
-                <Label>Select Project</Label>
-                <Select value={projectId} onValueChange={setProjectId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a project..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {projects.length === 0 ? (
-                      <div className="p-2 text-sm text-muted-foreground text-center">
-                        No projects available
-                      </div>
-                    ) : (
-                      projects.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>
-                          {project.title}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* Filter Type (for todo-list and materials-shopping; not tag-lane-board) */}
-            {(selectedType === 'todo-list' || selectedType === 'materials-shopping') && (
-              <div className="space-y-2">
-                <Label>Filter By</Label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={filterType === 'all' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setFilterType('all')}
-                    className="flex-1"
-                  >
-                    All Projects
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={filterType === 'tag' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setFilterType('tag')}
-                    className="flex-1 gap-2"
-                  >
-                    <Tags className="h-4 w-4" />
-                    Tag
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={filterType === 'project-group' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setFilterType('project-group')}
-                    className="flex-1 gap-2"
-                  >
-                    <FolderKanban className="h-4 w-4" />
-                    Project Group
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Filter Selection (for todo-list and materials-shopping) */}
-            {(selectedType === 'todo-list' || selectedType === 'materials-shopping') && filterType !== 'all' && (
-              <div className="space-y-2">
-                <Label>
-                  {filterType === 'tag' ? 'Select Tag' : 'Select Project Group'}
-                </Label>
-                <Select value={filterId} onValueChange={setFilterId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={`Choose a ${filterType === 'tag' ? 'tag' : 'project group'}...`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filterType === 'tag' ? (
-                      tags.length === 0 ? (
-                        <div className="p-2 text-sm text-muted-foreground text-center">
-                          No tags available
-                        </div>
-                      ) : (
-                        tags.map((tag) => (
-                          <SelectItem key={tag.name} value={tag.name}>
-                            <div className="flex items-center gap-2">
-                              {tag.emoji && <span>{tag.emoji}</span>}
-                              <span>#{tag.name}</span>
-                              <div 
-                                className="w-2.5 h-2.5 rounded-full ml-auto" 
-                                style={{ backgroundColor: tag.color }}
-                              />
-                            </div>
-                          </SelectItem>
-                        ))
-                      )
-                    ) : (
-                      projectGroups.length === 0 ? (
-                        <div className="p-2 text-sm text-muted-foreground text-center">
-                          No project groups available
-                        </div>
-                      ) : (
-                        projectGroups.map((group) => (
-                          <SelectItem key={group.id} value={group.id}>
-                            <div className="flex items-center gap-2">
-                              {group.emoji && <span>{group.emoji}</span>}
-                              <span>{group.name}</span>
-                              <div 
-                                className="w-2.5 h-2.5 rounded-full ml-auto" 
-                                style={{ backgroundColor: group.color }}
-                              />
-                            </div>
-                          </SelectItem>
-                        ))
-                      )
-                    )}
-                  </SelectContent>
-                </Select>
               </div>
             )}
 
@@ -815,10 +837,18 @@ export function AddWidgetDialog({
               </div>
               <p className="text-xs text-muted-foreground">Drag the bottom edge of a widget to adjust height</p>
             </div>
+            </div>
+            </div>
           </div>
         )}
 
-        <DialogFooter className="flex gap-2 sm:justify-between">
+        {step === 'config' && saveError ? (
+          <div className="shrink-0 border-t border-destructive/30 bg-destructive/10 px-6 py-2 text-sm text-destructive">
+            {saveError}
+          </div>
+        ) : null}
+
+        <DialogFooter className="shrink-0 border-t bg-muted/20 px-6 py-4 sm:justify-between">
           {/* Delete button - only when editing */}
           {step === 'config' && editingWidget && (
             <Button 

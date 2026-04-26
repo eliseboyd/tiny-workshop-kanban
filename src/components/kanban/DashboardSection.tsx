@@ -75,7 +75,7 @@ type DashboardSectionProps = {
   materials?: MaterialItem[];
   projects?: Project[];
   onProjectCardClick?: (project: Project) => void;
-  onRefreshWidgets?: () => void;
+  onRefreshWidgets?: () => void | Promise<void>;
   isLoading?: boolean;
   isDashboardOnly?: boolean;
 };

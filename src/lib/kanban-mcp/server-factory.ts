@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
 import { getSupabaseUrl } from '../../utils/supabase/env';
+import { DEFAULT_TAG_COLOR } from '../constants';
 
 export function createServiceClientFromEnv(): SupabaseClient {
   const url = getSupabaseUrl();
@@ -42,7 +43,7 @@ async function ensureTagExists(
   if (!existing) {
     await supabase.from('tags').insert({
       name: tagName,
-      color: '#64748b',
+      color: DEFAULT_TAG_COLOR,
       emoji: null,
       icon: null,
     });
@@ -169,7 +170,7 @@ export function createKanbanMcpServer(supabase: SupabaseClient): McpServer {
       );
       projects?.forEach((p) => {
         p.tags?.forEach((name: string) => {
-          if (!map.has(name)) map.set(name, { name, color: '#64748b' });
+          if (!map.has(name)) map.set(name, { name, color: DEFAULT_TAG_COLOR });
         });
       });
 

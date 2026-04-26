@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { updateWidget } from '@/app/actions';
 import { useRouter } from 'next/navigation';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DragHandleContext } from './WidgetsSection';
 import { ScrollFade } from './ScrollFade';
 import type { Project } from '@/components/kanban/KanbanBoard';
@@ -34,6 +35,7 @@ type DayPlanWidgetProps = {
 
 export function DayPlanWidget({ widget, projects, columns = [], onEdit, onProjectClick, onRefresh }: DayPlanWidgetProps) {
   const router = useRouter();
+  const confirmDialog = useConfirm();
   const dragListeners = useContext(DragHandleContext);
   
   const projectIds = widget.config.projectIds || [];
@@ -202,7 +204,13 @@ export function DayPlanWidget({ widget, projects, columns = [], onEdit, onProjec
 
   // Clear all
   const handleClearAll = async () => {
-    if (!confirm('Clear all items from day plan?')) return;
+    const ok = await confirmDialog({
+      title: 'Clear day plan?',
+      description: 'All items will be removed from the day plan.',
+      confirmLabel: 'Clear',
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await updateWidget(widget.id, {
         config: { ...widget.config, projectIds: [] }

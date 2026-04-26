@@ -100,7 +100,7 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="flex w-[85vw] md:w-60 md:min-w-[240px] shrink-0 snap-center md:snap-align-none flex-col rounded-lg bg-neutral-100 p-3 dark:bg-neutral-900 relative group" data-column-id={id}>
+    <div ref={setNodeRef} style={style} className="flex w-[85vw] md:w-60 md:min-w-[240px] shrink-0 snap-center md:snap-align-none flex-col rounded-lg bg-muted p-3 relative group" data-column-id={id}>
       <div 
         className="mb-3 h-6 flex items-center justify-between cursor-grab active:cursor-grabbing" 
         {...attributes} 
@@ -118,9 +118,18 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
                 onClick={(e) => e.stopPropagation()}
              />
         ) : (
-            <h3 
-                className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 cursor-text hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors w-full"
+            <h3
+                role="button"
+                tabIndex={0}
+                aria-label={`Rename column: ${internalTitle}`}
+                className="text-sm font-semibold text-muted-foreground cursor-text hover:text-foreground transition-colors w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                 onClick={handleTitleClick}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleTitleClick();
+                  }
+                }}
             >
                 {internalTitle}
             </h3>
@@ -136,27 +145,29 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+              className="h-9 w-9 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleVisibility();
               }}
               title="Hide column"
+              aria-label="Hide column"
             >
-              <Eye className="h-3 w-3" />
+              <Eye className="h-4 w-4" />
             </Button>
           )}
           
           {/* Delete column button */}
           {items.length === 0 && onDeleteColumn && (
-              <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-neutral-400 hover:text-destructive"
+              <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
                   onClick={() => onDeleteColumn(id)}
                   title="Delete empty column"
+                  aria-label="Delete empty column"
               >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-4 w-4" />
               </Button>
           )}
         </div>

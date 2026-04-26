@@ -18,6 +18,8 @@ import { getSettings, updateSettings, getAllMediaFiles, deleteMediaFile, getAllT
 import { logout } from '@/app/login/actions';
 import { Loader2, LogOut, Trash2, Image as ImageIcon, FileText, Plus, Edit2, Upload, X, Code, Wand2, Sparkles } from 'lucide-react';
 import Image from 'next/image';
+import { useConfirm } from '@/components/ui/confirm-dialog';
+import { DEFAULT_TAG_COLOR } from '@/lib/constants';
 
 type SettingsModalProps = {
   isOpen: boolean;
@@ -240,6 +242,8 @@ function ProjectGroupItem({
 }
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+  const confirmDialog = useConfirm();
+  const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [cardSize, setCardSize] = useState('medium');
@@ -251,7 +255,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoadingTags, setIsLoadingTags] = useState(false);
   const [newTagName, setNewTagName] = useState('');
-  const [newTagColor, setNewTagColor] = useState('#64748b');
+  const [newTagColor, setNewTagColor] = useState(DEFAULT_TAG_COLOR);
   const [newTagEmoji, setNewTagEmoji] = useState('');
   const [editingTag, setEditingTag] = useState<string | null>(null);
   
@@ -259,7 +263,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
   const [isLoadingGroups, setIsLoadingGroups] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
-  const [newGroupColor, setNewGroupColor] = useState('#64748b');
+  const [newGroupColor, setNewGroupColor] = useState(DEFAULT_TAG_COLOR);
   const [newGroupEmoji, setNewGroupEmoji] = useState('');
   const [editingGroup, setEditingGroup] = useState<string | null>(null);
 
@@ -321,16 +325,20 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   };
 
   const handleDeleteMedia = async (url: string) => {
-    if (!confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
-      return;
-    }
-    
+    const ok = await confirmDialog({
+      title: 'Delete file?',
+      description: 'This action cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
+
     try {
       await deleteMediaFile(url);
       setMediaFiles(prev => prev.filter(file => file.url !== url));
     } catch (error) {
       console.error('Failed to delete media file', error);
-      alert('Failed to delete file');
+      setSettingsError('Failed to delete file');
     }
   };
 
@@ -357,11 +365,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       });
       setNewTagName('');
       setNewTagEmoji('');
-      setNewTagColor('#64748b');
+      setNewTagColor(DEFAULT_TAG_COLOR);
       loadTags();
     } catch (error) {
       console.error('Failed to create tag', error);
-      alert('Failed to create tag');
+      setSettingsError('Failed to create tag');
     }
   };
 
@@ -375,7 +383,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   };
 
   const handleDeleteTag = async (name: string) => {
-    if (!confirm(`Delete tag "${name}"? This will remove it from all projects.`)) return;
+    const ok = await confirmDialog({
+      title: `Delete tag "${name}"?`,
+      description: 'This will remove it from all projects.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await deleteTag(name);
       loadTags();
@@ -407,11 +421,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       });
       setNewGroupName('');
       setNewGroupEmoji('');
-      setNewGroupColor('#64748b');
+      setNewGroupColor(DEFAULT_TAG_COLOR);
       loadProjectGroups();
     } catch (error) {
       console.error('Failed to create project group', error);
-      alert('Failed to create project group');
+      setSettingsError('Failed to create project group');
     }
   };
 
@@ -425,7 +439,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   };
 
   const handleDeleteProjectGroup = async (id: string, name: string) => {
-    if (!confirm(`Delete project group "${name}"? Cards in this group won't be deleted.`)) return;
+    const ok = await confirmDialog({
+      title: `Delete project group "${name}"?`,
+      description: "Cards in this group won't be deleted.",
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await deleteProjectGroup(id);
       loadProjectGroups();
@@ -476,7 +496,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       setStyleFormImages((prev) => [...prev, url]);
     } catch (error) {
       console.error('Failed to upload reference image', error);
-      alert('Failed to upload image');
+      setSettingsError('Failed to upload image');
     } finally {
       setStyleFormUploading(false);
     }
@@ -502,12 +522,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       loadImageStyles();
     } catch (error) {
       console.error('Failed to save image style', error);
-      alert('Failed to save style');
+      setSettingsError('Failed to save style');
     }
   };
 
   const handleDeleteStyle = async (id: string, name: string) => {
-    if (!confirm(`Delete style "${name}"?`)) return;
+    const ok = await confirmDialog({
+      title: `Delete style "${name}"?`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await deleteImageStyle(id);
       loadImageStyles();
@@ -526,7 +551,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       loadTags();
     } catch (error) {
       console.error('Failed to upload tag icon', error);
-      alert('Failed to upload icon');
+      setSettingsError('Failed to upload icon');
     }
   };
 
@@ -539,7 +564,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       loadProjectGroups();
     } catch (error) {
       console.error('Failed to upload project group icon', error);
-      alert('Failed to upload icon');
+      setSettingsError('Failed to upload icon');
     }
   };
 
@@ -565,7 +590,23 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
         </DialogHeader>
-        
+
+        {settingsError && (
+          <div
+            role="alert"
+            className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive flex items-center justify-between gap-2"
+          >
+            <span>{settingsError}</span>
+            <button
+              onClick={() => setSettingsError(null)}
+              aria-label="Dismiss error"
+              className="opacity-70 hover:opacity-100"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="general">General</TabsTrigger>

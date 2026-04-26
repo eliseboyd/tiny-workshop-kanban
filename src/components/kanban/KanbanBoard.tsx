@@ -18,6 +18,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescri
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Menu, LayoutDashboard, Columns3, FileStack, CheckCircle2, Lightbulb } from 'lucide-react';
 import { AICaptureInput } from './AICaptureInput';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 // Tab views are only rendered when the user switches to them — lazy-load so
 // their code isn't in the initial board bundle.
@@ -134,6 +135,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export function KanbanBoard({ initialProjects, initialSettings, initialColumns, initialIdeas = [], initialTags = [], initialProjectGroups = [], initialWidgets = [], initialMaterials = [], initialPlans = [] }: KanbanBoardProps) {
   const router = useRouter();
+  const confirmDialog = useConfirm();
   
   // Hasmounted state to prevent hydration errors
   const [hasMounted, setHasMounted] = useState(false);
@@ -584,22 +586,32 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
   };
 
   const handleCreateColumn = async () => {
-      const title = prompt("Enter column title:");
-      if (title) {
-          await createColumn(title);
-      }
+      // Create with a default title; user can rename via the inline-edit title.
+      await createColumn('New Column');
+      router.refresh();
   };
 
   const handleDeleteColumn = async (id: string) => {
-      if (confirm("Are you sure you want to delete this column?")) {
-          // Optimistic update
+      const ok = await confirmDialog({
+          title: 'Delete column?',
+          description: 'This column will be removed from the board.',
+          confirmLabel: 'Delete',
+          destructive: true,
+      });
+      if (ok) {
           setCols(prev => prev.filter(c => c.id !== id));
           await deleteColumn(id);
       }
   };
 
   const handleDeleteProject = async (id: string) => {
-      if (confirm("Are you sure you want to delete this project?")) {
+      const ok = await confirmDialog({
+          title: 'Delete project?',
+          description: 'This project will be permanently removed.',
+          confirmLabel: 'Delete',
+          destructive: true,
+      });
+      if (ok) {
           setItems(prev => prev.filter(item => item.id !== id));
           await deleteProject(id);
       }
@@ -611,7 +623,13 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
   };
 
   const handleDeleteIdea = async (id: string) => {
-      if (confirm("Are you sure you want to delete this idea?")) {
+      const ok = await confirmDialog({
+          title: 'Delete idea?',
+          description: 'This idea will be permanently removed.',
+          confirmLabel: 'Delete',
+          destructive: true,
+      });
+      if (ok) {
           setIdeas(prev => prev.filter(item => item.id !== id));
           await deleteProject(id);
       }
@@ -652,12 +670,10 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
   };
 
   const handleTogglePin = async (id: string, pinned: boolean) => {
-      // Optimistically update UI
-      setItems(prev => prev.map(item => 
+      setItems(prev => prev.map(item =>
           item.id === id ? { ...item, pinned } : item
       ));
       await toggleProjectPinned(id, pinned);
-      router.refresh();
   };
 
   const handleMoveCard = async (projectId: string, newColumnId: string) => {
@@ -679,7 +695,6 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
       ));
       
       await updateProjectStatus(projectId, newColumnId, newPosition);
-      router.refresh();
   };
 
   const handleToggleColumnVisibility = (columnId: string) => {
@@ -797,9 +812,18 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
                         className="text-2xl font-bold h-9 py-0 px-1 w-fit min-w-[200px] bg-transparent border-none focus-visible:ring-1"
                     />
                 ) : (
-                    <h1 
-                        className="text-2xl font-bold cursor-text hover:bg-accent/50 rounded px-1 -ml-1 transition-colors"
+                    <h1
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Rename board: ${settingsState.boardTitle}`}
+                        className="text-2xl font-bold cursor-text hover:bg-accent/50 rounded px-1 -ml-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         onClick={handleBoardTitleClick}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleBoardTitleClick();
+                          }
+                        }}
                     >
                         {settingsState.boardTitle}
                     </h1>
@@ -808,7 +832,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
             <div className="flex md:hidden">
                 <Sheet>
                     <SheetTrigger asChild>
-                        <Button variant="ghost" size="icon" className="mr-2">
+                        <Button variant="ghost" size="icon" className="mr-2" aria-label="Open menu">
                             <Menu className="h-5 w-5" />
                         </Button>
                     </SheetTrigger>
@@ -833,7 +857,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
             </div>
             <div className="hidden md:flex gap-2">
                 <ModeToggle />
-                <Button variant="outline" size="icon" onClick={() => setIsSettingsOpen(true)}>
+                <Button variant="outline" size="icon" onClick={() => setIsSettingsOpen(true)} aria-label="Open settings">
                   <Settings className="h-4 w-4" />
                 </Button>
             </div>
@@ -1064,14 +1088,15 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
             setItems(prev => prev.filter(item => item.id !== id));
             setIdeas(prev => prev.filter(item => item.id !== id));
           }}
-          onClose={async () => {
+          onClose={() => {
             setIsModalOpen(false);
             setEditingIdeaIndex(null);
-            // Refresh projects and dashboard data when modal closes
-            const freshProjects = await getProjects();
-            setItems(mapProjects(freshProjects));
-            await refreshIdeas();
-            loadDashboardData();
+            // onProjectUpdate/onProjectDelete keep items/ideas in sync already.
+            // Only reload dashboard data if we're viewing the dashboard — its
+            // widgets/materials may reference this project.
+            if (activeView === 'dashboard') {
+              loadDashboardData();
+            }
           }}
         />
       )}
