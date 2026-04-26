@@ -314,7 +314,7 @@ export async function getProjects() {
     return [];
   }
 
-  return data;
+  return data ?? [];
 }
 
 export async function getIdeas() {
@@ -330,7 +330,7 @@ export async function getIdeas() {
     return [];
   }
 
-  return data;
+  return data ?? [];
 }
 
 export async function getProject(id: string) {
@@ -991,7 +991,8 @@ export async function getColumns() {
      return [];
   }
 
-  if (data.length === 0) {
+  const rows = data ?? [];
+  if (rows.length === 0) {
     // Seed default columns if none exist
     const defaults = [
       { id: uuidv4(), title: 'Todo', order: 0 },
@@ -1002,7 +1003,7 @@ export async function getColumns() {
     if (insertError) console.error('Error seeding columns:', insertError);
     return defaults;
   }
-  return data;
+  return rows;
 }
 
 export async function createColumn(title: string) {
@@ -1089,6 +1090,10 @@ export async function getSettings() {
             aiPromptTemplate: defaultSettings.ai_prompt_template,
             boardTitle: defaultSettings.board_title,
             cardSize: defaultSettings.card_size,
+            visibleProjects: [],
+            visibleTags: [],
+            hiddenProjects: [],
+            hiddenTags: [],
           };
       }
   }
@@ -1098,6 +1103,10 @@ export async function getSettings() {
     aiPromptTemplate: defaultSettings.ai_prompt_template,
     boardTitle: defaultSettings.board_title,
     cardSize: defaultSettings.card_size,
+    visibleProjects: [],
+    visibleTags: [],
+    hiddenProjects: [],
+    hiddenTags: [],
   };
 }
 
@@ -1648,7 +1657,10 @@ export async function getAllTags() {
   // Collect all unique tags from projects
   const projectTagsSet = new Set<string>();
   projects?.forEach(project => {
-    project.tags?.forEach((tag: string) => projectTagsSet.add(tag));
+    const tags = project.tags;
+    if (Array.isArray(tags)) {
+      tags.forEach((tag: string) => projectTagsSet.add(tag));
+    }
   });
   
   // Create a map of existing tags
@@ -1788,7 +1800,7 @@ export async function getAllProjectGroups() {
     return [];
   }
   
-  return data;
+  return data ?? [];
 }
 
 export async function createProjectGroup(group: { name: string; color: string; emoji?: string; icon?: string }) {
@@ -1861,7 +1873,7 @@ export async function getAllWidgets() {
     return [];
   }
   
-  return data;
+  return data ?? [];
 }
 
 export async function createWidget(widget: {
