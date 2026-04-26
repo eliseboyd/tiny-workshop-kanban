@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Project, Column } from './KanbanBoard';
-import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage, getColumns, moveIdeaToKanban, moveProjectToIdeas, deleteProject, getImageStyles, saveImageFromUrl, type ImageStyle } from '@/app/actions';
+import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage, getColumns, moveIdeaToKanban, moveProjectToIdeas, deleteProject, getImageStyles, saveImageFromUrl, setProjectCompletedState, type ImageStyle } from '@/app/actions';
 import Image from 'next/image';
 import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images, ExternalLink, Pencil, FolderKanban, ListTodo, CheckCircle2, Circle, Lightbulb, Crop, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { compressImage } from '@/utils/image-compression';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 // Dynamically import PDFViewer to avoid SSR issues
 const PDFViewer = dynamic(() => import('@/components/ui/pdf-viewer').then(mod => ({ default: mod.PDFViewer })), {
@@ -165,6 +166,8 @@ function StylePicker({
 
 export function ProjectEditor({ project, onClose, isModal = false, className, ideaNavigation, onMoveToIdeas, onProjectUpdate, onProjectDelete }: ProjectEditorProps) {
   const router = useRouter();
+  const confirmDialog = useConfirm();
+  const [ogImageError, setOgImageError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isFetchingOgImage, setIsFetchingOgImage] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -454,7 +457,13 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
       clearTimeout(saveTimeoutRef.current);
     }
 
-    if (!confirm('Are you sure you want to delete this project?')) return;
+    const ok = await confirmDialog({
+      title: 'Delete project?',
+      description: 'This project will be permanently removed.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
 
     try {
       await deleteProject(project.id);
@@ -575,12 +584,23 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   };
   
   
-  // Completed status handler
+  // Completed status handler — must update kanban column (`status`), not only `is_completed`
   const handleToggleCompleted = async () => {
-    const newIsCompleted = !isCompleted;
+    const prev = isCompleted;
+    const newIsCompleted = !prev;
     setIsCompleted(newIsCompleted);
-    await updateProject(project.id, { is_completed: newIsCompleted });
-    onProjectUpdate?.(project.id, { isCompleted: newIsCompleted });
+    const result = await setProjectCompletedState(project.id, newIsCompleted);
+    if (!result) {
+      setIsCompleted(prev);
+      return;
+    }
+    setIsCompleted(result.isCompleted);
+    onProjectUpdate?.(project.id, {
+      isCompleted: result.isCompleted,
+      status: result.status,
+      position: result.position,
+    });
+    router.refresh();
   };
 
   const handleMoveToIdeas = async () => {
@@ -1049,13 +1069,14 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
       const result = await fetchAndSetOgImage(project.id);
       if (result.success && result.imageUrl) {
         setImageUrl(result.imageUrl);
+        setOgImageError(null);
         router.refresh();
       } else {
-        alert(result.error || 'Could not find an image from the links in your project');
+        setOgImageError(result.error || 'Could not find an image from the links in your project');
       }
     } catch (err) {
       console.error('Failed to fetch OG image:', err);
-      alert('Failed to fetch image from link');
+      setOgImageError('Failed to fetch image from link');
     } finally {
       setIsFetchingOgImage(false);
     }
@@ -1332,6 +1353,21 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   
   return (
     <div className={cn("flex h-full bg-background relative", className)}>
+      {ogImageError && (
+        <div
+          role="alert"
+          className="absolute top-4 left-1/2 -translate-x-1/2 z-[60] max-w-md rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive shadow-md flex items-center gap-2"
+        >
+          <span>{ogImageError}</span>
+          <button
+            onClick={() => setOgImageError(null)}
+            aria-label="Dismiss error"
+            className="ml-2 opacity-70 hover:opacity-100"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      )}
       {/* Swipe Back Indicator - Fixed position, outside scroll */}
       {swipeProgress > 0 && (
         <>

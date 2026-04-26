@@ -797,60 +797,164 @@ export async function moveProjectFromDoneIfNeeded(projectId: string) {
   revalidatePath('/');
 }
 
-export async function toggleProjectCompletion(projectId: string, currentStatus: string) {
+type ServiceClient = ReturnType<typeof createServiceRoleClient>;
+
+/** Matches board "done" lanes; avoids treating "Incomplete" as done (substring "complete"). */
+function findDoneColumn(columns: Array<{ id: string; title: string }>) {
+  return columns.find((c) => {
+    const x = c.title.toLowerCase().trim();
+    if (x.includes('incomplete')) return false;
+    if (/\bdone\b/.test(x) || x.includes('completed')) return true;
+    return x.includes('complete');
+  });
+}
+
+async function persistProjectCompletedState(
+  supabase: ServiceClient,
+  projectId: string,
+  project: { status: string; position: number },
+  columns: Array<{ id: string; title: string; order: number }>,
+  completed: boolean
+): Promise<{ status: string; position: number; isCompleted: boolean } | null> {
+  const firstColumn = columns[0];
+  const doneColumn = findDoneColumn(columns);
+  const inDoneColumn = Boolean(doneColumn && project.status === doneColumn.id);
+
+  if (completed) {
+    if (inDoneColumn) {
+      const { error } = await supabase
+        .from('projects')
+        .update({ is_completed: true })
+        .eq('id', projectId);
+      if (error) {
+        console.error('Error setting project completed:', error);
+        return null;
+      }
+      revalidatePath('/');
+      return { status: project.status, position: project.position, isCompleted: true };
+    }
+    if (doneColumn) {
+      const { count } = await supabase
+        .from('projects')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', doneColumn.id);
+      const newPosition = count ?? 0;
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          status: doneColumn.id,
+          position: newPosition,
+          is_completed: true,
+        })
+        .eq('id', projectId);
+      if (error) {
+        console.error('Error moving project to done column:', error);
+        return null;
+      }
+      revalidatePath('/');
+      return { status: doneColumn.id, position: newPosition, isCompleted: true };
+    }
+    const { error } = await supabase
+      .from('projects')
+      .update({ is_completed: true })
+      .eq('id', projectId);
+    if (error) {
+      console.error('Error setting project completed (no done column):', error);
+      return null;
+    }
+    revalidatePath('/');
+    return { status: project.status, position: project.position, isCompleted: true };
+  }
+
+  if (inDoneColumn && firstColumn) {
+    const { count } = await supabase
+      .from('projects')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', firstColumn.id);
+    const newPosition = count ?? 0;
+    const { error } = await supabase
+      .from('projects')
+      .update({
+        status: firstColumn.id,
+        position: newPosition,
+        is_completed: false,
+      })
+      .eq('id', projectId);
+    if (error) {
+      console.error('Error moving project from done column:', error);
+      return null;
+    }
+    revalidatePath('/');
+    return { status: firstColumn.id, position: newPosition, isCompleted: false };
+  }
+
+  const { error } = await supabase
+    .from('projects')
+    .update({ is_completed: false })
+    .eq('id', projectId);
+  if (error) {
+    console.error('Error clearing project completed:', error);
+    return null;
+  }
+  revalidatePath('/');
+  return { status: project.status, position: project.position, isCompleted: false };
+}
+
+/**
+ * Sets completion from explicit intent (e.g. project editor checkbox).
+ * Keeps `is_completed` and kanban `status` in sync when a Done-style column exists.
+ */
+export async function setProjectCompletedState(
+  projectId: string,
+  completed: boolean
+): Promise<{ status: string; position: number; isCompleted: boolean } | null> {
   const supabase = createServiceRoleClient();
-  
-  // Get all columns to find Done column and first column
-  const { data: columns, error: colError } = await supabase
+  const { data: project, error: pErr } = await supabase
+    .from('projects')
+    .select('status, position')
+    .eq('id', projectId)
+    .single();
+  if (pErr || !project) {
+    console.error('setProjectCompletedState: project', pErr);
+    return null;
+  }
+  const { data: columns, error: cErr } = await supabase
     .from('columns')
     .select('*')
     .order('order', { ascending: true });
-  
-  if (colError || !columns || columns.length === 0) {
-    console.error('Error fetching columns:', colError);
-    return;
+  if (cErr || !columns?.length) {
+    console.error('setProjectCompletedState: columns', cErr);
+    return null;
   }
-  
-  // Find the Done column (case-insensitive)
-  const doneColumn = columns.find(c => 
-    c.title.toLowerCase() === 'done' || 
-    c.title.toLowerCase() === 'completed'
-  );
-  
-  // First column as fallback for uncompleting
-  const firstColumn = columns[0];
-  
-  // Check if project is currently in the Done column
-  const isCurrentlyDone = doneColumn && currentStatus === doneColumn.id;
-  
-  let targetColumnId: string;
-  
-  if (isCurrentlyDone) {
-    // Move back to first column (uncomplete)
-    targetColumnId = firstColumn.id;
-  } else {
-    // Move to Done column (or first column if no Done column exists)
-    targetColumnId = doneColumn?.id || firstColumn.id;
-  }
-  
-  // Get count of projects in target column to set position at end
-  const { count } = await supabase
+  return persistProjectCompletedState(supabase, projectId, project, columns, completed);
+}
+
+/** Toggles done state from current column (e.g. todo widget). `currentStatus` is ignored; DB is source of truth. */
+export async function toggleProjectCompletion(
+  projectId: string,
+  _currentStatus: string
+): Promise<{ status: string; position: number; isCompleted: boolean } | null> {
+  const supabase = createServiceRoleClient();
+  const { data: project, error: pErr } = await supabase
     .from('projects')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', targetColumnId);
-  
-  const newPosition = count || 0;
-  
-  const { error } = await supabase
-    .from('projects')
-    .update({ status: targetColumnId, position: newPosition })
-    .eq('id', projectId);
-  
-  if (error) {
-    console.error('Error toggling project completion:', error);
+    .select('status, position')
+    .eq('id', projectId)
+    .single();
+  if (pErr || !project) {
+    console.error('toggleProjectCompletion: project', pErr);
+    return null;
   }
-  
-  revalidatePath('/');
+  const { data: columns, error: cErr } = await supabase
+    .from('columns')
+    .select('*')
+    .order('order', { ascending: true });
+  if (cErr || !columns?.length) {
+    console.error('toggleProjectCompletion: columns', cErr);
+    return null;
+  }
+  const doneColumn = findDoneColumn(columns);
+  const inDone = Boolean(doneColumn && project.status === doneColumn.id);
+  return persistProjectCompletedState(supabase, projectId, project, columns, !inDone);
 }
 
 export async function updateColumnOrder(columnId: string, projectIds: string[]) {
