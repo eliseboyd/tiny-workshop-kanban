@@ -8,6 +8,7 @@ import { MaterialsShoppingWidget } from './MaterialsShoppingWidget';
 import { ProjectTodosWidget } from './ProjectTodosWidget';
 import { DayPlanWidget } from './DayPlanWidget';
 import { ActiveProjectsWidget } from './ActiveProjectsWidget';
+import { TagLaneBoardWidget } from './TagLaneBoardWidget';
 import { AddWidgetDialog } from './AddWidgetDialog';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
@@ -48,7 +49,7 @@ type ProjectGroup = {
 
 type Widget = {
   id: string;
-  type: 'todo-list' | 'materials-shopping' | 'project-todos' | 'day-plan' | 'active-projects';
+  type: 'todo-list' | 'materials-shopping' | 'project-todos' | 'day-plan' | 'active-projects' | 'tag-lane-board';
   title: string;
   config: Record<string, unknown>;
   position: number;
@@ -76,11 +77,14 @@ function SortableWidget({
   children, 
   height = DEFAULT_HEIGHT,
   onHeightChange,
+  colSpan = 1,
 }: { 
   id: string; 
   children: React.ReactNode;
   height?: number;
   onHeightChange?: (newHeight: number) => void;
+  /** Masonry: span full row on md+ when 2 or 3 (matches widget config width). */
+  colSpan?: number;
 }) {
   const {
     attributes,
@@ -151,7 +155,8 @@ function SortableWidget({
         className={cn(
           "relative group/widget break-inside-avoid mb-4",
           "[&>*:first-child]:h-full [&>*:first-child]:overflow-auto",
-          isResizing && "ring-2 ring-primary/30 rounded-xl"
+          isResizing && "ring-2 ring-primary/30 rounded-xl",
+          colSpan >= 2 && "md:column-span-all"
         )}
         {...attributes}
       >
@@ -370,6 +375,21 @@ export function WidgetsSection({
       );
     }
 
+    if (widget.type === 'tag-lane-board') {
+      return (
+        <TagLaneBoardWidget
+          widget={widget as unknown as Parameters<typeof TagLaneBoardWidget>[0]['widget']}
+          projects={projects}
+          columns={columns}
+          tags={tags}
+          projectGroups={projectGroups}
+          onEdit={() => handleEdit(widget)}
+          onProjectClick={onProjectClick}
+          onRefresh={onRefresh}
+        />
+      );
+    }
+
     return null;
   };
 
@@ -417,6 +437,7 @@ export function WidgetsSection({
                     id={widget.id}
                     height={getHeight(widget)}
                     onHeightChange={(newHeight) => handleHeightChange(widget.id, newHeight)}
+                    colSpan={(widget.config?.colSpan as number | undefined) ?? 1}
                   >
                     {renderWidget(widget)}
                   </SortableWidget>

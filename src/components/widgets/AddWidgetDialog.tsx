@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ListTodo, ShoppingCart, Tags, FolderKanban, ListChecks, Trash2, Calendar, Layers } from 'lucide-react';
+import { ListTodo, ShoppingCart, Tags, FolderKanban, ListChecks, Trash2, Calendar, Layers, LayoutGrid, Columns2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TAG_LANE_ACCENT_LUCIDE_OPTIONS } from '@/lib/tag-lane-accent-icons';
 import { createWidget, updateWidget, deleteWidget } from '@/app/actions';
 import { useRouter } from 'next/navigation';
 
@@ -32,7 +33,7 @@ type Project = {
 
 type WidgetConfig = {
   id?: string;
-  type: 'todo-list' | 'materials-shopping' | 'project-todos' | 'day-plan' | 'active-projects';
+  type: 'todo-list' | 'materials-shopping' | 'project-todos' | 'day-plan' | 'active-projects' | 'tag-lane-board';
   title: string;
   config: Record<string, unknown>;
 };
@@ -46,7 +47,7 @@ type AddWidgetDialogProps = {
   editingWidget?: WidgetConfig | null;
 };
 
-type WidgetType = 'todo-list' | 'materials-shopping' | 'project-todos' | 'day-plan' | 'active-projects';
+type WidgetType = 'todo-list' | 'materials-shopping' | 'project-todos' | 'day-plan' | 'active-projects' | 'tag-lane-board';
 
 const WIDGET_TYPES = [
   {
@@ -55,6 +56,13 @@ const WIDGET_TYPES = [
     description: 'Filter by tags, project groups, or all projects',
     icon: ListTodo,
     color: 'bg-blue-500/10 text-blue-600 border-blue-500/30',
+  },
+  {
+    id: 'tag-lane-board' as WidgetType,
+    name: 'Tag lane',
+    description: 'Visual cards for To do and In progress, filtered by tag or group',
+    icon: LayoutGrid,
+    color: 'bg-cyan-500/10 text-cyan-700 border-cyan-500/30',
   },
   {
     id: 'active-projects' as WidgetType,
@@ -121,6 +129,21 @@ export function AddWidgetDialog({
   const [colSpan, setColSpan] = useState<1 | 2 | 3>(
     (editingWidget?.config?.colSpan as 1 | 2 | 3) || 1
   );
+  const [boardViewMode, setBoardViewMode] = useState<'cards' | 'mini-kanban'>(
+    (editingWidget?.config?.viewMode as 'cards' | 'mini-kanban') || 'cards'
+  );
+  const [accentHeadline, setAccentHeadline] = useState(
+    (editingWidget?.config?.accentHeadline as string) || ''
+  );
+  const [accentColor, setAccentColor] = useState(
+    (editingWidget?.config?.accentColor as string) || ''
+  );
+  const [accentEmoji, setAccentEmoji] = useState(
+    (editingWidget?.config?.accentEmoji as string) || ''
+  );
+  const [accentLucide, setAccentLucide] = useState(
+    (editingWidget?.config?.accentLucide as string) || ''
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -138,6 +161,11 @@ export function AddWidgetDialog({
         setShowPurchased((editingWidget.config?.showPurchased as boolean) ?? false);
         setShowType((editingWidget.config?.showType as 'all' | 'projects' | 'tasks') || 'all');
         setColSpan((editingWidget.config?.colSpan as 1 | 2 | 3) || 1);
+        setBoardViewMode((editingWidget.config?.viewMode as 'cards' | 'mini-kanban') || 'cards');
+        setAccentHeadline((editingWidget.config?.accentHeadline as string) || '');
+        setAccentColor((editingWidget.config?.accentColor as string) || '');
+        setAccentEmoji((editingWidget.config?.accentEmoji as string) || '');
+        setAccentLucide((editingWidget.config?.accentLucide as string) || '');
       } else {
         // New widget - reset to type selection
         setStep('type');
@@ -150,6 +178,11 @@ export function AddWidgetDialog({
         setShowPurchased(false);
         setShowType('all');
         setColSpan(1);
+        setBoardViewMode('cards');
+        setAccentHeadline('');
+        setAccentColor('');
+        setAccentEmoji('');
+        setAccentLucide('');
       }
     }
   }, [isOpen, editingWidget]);
@@ -163,6 +196,17 @@ export function AddWidgetDialog({
       else if (type === 'project-todos') setTitle('Project Tasks');
       else if (type === 'day-plan') setTitle('Day Plan');
       else if (type === 'active-projects') setTitle('Active Projects');
+      else if (type === 'tag-lane-board') setTitle('Tag lane');
+    }
+    if (type === 'tag-lane-board') {
+      setFilterType('tag');
+      setFilterId('');
+      setBoardViewMode('cards');
+      setColSpan(1);
+      setAccentHeadline('');
+      setAccentColor('');
+      setAccentEmoji('');
+      setAccentLucide('');
     }
     // For materials, default to 'all'
     if (type === 'materials-shopping') {
@@ -189,6 +233,10 @@ export function AddWidgetDialog({
 
     // Validate filter selection for todo-list
     if (selectedType === 'todo-list' && filterType !== 'all' && !filterId) {
+      return;
+    }
+
+    if (selectedType === 'tag-lane-board' && !filterId) {
       return;
     }
     
@@ -221,6 +269,14 @@ export function AddWidgetDialog({
         config.showCompleted = showCompleted;
       } else if (selectedType === 'active-projects') {
         config.showType = showType;
+      } else if (selectedType === 'tag-lane-board') {
+        config.filterType = filterType === 'project-group' ? 'project-group' : 'tag';
+        config.filterId = filterId;
+        config.viewMode = boardViewMode;
+        if (accentHeadline.trim()) config.accentHeadline = accentHeadline.trim();
+        if (accentColor.trim()) config.accentColor = accentColor.trim();
+        if (accentEmoji.trim()) config.accentEmoji = accentEmoji.trim();
+        if (accentLucide.trim()) config.accentLucide = accentLucide.trim();
       }
 
       if (editingWidget?.id) {
@@ -257,6 +313,11 @@ export function AddWidgetDialog({
     setShowPurchased(false);
     setShowType('all');
     setColSpan(1);
+    setBoardViewMode('cards');
+    setAccentHeadline('');
+    setAccentColor('');
+    setAccentEmoji('');
+    setAccentLucide('');
     onClose();
   };
 
@@ -282,6 +343,7 @@ export function AddWidgetDialog({
     if (selectedType === 'todo-list' && !filterId) return false;
     if (selectedType === 'materials-shopping' && filterType !== 'all' && !filterId) return false;
     if (selectedType === 'project-todos' && !projectId) return false;
+    if (selectedType === 'tag-lane-board' && !filterId) return false;
     if (selectedType === 'day-plan') return true; // Day plan doesn't need config
     return true;
   };
@@ -344,6 +406,186 @@ export function AddWidgetDialog({
                 <p className="text-sm text-muted-foreground text-center">
                   Drag project cards from the Kanban board onto this widget to plan your day
                 </p>
+              </div>
+            )}
+
+            {/* Tag lane: filter, layout, accent */}
+            {selectedType === 'tag-lane-board' && (
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <Label>Filter by</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={filterType === 'tag' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setFilterType('tag');
+                        setFilterId('');
+                      }}
+                      className="flex-1 gap-2"
+                    >
+                      <Tags className="h-4 w-4" />
+                      Tag
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={filterType === 'project-group' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setFilterType('project-group');
+                        setFilterId('');
+                      }}
+                      className="flex-1 gap-2"
+                    >
+                      <FolderKanban className="h-4 w-4" />
+                      Group
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>{filterType === 'tag' ? 'Tag' : 'Project group'}</Label>
+                  <Select value={filterId} onValueChange={setFilterId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={filterType === 'tag' ? 'Choose a tag…' : 'Choose a group…'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filterType === 'tag' ? (
+                        tags.length === 0 ? (
+                          <div className="p-2 text-sm text-muted-foreground text-center">No tags</div>
+                        ) : (
+                          tags.map((tag) => (
+                            <SelectItem key={tag.name} value={tag.name}>
+                              <div className="flex items-center gap-2">
+                                {tag.emoji && <span>{tag.emoji}</span>}
+                                <span>#{tag.name}</span>
+                                <div
+                                  className="w-2.5 h-2.5 rounded-full ml-auto"
+                                  style={{ backgroundColor: tag.color }}
+                                />
+                              </div>
+                            </SelectItem>
+                          ))
+                        )
+                      ) : projectGroups.length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground text-center">No groups</div>
+                      ) : (
+                        projectGroups.map((group) => (
+                          <SelectItem key={group.id} value={group.id}>
+                            <div className="flex items-center gap-2">
+                              {group.emoji && <span>{group.emoji}</span>}
+                              <span>{group.name}</span>
+                              <div
+                                className="w-2.5 h-2.5 rounded-full ml-auto"
+                                style={{ backgroundColor: group.color }}
+                              />
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Layout</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={boardViewMode === 'cards' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setBoardViewMode('cards');
+                        setColSpan(1);
+                      }}
+                      className="flex-1 gap-2"
+                    >
+                      <LayoutGrid className="h-4 w-4" />
+                      Cards
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={boardViewMode === 'mini-kanban' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setBoardViewMode('mini-kanban');
+                        setColSpan(2);
+                      }}
+                      className="flex-1 gap-2"
+                    >
+                      <Columns2 className="h-4 w-4" />
+                      Mini board
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Mini board sets widget width to 2 columns. Shows To do and In progress only.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="accent-headline">Headline (optional)</Label>
+                  <Input
+                    id="accent-headline"
+                    value={accentHeadline}
+                    onChange={(e) => setAccentHeadline(e.target.value)}
+                    placeholder="e.g. 3D print queue"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Accent color (optional)</Label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {['#64748b', '#0ea5e9', '#8b5cf6', '#f59e0b', '#f43f5e', '#22c55e'].map((hex) => (
+                      <button
+                        key={hex}
+                        type="button"
+                        title={hex}
+                        onClick={() => setAccentColor(hex)}
+                        className={cn(
+                          'h-7 w-7 rounded-full border-2 transition-transform hover:scale-110',
+                          accentColor === hex ? 'border-foreground ring-2 ring-offset-1 ring-foreground/20' : 'border-transparent'
+                        )}
+                        style={{ backgroundColor: hex }}
+                      />
+                    ))}
+                    <Input
+                      type="color"
+                      value={accentColor || '#64748b'}
+                      onChange={(e) => setAccentColor(e.target.value)}
+                      className="h-8 w-12 cursor-pointer border p-0"
+                      aria-label="Pick accent color"
+                    />
+                    {accentColor ? (
+                      <Button type="button" variant="ghost" size="sm" className="text-xs" onClick={() => setAccentColor('')}>
+                        Clear
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="accent-emoji">Emoji (optional)</Label>
+                  <Input
+                    id="accent-emoji"
+                    value={accentEmoji}
+                    onChange={(e) => setAccentEmoji(e.target.value)}
+                    placeholder="e.g. 🖨️"
+                    maxLength={4}
+                  />
+                  <p className="text-xs text-muted-foreground">If set, emoji is shown instead of the icon below.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Icon (optional)</Label>
+                  <Select value={accentLucide || '__none__'} onValueChange={(v) => setAccentLucide(v === '__none__' ? '' : v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="None" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">None</SelectItem>
+                      {TAG_LANE_ACCENT_LUCIDE_OPTIONS.map((name) => (
+                        <SelectItem key={name} value={name}>
+                          {name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             )}
 
@@ -410,7 +652,7 @@ export function AddWidgetDialog({
               </div>
             )}
 
-            {/* Filter Type (for todo-list and materials-shopping) */}
+            {/* Filter Type (for todo-list and materials-shopping; not tag-lane-board) */}
             {(selectedType === 'todo-list' || selectedType === 'materials-shopping') && (
               <div className="space-y-2">
                 <Label>Filter By</Label>
@@ -503,26 +745,29 @@ export function AddWidgetDialog({
               </div>
             )}
 
-            {/* Show Completed/Owned */}
-            <div className="flex items-center gap-3 pt-2">
-              <Checkbox
-                id="show-completed"
-                checked={selectedType === 'materials-shopping' ? showPurchased : showCompleted}
-                onCheckedChange={(checked) => {
-                  if (selectedType === 'materials-shopping') {
-                    setShowPurchased(!!checked);
-                  } else {
-                    setShowCompleted(!!checked);
-                  }
-                }}
-              />
-              <Label htmlFor="show-completed" className="cursor-pointer">
-                {selectedType === 'materials-shopping' 
-                  ? 'Show items already owned'
-                  : 'Show completed tasks'
-                }
-              </Label>
-            </div>
+            {/* Show Completed/Owned — not used on day-plan, active-projects, or tag-lane-board */}
+            {(selectedType === 'todo-list' ||
+              selectedType === 'materials-shopping' ||
+              selectedType === 'project-todos') && (
+              <div className="flex items-center gap-3 pt-2">
+                <Checkbox
+                  id="show-completed"
+                  checked={selectedType === 'materials-shopping' ? showPurchased : showCompleted}
+                  onCheckedChange={(checked) => {
+                    if (selectedType === 'materials-shopping') {
+                      setShowPurchased(!!checked);
+                    } else {
+                      setShowCompleted(!!checked);
+                    }
+                  }}
+                />
+                <Label htmlFor="show-completed" className="cursor-pointer">
+                  {selectedType === 'materials-shopping'
+                    ? 'Show items already owned'
+                    : 'Show completed tasks'}
+                </Label>
+              </div>
+            )}
 
             {/* Widget Width */}
             <div className="space-y-2 pt-2 border-t">
