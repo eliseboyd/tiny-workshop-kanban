@@ -1,6 +1,9 @@
-import { pgTable, text, integer, timestamp, jsonb, boolean } from 'drizzle-orm/pg-core';
+import { pgSchema, text, integer, timestamp, jsonb, boolean } from 'drizzle-orm/pg-core';
 
-export const projects = pgTable('projects', {
+// These tables live in the `kanban` schema of the merlin project, not public.
+const kanban = pgSchema('kanban');
+
+export const projects = kanban.table('projects', {
   id: text('id').primaryKey(),
   title: text('title').notNull(),
   description: text('description'),
@@ -15,13 +18,13 @@ export const projects = pgTable('projects', {
   isIdea: boolean('is_idea').notNull().default(false),
 });
 
-export const columns = pgTable('columns', {
+export const columns = kanban.table('columns', {
   id: text('id').primaryKey(),
   title: text('title').notNull(),
   order: integer('order').notNull().default(0),
 });
 
-export const settings = pgTable('settings', {
+export const settings = kanban.table('settings', {
   id: text('id').primaryKey(), // singleton, e.g., 'default'
   aiPromptTemplate: text('ai_prompt_template').notNull().default('A professional, modern project cover image for a project named "{title}". Abstract, minimal, geometric shapes, soft lighting.'),
   boardTitle: text('board_title').notNull().default('Project Board'),
@@ -36,14 +39,14 @@ export const settings = pgTable('settings', {
   hiddenTags: text('hidden_tags').array().default([]), // Which tags are hidden
 });
 
-export const tags = pgTable('tags', {
+export const tags = kanban.table('tags', {
   name: text('name').primaryKey(),
   color: text('color').notNull().default('#64748b'),
   emoji: text('emoji'),
   icon: text('icon'),
 });
 
-export const projectGroups = pgTable('project_groups', {
+export const projectGroups = kanban.table('project_groups', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   color: text('color').notNull().default('#64748b'),
@@ -52,7 +55,7 @@ export const projectGroups = pgTable('project_groups', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const widgets = pgTable('widgets', {
+export const widgets = kanban.table('widgets', {
   id: text('id').primaryKey(),
   type: text('type').notNull(), // 'todo-list' | 'materials-shopping'
   title: text('title').notNull(),
@@ -61,7 +64,7 @@ export const widgets = pgTable('widgets', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const standalonePlans = pgTable('standalone_plans', {
+export const standalonePlans = kanban.table('standalone_plans', {
   id: text('id').primaryKey(),
   url: text('url').notNull(),
   name: text('name').notNull(),
@@ -72,7 +75,7 @@ export const standalonePlans = pgTable('standalone_plans', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const imageStyles = pgTable('image_styles', {
+export const imageStyles = kanban.table('image_styles', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   promptOverride: text('prompt_override').notNull().default(''),

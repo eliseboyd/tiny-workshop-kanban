@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { getSupabaseUrl } from './env';
+import { KANBAN_SCHEMA, getSupabaseUrl } from './env';
 
 export function createServiceRoleClient() {
   const supabaseUrl = getSupabaseUrl();
@@ -18,6 +18,8 @@ export function createServiceRoleClient() {
     );
   }
 
-  return createClient(supabaseUrl, supabaseServiceKey);
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    db: { schema: KANBAN_SCHEMA },
+  });
 }
 

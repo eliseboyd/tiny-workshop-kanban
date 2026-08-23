@@ -3,10 +3,14 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
-import { getSupabaseUrl } from '../../utils/supabase/env';
+import { KANBAN_SCHEMA, getSupabaseUrl } from '../../utils/supabase/env';
+
+// Clients here are scoped to the `kanban` schema, so the default
+// SupabaseClient type (which assumes `public`) does not describe them.
+export type KanbanClient = SupabaseClient<any, any, typeof KANBAN_SCHEMA>;
 import { DEFAULT_TAG_COLOR } from '../constants';
 
-export function createServiceClientFromEnv(): SupabaseClient {
+export function createServiceClientFromEnv(): KanbanClient {
   const url = getSupabaseUrl();
   if (!url) {
     throw new Error(
@@ -19,10 +23,10 @@ export function createServiceClientFromEnv(): SupabaseClient {
       'Set SUPABASE_SERVICE_ROLE_KEY (service role, not anon) for the MCP server.'
     );
   }
-  return createClient(url, key);
+  return createClient(url, key, { db: { schema: KANBAN_SCHEMA } });
 }
 
-async function getFirstColumnId(supabase: SupabaseClient): Promise<string> {
+async function getFirstColumnId(supabase: KanbanClient): Promise<string> {
   const { data } = await supabase
     .from('columns')
     .select('id')
@@ -32,7 +36,7 @@ async function getFirstColumnId(supabase: SupabaseClient): Promise<string> {
 }
 
 async function ensureTagExists(
-  supabase: SupabaseClient,
+  supabase: KanbanClient,
   tagName: string
 ): Promise<void> {
   const { data: existing } = await supabase
@@ -51,7 +55,7 @@ async function ensureTagExists(
 }
 
 async function moveIdeaToKanbanImpl(
-  supabase: SupabaseClient,
+  supabase: KanbanClient,
   ideaId: string,
   columnId: string
 ): Promise<{ error?: string }> {
@@ -92,7 +96,7 @@ const MCP_INSTRUCTIONS = `Workflow for new items (follow unless the user already
 
 4) **Linking** — Use search_projects when the user might want to attach to an existing card or match tags to existing names.`;
 
-export function createKanbanMcpServer(supabase: SupabaseClient): McpServer {
+export function createKanbanMcpServer(supabase: KanbanClient): McpServer {
   const server = new McpServer(
     {
       name: 'tiny-workshop-kanban',

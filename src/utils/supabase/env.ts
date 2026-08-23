@@ -1,3 +1,8 @@
+// Kanban's tables live in the `kanban` schema of the merlin project, not in
+// `public` (which holds merlin's own tables, including a different `projects`).
+// Every client below sets this so callers keep using plain .from('projects').
+export const KANBAN_SCHEMA = 'kanban';
+
 export function getSupabaseUrl() {
   const direct =
     process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
