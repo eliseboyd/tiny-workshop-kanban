@@ -1,5 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr';
-import { getSupabaseAnonKey, getSupabaseUrl } from './env';
+import { KANBAN_SCHEMA, getSupabaseAnonKey, getSupabaseUrl } from './env';
 
 export function createClient() {
   const supabaseUrl = getSupabaseUrl();
@@ -11,7 +11,8 @@ export function createClient() {
   }
   return createBrowserClient(
     supabaseUrl,
-    supabaseAnonKey
+    supabaseAnonKey,
+    { db: { schema: KANBAN_SCHEMA } }
   );
 }
 

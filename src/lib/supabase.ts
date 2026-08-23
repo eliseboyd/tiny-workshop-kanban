@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { getSupabaseAnonKey, getSupabaseUrl } from '@/utils/supabase/env';
+import { KANBAN_SCHEMA, getSupabaseAnonKey, getSupabaseUrl } from '@/utils/supabase/env';
 
 const supabaseUrl = getSupabaseUrl();
 const supabaseAnonKey = getSupabaseAnonKey();
@@ -10,5 +10,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  db: { schema: KANBAN_SCHEMA },
+});
 
