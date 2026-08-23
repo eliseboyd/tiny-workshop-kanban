@@ -80,9 +80,12 @@ type KanbanCardProps = {
   size?: string; // compact, small, medium
   columnTitle?: string;
   className?: string;
+  // True for cards likely above the fold on initial load — preloads the
+  // cover image (next/image priority) so LCP isn't a lazy-loaded image.
+  imagePriority?: boolean;
 };
 
-export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToColumn, columns = [], currentColumnId, size = 'medium', columnTitle, className }: KanbanCardProps) {
+export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToColumn, columns = [], currentColumnId, size = 'medium', columnTitle, className, imagePriority = false }: KanbanCardProps) {
   // Touch handling to distinguish between scroll and tap
   const touchStartPos = useRef<{ x: number; y: number; time: number } | null>(null);
   // Start as false so server and first client render match; detect after mount.
@@ -238,6 +241,7 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
                 alt={project.title}
                 fill
                 sizes="240px"
+                priority={imagePriority}
                 style={{ objectFit: 'cover' }}
                 placeholder="blur"
                 blurDataURL={CARD_BLUR_DATA_URL}

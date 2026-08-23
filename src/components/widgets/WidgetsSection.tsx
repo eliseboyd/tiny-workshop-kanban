@@ -9,7 +9,10 @@ import { ProjectTodosWidget } from './ProjectTodosWidget';
 import { DayPlanWidget } from './DayPlanWidget';
 import { ActiveProjectsWidget } from './ActiveProjectsWidget';
 import { TagLaneBoardWidget } from './TagLaneBoardWidget';
-import { AddWidgetDialog } from './AddWidgetDialog';
+import dynamic from 'next/dynamic';
+
+// Interaction-gated (885 lines) — split out of the dashboard chunk.
+const AddWidgetDialog = dynamic(() => import('./AddWidgetDialog').then(m => ({ default: m.AddWidgetDialog })));
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -292,14 +295,16 @@ export function WidgetsSection({
           </Button>
         </div>
         
-        <AddWidgetDialog
-          isOpen={isAddDialogOpen}
-          onClose={handleCloseDialog}
-          tags={tags}
-          projectGroups={projectGroups}
-          projects={projects.map(p => ({ id: p.id, title: p.title }))}
-          editingWidget={editingWidget}
-        />
+        {isAddDialogOpen && (
+          <AddWidgetDialog
+            isOpen={isAddDialogOpen}
+            onClose={handleCloseDialog}
+            tags={tags}
+            projectGroups={projectGroups}
+            projects={projects.map(p => ({ id: p.id, title: p.title }))}
+            editingWidget={editingWidget}
+          />
+        )}
       </>
     );
   }
@@ -456,14 +461,16 @@ export function WidgetsSection({
         )}
       </div>
 
-      <AddWidgetDialog
-        isOpen={isAddDialogOpen}
-        onClose={handleCloseDialog}
-        tags={tags}
-        projectGroups={projectGroups}
-        projects={projects.map(p => ({ id: p.id, title: p.title }))}
-        editingWidget={editingWidget}
-      />
+      {isAddDialogOpen && (
+        <AddWidgetDialog
+          isOpen={isAddDialogOpen}
+          onClose={handleCloseDialog}
+          tags={tags}
+          projectGroups={projectGroups}
+          projects={projects.map(p => ({ id: p.id, title: p.title }))}
+          editingWidget={editingWidget}
+        />
+      )}
     </>
   );
 }

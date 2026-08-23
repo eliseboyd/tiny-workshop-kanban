@@ -8,8 +8,6 @@ import {
   DragEndEvent,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { ProjectModal } from './ProjectModal';
-import { SettingsModal } from './SettingsModal';
 import { FilterSection } from './FilterSection';
 import dynamic from 'next/dynamic';
 import { DashboardSection } from './DashboardSection';
@@ -30,6 +28,13 @@ const TabViewFallback = () => (
 const PlansView = dynamic(() => import('./PlansView').then(m => ({ default: m.PlansView })), { loading: TabViewFallback });
 const CompletedProjectsView = dynamic(() => import('./CompletedProjectsView').then(m => ({ default: m.CompletedProjectsView })), { loading: TabViewFallback });
 const IdeasView = dynamic(() => import('./IdeasView').then(m => ({ default: m.IdeasView })), { loading: TabViewFallback });
+
+// Modals are interaction-gated — splitting them keeps ProjectEditor (~2.7k
+// lines) and SettingsModal out of the initial board chunk. Their chunks are
+// prefetched on idle after first paint (see effect below) so first open is
+// still instant in practice.
+const ProjectModal = dynamic(() => import('./ProjectModal').then(m => ({ default: m.ProjectModal })));
+const SettingsModal = dynamic(() => import('./SettingsModal').then(m => ({ default: m.SettingsModal })));
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Settings, KanbanSquareDashed } from 'lucide-react';
@@ -271,6 +276,26 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
       loadTagsAndGroups();
     }
   }, [activeView]);
+
+  // Warm the interaction-gated chunks (modals, tab views) once the browser is
+  // idle after first paint, so opening a card or switching tabs never shows a
+  // loading flash — without paying for the code in the initial bundle.
+  useEffect(() => {
+    const prefetch = () => {
+      import('./ProjectModal');
+      import('./SettingsModal');
+      import('./IdeasView');
+      import('./PlansView');
+      import('./CompletedProjectsView');
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(prefetch, { timeout: 5000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    // Safari < 18 fallback
+    const t = window.setTimeout(prefetch, 2000);
+    return () => window.clearTimeout(t);
+  }, []);
 
   // Calculate counts for dashboard
   const dashboardTags = useMemo(() => {
@@ -1100,10 +1125,12 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
           }}
         />
       )}
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-      />
+      {isSettingsOpen && (
+        <SettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+        />
+      )}
     </>
   );
 }

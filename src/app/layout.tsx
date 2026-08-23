@@ -42,8 +42,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
   return (
     <html lang="en" suppressHydrationWarning>
+      {/* Start the TLS handshake to Supabase (auth + storage images) during
+          HTML parse instead of on first fetch. React hoists this to <head>. */}
+      {supabaseUrl && <link rel="preconnect" href={supabaseUrl} crossOrigin="anonymous" />}
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

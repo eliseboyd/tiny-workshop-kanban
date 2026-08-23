@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Lightbox, type LightboxItem } from '@/components/ui/lightbox';
-import { ImageCropModal } from './ImageCropModal';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -33,6 +32,9 @@ const PDFViewer = dynamic(() => import('@/components/ui/pdf-viewer').then(mod =>
     </div>
   )
 });
+
+// Code-split react-image-crop — only mounts when the user starts a crop.
+const ImageCropModal = dynamic(() => import('./ImageCropModal').then(mod => ({ default: mod.ImageCropModal })));
 
 // Code-split tiptap (~150KB) — the editor only mounts when a project modal opens.
 const RichTextEditor = dynamic(

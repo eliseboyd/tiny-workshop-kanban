@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'crypto';
 
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
+import { revalidatePath, revalidateTag } from 'next/cache';
 
 import { createKanbanMcpServer } from '@/lib/kanban-mcp/server-factory';
 import { createServiceRoleClient } from '@/utils/supabase/admin';
@@ -86,7 +87,14 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  return handleMcp(req);
+  const res = await handleMcp(req);
+  // MCP tool calls can mutate the board directly (bypassing actions.ts), so
+  // conservatively invalidate the cached board reads on any successful POST.
+  if (res.ok) {
+    revalidateTag('board-data', 'max');
+    revalidatePath('/');
+  }
+  return res;
 }
 
 export async function DELETE(req: Request) {

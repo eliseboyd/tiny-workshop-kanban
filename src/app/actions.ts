@@ -2,7 +2,7 @@
 
 import { createServiceRoleClient } from '@/utils/supabase/admin';
 import { createClient } from '@/utils/supabase/server';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { writeFile, mkdir } from 'fs/promises';
@@ -11,6 +11,25 @@ import https from 'https';
 import path from 'path';
 import { safeFetch } from '@/utils/safe-fetch';
 import { getSupabaseUrl } from '@/utils/supabase/env';
+
+// Cache tag covering all board-level reads (projects, ideas, columns,
+// settings, tags, project groups). Cached entries also carry a 5-minute TTL
+// so writes that bypass this file (e.g. the Netlify linear-webhook function)
+// surface within 5 minutes even without an explicit revalidation.
+const BOARD_TAG = 'board-data';
+const BOARD_CACHE_OPTS: { tags: string[]; revalidate: number } = {
+  tags: [BOARD_TAG],
+  revalidate: 300,
+};
+
+// Every mutation calls this instead of revalidatePath('/') directly, so the
+// page cache AND the unstable_cache board reads are invalidated together.
+// ('max' = expire immediately regardless of cache-life profile — the Next 16
+// equivalent of the old single-argument revalidateTag.)
+function revalidateBoard() {
+  revalidatePath('/');
+  revalidateTag(BOARD_TAG, 'max');
+}
 
 function getSupabaseHost(): string | null {
   const url = getSupabaseUrl();
@@ -300,7 +319,19 @@ function extractPlatformImage(url: string): string | null {
 const PROJECT_CARD_COLUMNS =
   'id, title, description, status, position, image_url, tags, parent_project_id, is_task, is_completed, is_idea, pinned, created_at';
 
-export async function getProjects() {
+// Cards render descriptions line-clamped (~2 lines); shipping full multi-KB
+// descriptions in the initial RSC payload just bloats first load. The modal
+// re-fetches the full row via getProject() before editing, so this is
+// display-only truncation.
+function truncateCardDescriptions<T extends { description?: unknown }>(rows: T[]): T[] {
+  return rows.map((r) =>
+    typeof r.description === 'string' && r.description.length > 300
+      ? { ...r, description: r.description.slice(0, 300) + '…' }
+      : r
+  );
+}
+
+const getProjectsCached = unstable_cache(async () => {
   // Use service role client to bypass RLS for server-side reads
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
@@ -314,10 +345,14 @@ export async function getProjects() {
     return [];
   }
 
-  return data ?? [];
+  return truncateCardDescriptions(data ?? []);
+}, ['board:projects'], BOARD_CACHE_OPTS);
+
+export async function getProjects() {
+  return getProjectsCached();
 }
 
-export async function getIdeas() {
+const getIdeasCached = unstable_cache(async () => {
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from('projects')
@@ -330,7 +365,11 @@ export async function getIdeas() {
     return [];
   }
 
-  return data ?? [];
+  return truncateCardDescriptions(data ?? []);
+}, ['board:ideas'], BOARD_CACHE_OPTS);
+
+export async function getIdeas() {
+  return getIdeasCached();
 }
 
 export async function getProject(id: string) {
@@ -384,7 +423,7 @@ export async function createProject(data: {
     });
 
   if (error) console.error('Error creating project:', error);
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 export async function updateProject(id: string, data: Record<string, unknown>) {
@@ -481,7 +520,7 @@ export async function updateProject(id: string, data: Record<string, unknown>) {
   if (error) {
     console.error('Error updating project:', error);
   }
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 // Manual action to fetch OG image from project content
@@ -527,7 +566,7 @@ export async function fetchAndSetOgImage(projectId: string): Promise<{ success: 
             .update({ image_url: uploadedUrl })
             .eq('id', projectId);
           
-          revalidatePath('/');
+          revalidateBoard();
           return { success: true, imageUrl: uploadedUrl };
         }
       }
@@ -542,7 +581,7 @@ export async function fetchAndSetOgImage(projectId: string): Promise<{ success: 
             .update({ image_url: uploadedUrl })
             .eq('id', projectId);
           
-          revalidatePath('/');
+          revalidateBoard();
           return { success: true, imageUrl: uploadedUrl };
         }
       }
@@ -584,7 +623,7 @@ export async function updateProjectStatus(id: string, status: string, position: 
     console.error('Error updating project status:', JSON.stringify(error, null, 2));
   }
   
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 export async function moveIdeaToKanban(ideaId: string, status: string) {
@@ -611,7 +650,7 @@ export async function moveIdeaToKanban(ideaId: string, status: string) {
     console.error('Error moving idea to kanban:', JSON.stringify(error, null, 2));
   }
 
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 export async function createIdea(title: string, status = 'todo') {
@@ -630,7 +669,7 @@ export async function createIdea(title: string, status = 'todo') {
     console.error('Error creating idea:', JSON.stringify(error, null, 2));
   }
 
-  revalidatePath('/');
+  revalidateBoard();
   return id;
 }
 
@@ -705,7 +744,7 @@ export async function moveProjectToIdeas(projectId: string) {
     console.error('Error moving project to ideas:', JSON.stringify(error, null, 2));
   }
 
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 export async function toggleProjectPinned(id: string, pinned: boolean) {
@@ -720,7 +759,7 @@ export async function toggleProjectPinned(id: string, pinned: boolean) {
     console.error('Error toggling project pinned:', error);
   }
   
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 // Toggle project completion - moves to Done column or back to first column
@@ -794,7 +833,7 @@ export async function moveProjectFromDoneIfNeeded(projectId: string) {
     console.error('Error moving project from Done:', error);
   }
   
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 type ServiceClient = ReturnType<typeof createServiceRoleClient>;
@@ -830,7 +869,7 @@ async function persistProjectCompletedState(
         console.error('Error setting project completed:', error);
         return null;
       }
-      revalidatePath('/');
+      revalidateBoard();
       return { status: project.status, position: project.position, isCompleted: true };
     }
     if (doneColumn) {
@@ -851,7 +890,7 @@ async function persistProjectCompletedState(
         console.error('Error moving project to done column:', error);
         return null;
       }
-      revalidatePath('/');
+      revalidateBoard();
       return { status: doneColumn.id, position: newPosition, isCompleted: true };
     }
     const { error } = await supabase
@@ -862,7 +901,7 @@ async function persistProjectCompletedState(
       console.error('Error setting project completed (no done column):', error);
       return null;
     }
-    revalidatePath('/');
+    revalidateBoard();
     return { status: project.status, position: project.position, isCompleted: true };
   }
 
@@ -884,7 +923,7 @@ async function persistProjectCompletedState(
       console.error('Error moving project from done column:', error);
       return null;
     }
-    revalidatePath('/');
+    revalidateBoard();
     return { status: firstColumn.id, position: newPosition, isCompleted: false };
   }
 
@@ -896,7 +935,7 @@ async function persistProjectCompletedState(
     console.error('Error clearing project completed:', error);
     return null;
   }
-  revalidatePath('/');
+  revalidateBoard();
   return { status: project.status, position: project.position, isCompleted: false };
 }
 
@@ -966,19 +1005,19 @@ export async function updateColumnOrder(columnId: string, projectIds: string[]) 
       .update({ position: i, status: columnId })
       .eq('id', projectIds[i]);
   }
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 export async function deleteProject(id: string) {
   const supabase = createServiceRoleClient();
   const { error } = await supabase.from('projects').delete().eq('id', id);
   if (error) console.error('Error deleting project:', error);
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 // --- Columns ---
 
-export async function getColumns() {
+const getColumnsCached = unstable_cache(async () => {
   // Use service role client to bypass RLS for server-side reads
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
@@ -1004,6 +1043,10 @@ export async function getColumns() {
     return defaults;
   }
   return rows;
+}, ['board:columns'], BOARD_CACHE_OPTS);
+
+export async function getColumns() {
+  return getColumnsCached();
 }
 
 export async function createColumn(title: string) {
@@ -1016,21 +1059,21 @@ export async function createColumn(title: string) {
   });
   
   if (error) console.error('Error creating column:', error);
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 export async function updateColumn(id: string, title: string) {
   const supabase = createServiceRoleClient();
   const { error } = await supabase.from('columns').update({ title }).eq('id', id);
   if (error) console.error('Error updating column:', error);
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 export async function deleteColumn(id: string) {
   const supabase = createServiceRoleClient();
   const { error } = await supabase.from('columns').delete().eq('id', id);
   if (error) console.error('Error deleting column:', error);
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 export async function updateColumnsOrder(newOrder: { id: string; order: number }[]) {
@@ -1038,12 +1081,12 @@ export async function updateColumnsOrder(newOrder: { id: string; order: number }
   for (const col of newOrder) {
     await supabase.from('columns').update({ order: col.order }).eq('id', col.id);
   }
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 // --- Settings ---
 
-export async function getSettings() {
+const getSettingsCached = unstable_cache(async () => {
   // Use service role client to bypass RLS for server-side reads
   const supabase = createServiceRoleClient();
 
@@ -1108,6 +1151,10 @@ export async function getSettings() {
     hiddenProjects: [],
     hiddenTags: [],
   };
+}, ['board:settings'], BOARD_CACHE_OPTS);
+
+export async function getSettings() {
+  return getSettingsCached();
 }
 
 export async function updateSettings(data: Record<string, unknown>) {
@@ -1127,7 +1174,7 @@ export async function updateSettings(data: Record<string, unknown>) {
 
   const { error } = await supabase.from('settings').update(dbData).eq('id', current.id);
   if (error) console.error('Error updating settings:', error);
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 /**
@@ -1617,7 +1664,7 @@ export async function deleteMediaFile(fileUrl: string) {
       }
     }
     
-    revalidatePath('/');
+    revalidateBoard();
   } catch (error) {
     console.error('Error deleting media file:', error);
     throw error;
@@ -1631,7 +1678,7 @@ function extractFileName(url: string): string {
 
 // --- Tags ---
 
-export async function getAllTags() {
+const getAllTagsCached = unstable_cache(async () => {
   // Use service role client to bypass RLS for server-side reads
   const supabase = createServiceRoleClient();
   
@@ -1683,6 +1730,10 @@ export async function getAllTags() {
   
   // Return all tags sorted by name
   return Array.from(tagsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+}, ['board:tags'], BOARD_CACHE_OPTS);
+
+export async function getAllTags() {
+  return getAllTagsCached();
 }
 
 export async function createTag(tag: { name: string; color: string; emoji?: string; icon?: string }) {
@@ -1709,7 +1760,7 @@ export async function createTag(tag: { name: string; color: string; emoji?: stri
     throw error;
   }
   
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 // Auto-create tag if it doesn't exist (called when adding tags to projects)
@@ -1748,7 +1799,7 @@ export async function updateTag(name: string, updates: { color?: string; emoji?:
     throw error;
   }
   
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 export async function deleteTag(name: string) {
@@ -1782,25 +1833,29 @@ export async function deleteTag(name: string) {
     throw error;
   }
   
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 // --- Project Groups ---
 
-export async function getAllProjectGroups() {
+const getAllProjectGroupsCached = unstable_cache(async () => {
   // Use service role client to bypass RLS for server-side reads
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from('project_groups')
     .select('*')
     .order('created_at', { ascending: false });
-  
+
   if (error) {
     console.error('Error fetching project groups:', error);
     return [];
   }
-  
+
   return data ?? [];
+}, ['board:project-groups'], BOARD_CACHE_OPTS);
+
+export async function getAllProjectGroups() {
+  return getAllProjectGroupsCached();
 }
 
 export async function createProjectGroup(group: { name: string; color: string; emoji?: string; icon?: string }) {
@@ -1817,7 +1872,7 @@ export async function createProjectGroup(group: { name: string; color: string; e
     throw error;
   }
   
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 export async function updateProjectGroup(id: string, updates: { name?: string; color?: string; emoji?: string; icon?: string }) {
@@ -1832,7 +1887,7 @@ export async function updateProjectGroup(id: string, updates: { name?: string; c
     throw error;
   }
   
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 export async function deleteProjectGroup(id: string) {
@@ -1855,7 +1910,7 @@ export async function deleteProjectGroup(id: string) {
     throw error;
   }
   
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 // --- Dashboard Widgets ---
@@ -1908,7 +1963,7 @@ export async function createWidget(widget: {
     throw error;
   }
   
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 export async function updateWidget(id: string, updates: {
@@ -1927,7 +1982,7 @@ export async function updateWidget(id: string, updates: {
     throw error;
   }
   
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 export async function deleteWidget(id: string) {
@@ -1942,7 +1997,7 @@ export async function deleteWidget(id: string) {
     throw error;
   }
   
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 export async function reorderWidgets(widgetIds: string[]) {
@@ -1955,7 +2010,7 @@ export async function reorderWidgets(widgetIds: string[]) {
       .eq('id', widgetIds[i]);
   }
   
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 // Get all materials across all projects (for shopping widget)
@@ -2098,7 +2153,7 @@ export async function createStandalonePlan(data: {
     throw new Error('Failed to create plan');
   }
   
-  revalidatePath('/');
+  revalidateBoard();
   return { id };
 }
 
@@ -2122,7 +2177,7 @@ export async function updateStandalonePlan(id: string, data: {
     throw new Error('Failed to update plan');
   }
   
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 export async function deleteStandalonePlan(id: string) {
@@ -2138,7 +2193,7 @@ export async function deleteStandalonePlan(id: string) {
     throw new Error('Failed to delete plan');
   }
   
-  revalidatePath('/');
+  revalidateBoard();
 }
 
 // Get all plans from both standalone_plans table AND from projects' plans field

@@ -38,12 +38,16 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Refreshing the auth token — wrapped in try/catch so a Supabase outage
-  // (e.g. paused project, network error) doesn't corrupt the page response.
-  let user = null;
+  // Auth check on every request. getClaims() verifies the JWT locally (via
+  // cached JWKS) when the project uses asymmetric signing keys — no network
+  // round trip — and only falls back to the Auth server for legacy HS256
+  // tokens or when the token needs a refresh. This was previously getUser(),
+  // which added a Supabase Auth round trip (~100-300ms) to every navigation.
+  // Wrapped in try/catch so a Supabase outage doesn't corrupt the response.
+  let user: { sub?: string } | null = null;
   try {
-    const { data } = await supabase.auth.getUser();
-    user = data.user;
+    const { data } = await supabase.auth.getClaims();
+    user = data?.claims ?? null;
   } catch {
     // Treat as unauthenticated; login page will show a connection error
   }

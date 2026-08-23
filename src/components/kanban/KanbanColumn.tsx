@@ -266,16 +266,17 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
         )}
         
         <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-          {items.map((project) => (
-            <KanbanCard 
-                key={project.id} 
-                project={project} 
-                onClick={() => onCardClick?.(project)} 
+          {items.map((project, cardIndex) => (
+            <KanbanCard
+                key={project.id}
+                project={project}
+                onClick={() => onCardClick?.(project)}
                 onDelete={() => onDeleteProject?.(project.id)}
                 onTogglePin={(pinned) => onTogglePin?.(project.id, pinned)}
                 onMoveToColumn={(columnId) => onMoveCard?.(project.id, columnId)}
                 columns={columns}
                 currentColumnId={id}
+                imagePriority={cardIndex < 2}
                 size={cardSize || "small"}
                 columnTitle={title}
             />

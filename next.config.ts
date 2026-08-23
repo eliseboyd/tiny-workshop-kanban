@@ -8,6 +8,16 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
+    // Serve AVIF where the browser supports it, fall back to WebP —
+    // typically 30-50% smaller than the source PNG/JPEG on mobile.
+    formats: ['image/avif', 'image/webp'],
+    // Optimized <Image> sources verified against the DB (2026-07): every
+    // stored image_url is on the project's own Supabase storage (OG and AI
+    // images are downloaded server-side and re-hosted there). Remote
+    // inspiration images render with `unoptimized`, which bypasses this
+    // allowlist. The previous catch-all `hostname: '**'` let any origin use
+    // the image optimizer (cost/abuse surface) and is removed — if a legacy
+    // card cover ever 404s, re-add its host here.
     remotePatterns: [
       {
         protocol: 'https',
@@ -30,74 +40,6 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: '**.makerworld.com',
-        port: '',
-        pathname: '/**',
-      },
-      // Allow common OG image domains
-      {
-        protocol: 'https',
-        hostname: '**.youtube.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '**.ytimg.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '**.vimeo.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '**.vimeocdn.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '**.imgur.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '**.github.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '**.githubusercontent.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '**.medium.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '**.twitter.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '**.twimg.com',
-        port: '',
-        pathname: '/**',
-      },
-      // Allow any HTTPS domain for OG images
-      {
-        protocol: 'https',
-        hostname: '**',
         port: '',
         pathname: '/**',
       },
