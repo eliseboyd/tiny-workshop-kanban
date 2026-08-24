@@ -14,7 +14,12 @@ function safeCompare(a: string, b: string): boolean {
 }
 
 export async function POST(req: NextRequest) {
-  const token = process.env.QUICK_CAPTURE_TOKEN;
+  // QUICK_ADD_TOKEN is the name this is deployed under; QUICK_CAPTURE_TOKEN
+  // is what the code has always read. Accept both so the endpoint works in
+  // either environment rather than 503-ing on a name mismatch.
+  // `||` not `??`: an env var set to an empty string means unset here, and
+  // `??` would treat '' as a real value and fall through to the 503 below.
+  const token = process.env.QUICK_CAPTURE_TOKEN || process.env.QUICK_ADD_TOKEN;
   if (!token) {
     return NextResponse.json({ error: 'Quick capture is not configured' }, { status: 503 });
   }

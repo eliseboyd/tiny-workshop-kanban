@@ -21,7 +21,9 @@ function safeCompare(a: string, b: string): boolean {
 }
 
 function getRemoteMcpToken(): string | undefined {
-  const t = process.env.REMOTE_MCP_TOKEN ?? process.env.QUICK_CAPTURE_TOKEN;
+  // `||` not `??`: these are commonly present-but-empty in local env files,
+  // and `??` would stop at the empty string instead of trying the next name.
+  const t = process.env.REMOTE_MCP_TOKEN || process.env.QUICK_CAPTURE_TOKEN || process.env.QUICK_ADD_TOKEN;
   return t?.trim() || undefined;
 }
 
@@ -52,7 +54,7 @@ async function handleMcp(req: Request): Promise<Response> {
   if (!token) {
     return withCors(
       new Response(
-        'Remote MCP is not configured. Set REMOTE_MCP_TOKEN (recommended) or QUICK_CAPTURE_TOKEN.',
+        'Remote MCP is not configured. Set REMOTE_MCP_TOKEN (recommended), QUICK_CAPTURE_TOKEN or QUICK_ADD_TOKEN.',
         { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }
       )
     );
