@@ -1,6 +1,11 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { KANBAN_SCHEMA, getSupabaseAnonKey, getSupabaseUrl } from './env';
+import {
+  KANBAN_SCHEMA,
+  getCookieOptions,
+  getSupabaseAnonKey,
+  getSupabaseUrl,
+} from './env';
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -20,6 +25,7 @@ export async function updateSession(request: NextRequest) {
     supabaseAnonKey,
     {
       db: { schema: KANBAN_SCHEMA },
+      cookieOptions: getCookieOptions(),
       cookies: {
         getAll() {
           return request.cookies.getAll();

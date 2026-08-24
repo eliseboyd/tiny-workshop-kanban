@@ -1,6 +1,11 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { KANBAN_SCHEMA, getSupabaseAnonKey, getSupabaseUrl } from './env';
+import {
+  KANBAN_SCHEMA,
+  getCookieOptions,
+  getSupabaseAnonKey,
+  getSupabaseUrl,
+} from './env';
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -17,6 +22,7 @@ export async function createClient() {
     supabaseAnonKey,
     {
       db: { schema: KANBAN_SCHEMA },
+      cookieOptions: getCookieOptions(),
       cookies: {
         getAll() {
           return cookieStore.getAll();
