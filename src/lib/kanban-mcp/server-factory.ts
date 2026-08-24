@@ -7,6 +7,9 @@ import { KANBAN_SCHEMA, getSupabaseUrl } from '../../utils/supabase/env';
 
 // Clients here are scoped to the `kanban` schema, so the default
 // SupabaseClient type (which assumes `public`) does not describe them.
+// The project has no generated Supabase `Database` type to substitute, so the
+// two schema generics stay `any` deliberately.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type KanbanClient = SupabaseClient<any, any, typeof KANBAN_SCHEMA>;
 import { DEFAULT_TAG_COLOR } from '../constants';
 

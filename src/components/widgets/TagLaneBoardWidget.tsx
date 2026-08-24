@@ -246,7 +246,7 @@ export function TagLaneBoardWidget({
           ) : (
             <LayoutGrid className="h-3 w-3 shrink-0" />
           )}
-          To do and in progress only. Column titles like "To do" and "In progress" improve detection.
+          To do and in progress only. Column titles like &ldquo;To do&rdquo; and &ldquo;In progress&rdquo; improve detection.
         </p>
       </div>
 
