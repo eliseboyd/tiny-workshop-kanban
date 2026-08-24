@@ -11,9 +11,12 @@ const nextConfig: NextConfig = {
     // Serve AVIF where the browser supports it, fall back to WebP —
     // typically 30-50% smaller than the source PNG/JPEG on mobile.
     formats: ['image/avif', 'image/webp'],
-    // Optimized <Image> sources verified against the DB (2026-07): every
-    // stored image_url is on the project's own Supabase storage (OG and AI
-    // images are downloaded server-side and re-hosted there). Remote
+    // Optimized <Image> sources verified against the DB: every stored
+    // image_url is on merlin's Supabase storage (OG and AI images are
+    // downloaded server-side and re-hosted there). The host moved from the
+    // old Kanban project to merlin in the 2026-08 consolidation — if this
+    // is not kept in step with the storage host, thumbnails break while
+    // detail views keep working, since only the optimizer checks it. Remote
     // inspiration images render with `unoptimized`, which bypasses this
     // allowlist. The previous catch-all `hostname: '**'` let any origin use
     // the image optimizer (cost/abuse surface) and is removed — if a legacy
@@ -27,7 +30,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'erkflyckhkzzfctexazd.supabase.co',
+        hostname: 'qdhjpewnwtaqwnpkyacc.supabase.co',
         port: '',
         pathname: '/storage/v1/object/public/**',
       },
