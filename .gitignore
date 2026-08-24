@@ -47,3 +47,6 @@ next-env.d.ts
 
 # Claude Code agent worktrees (local scratch)
 .claude/worktrees/
+
+# Local dev link to ~/repos/design-system — never commit (breaks CI builds)
+pnpm-workspace.yaml

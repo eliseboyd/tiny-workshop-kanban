@@ -1,6 +1,12 @@
+import path from "path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Parent of the repo, so a locally linked ../design-system (@eliseboyd/design)
+  // resolves during local dev; harmless when the dep is installed from git.
+  turbopack: {
+    root: path.join(__dirname, ".."),
+  },
   experimental: {
     // allowedDevOrigins: ['tiny-workshop-kanban.local'], // Uncomment if needed for specific local setups
     serverActions: {
