@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import {
   KANBAN_SCHEMA,
+  getAllowedUserIds,
   getCookieOptions,
   getSupabaseAnonKey,
   getSupabaseUrl,
@@ -57,6 +58,37 @@ export async function updateSession(request: NextRequest) {
     user = data?.claims ?? null;
   } catch {
     // Treat as unauthenticated; login page will show a connection error
+  }
+
+  // Authentication is not authorization. Signups are open on this Supabase
+  // project and every query below runs as service_role, so a session alone
+  // would hand a stranger the entire board. Only allowlisted ids get through.
+  //
+  // Fails closed when ALLOWED_USER_IDS is unset, matching how the bearer-token
+  // routes behave, because failing open here is the exact hole being closed.
+  // The cost is that the variable must exist wherever this runs — it is not a
+  // NEXT_PUBLIC value, so a local .env.local does not cover a deployed build.
+  const allowedUserIds = getAllowedUserIds();
+  if (!allowedUserIds) {
+    return new NextResponse(
+      'ALLOWED_USER_IDS is not set, so no session can be authorized.',
+      { status: 503 }
+    );
+  }
+
+  // Signed in but not on the list: treat as signed out rather than 403, so the
+  // login page still renders and there is no redirect loop.
+  if (user && !allowedUserIds.has(user.sub ?? '')) {
+    user = null;
+    if (
+      !request.nextUrl.pathname.startsWith('/login') &&
+      !request.nextUrl.pathname.startsWith('/auth')
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      url.searchParams.set('message', 'That account is not authorized for this board.');
+      return NextResponse.redirect(url);
+    }
   }
 
   if (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/auth')) {

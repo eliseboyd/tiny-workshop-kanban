@@ -51,3 +51,24 @@ export function getCookieOptions() {
   if (!domain) return undefined;
   return { domain, secure: true };
 }
+
+// Accounts allowed into the board, by auth user id (comma-separated).
+//
+// Being logged in is not enough. Every data path in this app runs as
+// service_role, so RLS never gates a request that arrives through the UI —
+// which means the session check in middleware is the only place an unwanted
+// account can be turned away. Supabase signups are open on this project, so
+// without this any account that registers gets the whole board.
+//
+// Server-side only, so NOT NEXT_PUBLIC — it is read at runtime rather than
+// inlined at build, and therefore has to be set wherever the app runs, not just
+// in .env.local. Unset is treated as a misconfiguration and fails closed.
+export function getAllowedUserIds(): Set<string> | null {
+  const raw = process.env.ALLOWED_USER_IDS;
+  if (!raw) return null;
+  const ids = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return ids.length > 0 ? new Set(ids) : null;
+}
