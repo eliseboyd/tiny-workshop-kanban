@@ -3,7 +3,6 @@
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { headers } from 'next/headers';
 
 export async function login(formData: FormData) {
   const email = formData.get('email') as string;
@@ -26,27 +25,15 @@ export async function login(formData: FormData) {
   redirect('/');
 }
 
-export async function signup(formData: FormData) {
-  const origin = (await headers()).get('origin');
-  const email = formData.get('email') as string;
-  const password = formData.get('password') as string;
-  const supabase = await createClient();
-
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: `${origin}/auth/callback`,
-    },
-  });
-
-  if (error) {
-    console.error('Signup Error:', error);
-    return redirect(`/login?message=${encodeURIComponent(error.message)}`);
-  }
-
-  return redirect('/login?message=Check email to continue sign in process');
-}
+// No signup action. This is a single-account board, so an open registration
+// form is only a way in for someone else — and until 0022 lands, every kanban
+// policy grants any authenticated user the whole board.
+//
+// Removing this button is not the fix on its own: signups are still open at the
+// Supabase API, and the publishable key is in the browser bundle, so anyone can
+// POST /auth/v1/signup directly. Turn signups off in the dashboard (Auth →
+// Sign In / Up → Email) — that is the real fence. New accounts are created from
+// the dashboard and added to public.app_users.
 
 export async function logout() {
   const supabase = await createClient();
