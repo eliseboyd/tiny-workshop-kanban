@@ -1,5 +1,7 @@
 [build]
   command = "npm run build"
+  # Skip the build when a push only touches markdown — docs don't need a deploy.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)*.md'"
   publish = ".next"
   environment = { SECRETS_SCAN_OMIT_PATHS = ".env.local,.netlify/functions-internal/___netlify-server-handler/.env.local" }
 
