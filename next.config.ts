@@ -1,7 +1,21 @@
 import path from "path";
 import type { NextConfig } from "next";
 
+// The board is served from tinywork.shop/kanban (the apex belongs to the hub
+// site). Next prefixes next/link, next/router, next/image, the middleware
+// matcher, and next.config headers/redirects automatically. It does NOT
+// prefix hand-written absolute strings — static asset URLs in `metadata`,
+// public/site.webmanifest, or anything built from window.location.origin — so
+// those read BASE_PATH below. Exported to the browser bundle as
+// NEXT_PUBLIC_BASE_PATH so client components can build the same URLs.
+// Rollback for the cutover is setting this back to "".
+const BASE_PATH = "/kanban";
+
 const nextConfig: NextConfig = {
+  basePath: BASE_PATH,
+  env: {
+    NEXT_PUBLIC_BASE_PATH: BASE_PATH,
+  },
   // Parent of the repo, so a locally linked ../design-system (@eliseboyd/design)
   // resolves during local dev; harmless when the dep is installed from git.
   turbopack: {

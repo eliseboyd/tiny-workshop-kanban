@@ -12,26 +12,31 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Next does not apply basePath to metadata URLs — unlike next/link and
+// next/image, these strings are emitted verbatim — so the prefix is explicit.
+// NEXT_PUBLIC_BASE_PATH is set from `basePath` in next.config.ts.
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+
 export const metadata: Metadata = {
   title: "Tiny Workshop Kanban",
   description: "A beautiful kanban board for managing your tiny workshop projects",
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: 'any' },
-      { url: '/favicon.png', type: 'image/png' },
+      { url: `${basePath}/favicon.ico`, sizes: 'any' },
+      { url: `${basePath}/favicon.png`, type: 'image/png' },
     ],
     apple: [
-      { url: '/favicon-60@2x.png', sizes: '120x120', type: 'image/png' },
-      { url: '/favicon-60@3x.png', sizes: '180x180', type: 'image/png' },
+      { url: `${basePath}/favicon-60@2x.png`, sizes: '120x120', type: 'image/png' },
+      { url: `${basePath}/favicon-60@3x.png`, sizes: '180x180', type: 'image/png' },
     ],
     other: [
       {
         rel: 'apple-touch-icon-precomposed',
-        url: '/favicon-60@2x.png',
+        url: `${basePath}/favicon-60@2x.png`,
       },
     ],
   },
-  manifest: '/site.webmanifest',
+  manifest: `${basePath}/site.webmanifest`,
 };
 
 import { ThemeProvider } from "@/components/theme-provider";

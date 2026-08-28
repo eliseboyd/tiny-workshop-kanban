@@ -28,6 +28,14 @@ export const config = {
      * Feel free to modify this pattern to include more paths.
      */
     '/((?!_next/static|_next/image|favicon.ico|uploads/|shortcuts/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|shortcut)$).*)',
+    /*
+     * The board root on its own. Next compiles the pattern above into
+     * `^/kanban(?:/(...))` — the slash after the basePath is mandatory, so
+     * with basePath set the bare `/kanban` fell through the gate and served
+     * the board to anyone. (Without a basePath, `/` was covered by the
+     * pattern above, which is why this entry is new with the cutover.)
+     */
+    '/',
   ],
 };
 

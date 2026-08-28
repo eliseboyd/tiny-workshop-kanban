@@ -21,6 +21,20 @@ import Image from 'next/image';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DEFAULT_TAG_COLOR } from '@/lib/constants';
 
+// The board runs under a basePath (tinywork.shop/kanban), which Next applies
+// to next/link and next/image but not to strings built from
+// window.location.origin or to a plain <a href>. Both need it spelled out or
+// the embed URL handed to the user 404s.
+const EMBED_PATH = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/embed`;
+
+function embedUrl(): string {
+  return typeof window !== 'undefined' ? `${window.location.origin}${EMBED_PATH}` : '';
+}
+
+function embedIframe(): string {
+  return `<iframe src="${embedUrl()}" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`;
+}
+
 type SettingsModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -992,14 +1006,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <div className="flex gap-2">
                   <Input
                     readOnly
-                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/embed`}
+                    value={embedUrl()}
                     className="font-mono text-sm"
                   />
                   <Button
                     variant="outline"
                     onClick={() => {
                       if (typeof window !== 'undefined') {
-                        navigator.clipboard.writeText(`${window.location.origin}/embed`);
+                        navigator.clipboard.writeText(embedUrl());
                         setEmbedCopied(true);
                         setTimeout(() => setEmbedCopied(false), 2000);
                       }
@@ -1015,7 +1029,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <div className="relative">
                   <textarea
                     readOnly
-                    value={`<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/embed" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`}
+                    value={embedIframe()}
                     className="w-full h-24 p-3 font-mono text-xs border rounded-md bg-muted/50 resize-none"
                   />
                   <Button
@@ -1024,8 +1038,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     className="absolute top-2 right-2"
                     onClick={() => {
                       if (typeof window !== 'undefined') {
-                        const embedCode = `<iframe src="${window.location.origin}/embed" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`;
-                        navigator.clipboard.writeText(embedCode);
+                        navigator.clipboard.writeText(embedIframe());
                         setEmbedCopied(true);
                         setTimeout(() => setEmbedCopied(false), 2000);
                       }
@@ -1040,7 +1053,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <div className="border-t pt-4 mt-4">
                 <h4 className="text-sm font-medium mb-2">Preview</h4>
                 <a
-                  href="/embed"
+                  href={EMBED_PATH}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-primary hover:underline"
