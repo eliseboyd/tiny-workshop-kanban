@@ -156,4 +156,5 @@ is a symlink, design-system edits hot-reload here (npm link — package.json and
 the lockfile stay untouched). Publishing is `design.sh ship` (Elise runs it).
 Netlify builds with npm from package-lock.json — never commit a pnpm-lock.yaml.
 
-Push = deploy (Netlify). Verify on :3000 first.
+Pushing `main` deploys — that push is Elise's. Claude may push any other
+branch (Netlify builds `main` only). Verify on :3004 first.
