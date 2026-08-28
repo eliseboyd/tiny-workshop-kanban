@@ -15,6 +15,15 @@ const eslintConfig = defineConfig([
     // Netlify Functions use CommonJS and should not be linted by the
     // TypeScript ESLint rules configured for the Next.js app.
     "netlify/**",
+    // Build output, not source. `netlify build` writes the compiled server
+    // handler and edge functions here; it is gitignored but ESLint does not
+    // read .gitignore, so without this every local run after a build reports
+    // hundreds of errors in generated code and `npm run lint` can never be
+    // clean. CI never saw it because a fresh checkout has no such directory.
+    ".netlify/**",
+    // Claude Code's tooling directory — settings, skills, and git worktrees
+    // of this same repo, which would otherwise be linted a second time.
+    ".claude/**",
   ]),
 ]);
 
