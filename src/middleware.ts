@@ -1,3 +1,17 @@
+/*
+ * Lives in src/, and must. This project has a src directory, and with
+ * Turbopack `next dev` silently ignores a root middleware.ts — no warning, no
+ * log line, the session gate just never runs and the board serves to anyone
+ * locally. `next build` does pick the root file up, so production was never
+ * affected and nothing looked wrong. Moving it here makes dev match prod.
+ *
+ * Next 16 deprecates this file convention in favour of proxy.ts. That rename
+ * is deliberately not done yet: proxy always runs on the Node runtime, which
+ * empties middleware-manifest.json and writes /_middleware to
+ * functions-config-manifest.json instead. @netlify/plugin-nextjs builds its
+ * Edge Function from the former, so the rename risks a green deploy with no
+ * gate running at all. Do it on a day a deploy can be tested signed-out.
+ */
 import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/utils/supabase/middleware';
 
