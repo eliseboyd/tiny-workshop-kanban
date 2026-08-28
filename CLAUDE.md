@@ -26,7 +26,7 @@ Keep it up to date so automated PRs stay consistent with the codebase.
 # Install dependencies
 npm install
 
-# Start the dev server (http://localhost:3000)
+# Start the dev server (http://localhost:3004)
 npm run dev
 ```
 
@@ -142,8 +142,11 @@ migrations/      # Drizzle migration files
 
 ## Local dev
 
-Dev server: http://localhost:3000 — port pinned in package.json; the canonical
-map is `~/repos/orchestrator/ports.json`. Start/stop the whole suite with
+Dev server: http://localhost:3004 — port pinned in package.json; the canonical
+map is `~/repos/orchestrator/ports.json`. (:3000 now belongs to the new
+homepage, `tiny-workshop-home`.) In production this board still owns
+tinywork.shop; it moves to tinywork.shop/kanban at the cutover — see
+`~/repos/orchestrator/plans/homepage-cutover.md`. Start/stop the whole suite with
 `~/repos/orchestrator/scripts/dev.sh up|status|restart kanban|down` (tmux
 session "dev"). Cross-repo git state: `~/repos/orchestrator/scripts/status.sh`.
 
