@@ -139,3 +139,18 @@ migrations/      # Drizzle migration files
 - [ ] **Environment variables required**: <!-- list any new env vars your change needs -->
 - [ ] **Feature flags / config**: <!-- document any feature flags in use -->
 - [ ] **Third-party service dependencies**: <!-- e.g. Stripe, SendGrid — note test/prod keys -->
+
+## Local dev
+
+Dev server: http://localhost:3000 — port pinned in package.json; the canonical
+map is `~/repos/orchestrator/ports.json`. Start/stop the whole suite with
+`~/repos/orchestrator/scripts/dev.sh up|status|restart kanban|down` (tmux
+session "dev"). Cross-repo git state: `~/repos/orchestrator/scripts/status.sh`.
+
+`@eliseboyd/design` is often symlinked for local iteration
+(`design-system/scripts/design.sh link`): if `node_modules/@eliseboyd/design`
+is a symlink, design-system edits hot-reload here (npm link — package.json and
+the lockfile stay untouched). Publishing is `design.sh ship` (Elise runs it).
+Netlify builds with npm from package-lock.json — never commit a pnpm-lock.yaml.
+
+Push = deploy (Netlify). Verify on :3000 first.
