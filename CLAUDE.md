@@ -15,7 +15,7 @@ Keep it up to date so automated PRs stay consistent with the codebase.
 | UI primitives | Shadcn UI (Radix-based) |
 | Database | Supabase (Postgres) via Drizzle ORM |
 | Auth | Supabase Auth (`@supabase/ssr`) |
-| Deployment | Netlify (`@netlify/plugin-nextjs`) |
+| Deployment | Vercel (moved from Netlify; `netlify.toml`, `@netlify/plugin-nextjs` and `netlify/functions/` are left over from that and are not what serves production) |
 | Package manager | npm |
 
 ---

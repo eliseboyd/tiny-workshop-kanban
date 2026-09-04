@@ -105,7 +105,7 @@ useful, `list_card_todos(card_id)` is a thin wrapper over `getCardTodos`.
 
 ### Config
 
-`env.example` and Netlify: `MERLIN_INGEST_URL=https://merlin.tinywork.shop/api/ingest`
+`env.example` and Vercel (project settings → Environment Variables, then redeploy): `MERLIN_INGEST_URL=https://merlin.tinywork.shop/api/ingest`
 and `MERLIN_INGEST_TOKEN=` (the value of Merlin's `INGEST_TOKEN`). Server-side
 only, not `NEXT_PUBLIC_`. Add both to the CLAUDE.md "Environment variables
 required" line.
@@ -124,7 +124,7 @@ snake_case row in `merlin-actions.ts`, nowhere else.
    'kanban'` is accepted.
 2. `merlin-actions.ts` + `ProjectTodos.tsx` + the editor section, behind
    `isMerlinConfigured()`.
-3. Env vars on Netlify, then smoke test below.
+3. Env vars on Vercel, redeploy, then smoke test below.
 4. Card-face count, if wanted.
 
 ## Smoke test
