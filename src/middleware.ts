@@ -5,12 +5,10 @@
  * locally. `next build` does pick the root file up, so production was never
  * affected and nothing looked wrong. Moving it here makes dev match prod.
  *
- * Next 16 deprecates this file convention in favour of proxy.ts. That rename
- * is deliberately not done yet: proxy always runs on the Node runtime, which
- * empties middleware-manifest.json and writes /_middleware to
- * functions-config-manifest.json instead. @netlify/plugin-nextjs builds its
- * Edge Function from the former, so the rename risks a green deploy with no
- * gate running at all. Do it on a day a deploy can be tested signed-out.
+ * Next 16 deprecates this file convention in favour of proxy.ts. The rename
+ * was deferred on Netlify because its plugin built the session gate from
+ * middleware-manifest.json; on Vercel that constraint is gone, but do the
+ * rename on a day a deploy can be tested signed-out.
  */
 import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/utils/supabase/middleware';
@@ -24,6 +22,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/api/shortcuts') ||
     pathname.startsWith('/api/capture') ||
     pathname.startsWith('/api/mcp') ||
+    pathname.startsWith('/api/linear-webhook') ||
     pathname.endsWith('.shortcut')
   ) {
     return NextResponse.next();
@@ -33,6 +32,12 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    /*
+     * With basePath, a request for the bare basePath URL (/kanban, no trailing
+     * slash) strips to an empty pathname, which the catch-all below does not
+     * match — the board would serve ungated. '/' catches it.
+     */
+    '/',
     /*
      * Match all request paths except for the ones starting with:
      * - _next/static (static files)

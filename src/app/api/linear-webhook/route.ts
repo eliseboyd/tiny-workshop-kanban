@@ -1,57 +1,60 @@
-// netlify/functions/linear-webhook.js
 // Receives Linear webhooks, verifies signature, and forwards qualifying issues
-// to GitHub via repository_dispatch.
+// to GitHub via repository_dispatch. Ported from netlify/functions/linear-webhook.js
+// at the Vercel move; the Linear webhook URL points at
+// https://kanban.tinywork.shop/kanban/api/linear-webhook.
 
-const crypto = require('crypto');
+import crypto from 'node:crypto';
 
-// Status name that triggers the automation. Must match your Linear workflow exactly.
+// Status name that triggers the automation. Must match the Linear workflow exactly.
 const TRIGGER_STATUS = 'Ready for Dev';
 
-exports.handler = async function (event) {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
-  }
-
+export async function POST(request: Request) {
   // ── 1. Verify Linear webhook signature ──────────────────────────────────────
-  const signature = event.headers['linear-signature'];
+  const signature = request.headers.get('linear-signature');
   const secret = process.env.LINEAR_WEBHOOK_SECRET;
+  const rawBody = await request.text();
 
   if (!secret) {
     console.error('LINEAR_WEBHOOK_SECRET env var is not set');
-    return { statusCode: 500, body: 'Server misconfiguration' };
+    return new Response('Server misconfiguration', { status: 500 });
   }
 
   if (!signature) {
-    return { statusCode: 401, body: 'Missing signature' };
+    return new Response('Missing signature', { status: 401 });
   }
 
   const expectedSignature = crypto
     .createHmac('sha256', secret)
-    .update(event.body, 'utf8')
+    .update(rawBody, 'utf8')
     .digest('hex');
 
-  const signaturesMatch = crypto.timingSafeEqual(
-    Buffer.from(signature, 'hex'),
-    Buffer.from(expectedSignature, 'hex'),
-  );
+  let signaturesMatch = false;
+  try {
+    signaturesMatch = crypto.timingSafeEqual(
+      Buffer.from(signature, 'hex'),
+      Buffer.from(expectedSignature, 'hex'),
+    );
+  } catch {
+    // malformed hex / length mismatch
+  }
 
   if (!signaturesMatch) {
-    return { statusCode: 401, body: 'Invalid signature' };
+    return new Response('Invalid signature', { status: 401 });
   }
 
   // ── 2. Parse payload ────────────────────────────────────────────────────────
   let payload;
   try {
-    payload = JSON.parse(event.body);
+    payload = JSON.parse(rawBody);
   } catch {
-    return { statusCode: 400, body: 'Invalid JSON' };
+    return new Response('Invalid JSON', { status: 400 });
   }
 
   // Only act on Issue update events where the status has changed.
   const { type, action, data, updatedFrom } = payload;
 
   if (type !== 'Issue' || action !== 'update') {
-    return { statusCode: 200, body: 'Ignored: not an issue update' };
+    return new Response('Ignored: not an issue update', { status: 200 });
   }
 
   // Require a state change and confirm the *new* state is "Ready for Dev".
@@ -59,17 +62,17 @@ exports.handler = async function (event) {
   const oldStateName = updatedFrom?.stateName;
 
   if (newStateName !== TRIGGER_STATUS) {
-    return { statusCode: 200, body: `Ignored: status is "${newStateName}"` };
+    return new Response(`Ignored: status is "${newStateName}"`, { status: 200 });
   }
 
   if (oldStateName === TRIGGER_STATUS) {
     // Already was in this state — avoid duplicate triggers on unrelated updates.
-    return { statusCode: 200, body: 'Ignored: status unchanged' };
+    return new Response('Ignored: status unchanged', { status: 200 });
   }
 
   // ── 3. Extract issue fields ─────────────────────────────────────────────────
   const issue = {
-    id: data.identifier,        // e.g. "ENG-42"
+    id: data.identifier, // e.g. "ENG-42"
     title: data.title,
     description: data.description || '',
     url: data.url,
@@ -83,7 +86,7 @@ exports.handler = async function (event) {
 
   if (!githubToken || !githubRepo) {
     console.error('GITHUB_TOKEN or GITHUB_REPO env var is not set');
-    return { statusCode: 500, body: 'Server misconfiguration' };
+    return new Response('Server misconfiguration', { status: 500 });
   }
 
   const dispatchUrl = `https://api.github.com/repos/${githubRepo}/dispatches`;
@@ -110,11 +113,8 @@ exports.handler = async function (event) {
   if (!response.ok) {
     const body = await response.text();
     console.error(`GitHub dispatch failed: ${response.status} ${body}`);
-    return { statusCode: 502, body: 'Failed to dispatch to GitHub' };
+    return new Response('Failed to dispatch to GitHub', { status: 502 });
   }
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ dispatched: true, issue: issue.id }),
-  };
-};
+  return Response.json({ dispatched: true, issue: issue.id });
+}

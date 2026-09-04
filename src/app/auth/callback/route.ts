@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 
+// Route handlers redirect with raw URLs, so the basePath must be explicit here
+// (next/navigation redirects and nextUrl clones get it for free).
+const BASE_PATH = '/kanban';
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/';
+  const next = searchParams.get('next') ?? `${BASE_PATH}/`;
 
   if (code) {
     const supabase = await createClient();
@@ -24,6 +28,6 @@ export async function GET(request: Request) {
   }
 
   // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+  return NextResponse.redirect(`${origin}${BASE_PATH}/auth/auth-code-error`);
 }
 

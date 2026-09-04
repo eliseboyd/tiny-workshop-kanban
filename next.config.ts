@@ -2,6 +2,11 @@ import path from "path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The board lives at tinywork.shop/kanban; the apex is the home hub, which
+  // rewrites /kanban/* (and the legacy apex API paths) to this app. basePath
+  // and the domain move must land together — see
+  // ~/repos/orchestrator/plans/homepage-cutover.md.
+  basePath: "/kanban",
   // Parent of the repo, so a locally linked ../design-system (@eliseboyd/design)
   // resolves during local dev; harmless when the dep is installed from git.
   turbopack: {

@@ -15,7 +15,7 @@ Keep it up to date so automated PRs stay consistent with the codebase.
 | UI primitives | Shadcn UI (Radix-based) |
 | Database | Supabase (Postgres) via Drizzle ORM |
 | Auth | Supabase Auth (`@supabase/ssr`) |
-| Deployment | Netlify (`@netlify/plugin-nextjs`) |
+| Deployment | Vercel — kanban.tinywork.shop, served at tinywork.shop/kanban via the home hub's rewrites (basePath `/kanban`) |
 | Package manager | npm |
 
 ---
@@ -62,8 +62,6 @@ src/
   lib/           # Shared utilities (e.g. cn())
   types/         # TypeScript type definitions
   utils/         # Supabase client helpers (browser / server / admin)
-netlify/
-  functions/     # Netlify serverless functions (CommonJS)
 migrations/      # Drizzle migration files
 ```
 
@@ -91,11 +89,6 @@ migrations/      # Drizzle migration files
 - Schema lives in `src/db/`. Run migrations with `drizzle-kit`.
 - Use the Drizzle client, not raw SQL, for application queries.
 - Supabase Row Level Security (RLS) is enabled — every new table needs policies.
-
-### Netlify Functions
-- Plain JavaScript (CommonJS `exports.handler`), not TypeScript.
-- Keep functions small and focused on a single responsibility.
-- Validate and sanitise all inputs; verify signatures for incoming webhooks.
 
 ### Git
 - Branch names follow `linear/<issue-id>` for automated branches.

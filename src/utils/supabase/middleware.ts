@@ -93,7 +93,11 @@ export async function updateSession(request: NextRequest) {
 
   if (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/auth')) {
       if (user) {
-          return NextResponse.redirect(new URL('/', request.url));
+          // Clone nextUrl rather than new URL(): the clone keeps basePath.
+          const url = request.nextUrl.clone();
+          url.pathname = '/';
+          url.search = '';
+          return NextResponse.redirect(url);
       }
       return supabaseResponse;
   }
