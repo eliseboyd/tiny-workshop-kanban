@@ -136,6 +136,6 @@ migrations/      # Drizzle migration files
 ## TODO: fill these in for your project
 
 - [ ] **Testing approach**: <!-- e.g. "Run `npm test` for unit tests; Playwright for e2e" -->
-- [ ] **Environment variables required**: <!-- list any new env vars your change needs -->
+- [ ] **Environment variables required**: `MERLIN_INGEST_URL` + `MERLIN_INGEST_TOKEN` for the To-dos section in the project modal (`src/app/merlin-actions.ts`, see `docs/merlin-todos.md`) — optional; unset degrades to a "not connected" line.
 - [ ] **Feature flags / config**: <!-- document any feature flags in use -->
 - [ ] **Third-party service dependencies**: <!-- e.g. Stripe, SendGrid — note test/prod keys -->
