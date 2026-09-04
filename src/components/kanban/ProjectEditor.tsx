@@ -22,6 +22,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { compressImage } from '@/utils/image-compression';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { ProjectTodos } from './ProjectTodos';
 
 // Dynamically import PDFViewer to avoid SSR issues
 const PDFViewer = dynamic(() => import('@/components/ui/pdf-viewer').then(mod => ({ default: mod.PDFViewer })), {
@@ -1222,6 +1223,9 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
     }
   };
 
+  // To-dos are a board-project thing (see the section below).
+  const showTodos = localItemType === 'project';
+
   // Section navigation
   const scrollToSection = (section: string) => {
     setActiveSection(section);
@@ -1230,7 +1234,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   
   useEffect(() => {
     const handleScroll = () => {
-      const sections = ['overview', 'materials', 'plans', 'inspiration'];
+      const sections = ['overview', 'todos', 'materials', 'plans', 'inspiration'];
       for (const section of sections) {
         const el = document.getElementById(`section-${section}`);
         if (el) {
@@ -1406,6 +1410,11 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
         <button onClick={() => scrollToSection('overview')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'overview' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>
           Project Overview
         </button>
+        {showTodos && (
+          <button onClick={() => scrollToSection('todos')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'todos' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>
+            To-dos
+          </button>
+        )}
         <button onClick={() => scrollToSection('materials')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'materials' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>
           Materials List
         </button>
@@ -2092,6 +2101,19 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                 onImageUpload={handleContentImageUpload}
               />
             </div>
+
+            {/* To-dos Section — Merlin tasks linked to this card. Only for
+                board projects: an idea has nothing to do yet, and a task card
+                IS the to-do. Mirrors Merlin's picker, which offers neither. */}
+            {showTodos && (
+              <div id="section-todos" className="space-y-4 pt-8 border-t">
+                <h2 className="text-2xl font-bold">To-dos</h2>
+                <p className="text-sm text-muted-foreground">
+                  Steps Merlin reminds you about day to day, before the project itself is in progress.
+                </p>
+                <ProjectTodos cardId={project.id} cardTitle={title} />
+              </div>
+            )}
 
             {/* Materials List Section */}
             <div id="section-materials" className="space-y-4 pt-8 border-t">
