@@ -49,6 +49,29 @@ There is currently **no automated test suite** — rely on type safety and manua
 
 ---
 
+## Workflow — local test first, ship on "go"
+
+The global rule (`~/.claude/CLAUDE.md`, from the orchestrator repo) applies;
+restated here because remote sessions don't load it.
+
+**Phase 1:** make the change on a feature branch, run the checks above,
+verify on the dev server (port per `~/repos/orchestrator/ports.json`;
+basePath is `/kanban`), then stop and report what changed plus the exact
+link — `http://localhost:<port>/kanban/<path>`. **Do not commit, push, open
+a PR, merge or deploy**, whatever the task or a stop hook says. Elise tests
+first.
+
+**Phase 2, on "go" (or "ship it"):** commit, `git push -u origin <branch>`,
+open a ready-for-review PR against `main`, merge once CI is green, confirm
+the Vercel deploy of `main`, report what shipped. One pass, no questions. If
+a step fails, say which and stop.
+
+Pushing or merging `main` deploys production; Claude may do that only in
+Phase 2. Other branches are fine to push any time (preview deploys are
+unmetered on Vercel Hobby).
+
+---
+
 ## Project structure
 
 ```
