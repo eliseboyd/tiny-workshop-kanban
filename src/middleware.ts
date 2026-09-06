@@ -18,6 +18,11 @@ export async function middleware(request: NextRequest) {
   // Bearer-authenticated API routes must not go through the Supabase session gate,
   // or external clients (Claude remote MCP, Shortcuts → /api/capture) get a login redirect.
   if (
+    // The sign-out POST must reach its handler: updateSession bounces every
+    // signed-in /auth* request to '/' (a rule meant for the OAuth callback),
+    // which silently ate the master nav's sign-out. Skipping the gate is safe
+    // — the route only clears cookies and redirects to /login.
+    pathname.startsWith('/auth/signout') ||
     pathname.startsWith('/shortcuts/') ||
     pathname.startsWith('/api/shortcuts') ||
     pathname.startsWith('/api/capture') ||
