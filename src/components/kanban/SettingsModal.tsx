@@ -992,14 +992,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <div className="flex gap-2">
                   <Input
                     readOnly
-                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/embed`}
+                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/kanban/embed`}
                     className="font-mono text-sm"
                   />
                   <Button
                     variant="outline"
                     onClick={() => {
                       if (typeof window !== 'undefined') {
-                        navigator.clipboard.writeText(`${window.location.origin}/embed`);
+                        navigator.clipboard.writeText(`${window.location.origin}/kanban/embed`);
                         setEmbedCopied(true);
                         setTimeout(() => setEmbedCopied(false), 2000);
                       }
@@ -1015,7 +1015,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <div className="relative">
                   <textarea
                     readOnly
-                    value={`<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/embed" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`}
+                    value={`<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/kanban/embed" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`}
                     className="w-full h-24 p-3 font-mono text-xs border rounded-md bg-muted/50 resize-none"
                   />
                   <Button
@@ -1024,7 +1024,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     className="absolute top-2 right-2"
                     onClick={() => {
                       if (typeof window !== 'undefined') {
-                        const embedCode = `<iframe src="${window.location.origin}/embed" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`;
+                        const embedCode = `<iframe src="${window.location.origin}/kanban/embed" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`;
                         navigator.clipboard.writeText(embedCode);
                         setEmbedCopied(true);
                         setTimeout(() => setEmbedCopied(false), 2000);
@@ -1039,8 +1039,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               
               <div className="border-t pt-4 mt-4">
                 <h4 className="text-sm font-medium mb-2">Preview</h4>
+                {/* Plain <a> and copied URLs don't get Next's basePath — the
+                    /kanban prefix is spelled out, as in layout.tsx. */}
                 <a
-                  href="/embed"
+                  href="/kanban/embed"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-primary hover:underline"

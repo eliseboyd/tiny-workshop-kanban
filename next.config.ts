@@ -7,6 +7,16 @@ const nextConfig: NextConfig = {
   // and the domain move must land together — see
   // ~/repos/orchestrator/plans/homepage-cutover.md.
   basePath: "/kanban",
+  // With basePath, Next only routes under /kanban; anything else on the
+  // kanban host (the bare root above all — Vercel's "Visit" button, the
+  // *.vercel.app URL, a typed kanban.tinywork.shop) falls through to Vercel's
+  // own "404: NOT_FOUND" page rather than the app's. Send the root to the
+  // board instead. basePath: false so the source is really "/", not "/kanban/".
+  async redirects() {
+    return [
+      { source: "/", destination: "/kanban", basePath: false, permanent: false },
+    ];
+  },
   // Parent of the repo, so a locally linked ../design-system (@eliseboyd/design)
   // resolves during local dev; harmless when the dep is installed from git.
   turbopack: {
