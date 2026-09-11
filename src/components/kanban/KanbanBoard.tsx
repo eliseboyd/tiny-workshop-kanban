@@ -15,7 +15,7 @@ import { ModeToggle } from '@/components/mode-toggle';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import SubNav from "@eliseboyd/design/nav/sub-nav";
 import { Menu, LayoutDashboard, Columns3, FileStack, CheckCircle2, Lightbulb } from 'lucide-react';
-import { AICaptureInput } from './AICaptureInput';
+import CaptureFab from '@eliseboyd/design/capture';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 
 // Tab views are only rendered when the user switches to them — lazy-load so
@@ -39,7 +39,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Settings, KanbanSquareDashed } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/use-local-storage';
-import { updateProjectStatus, updateSettings, updateColumn, createColumn, createProject, deleteColumn, deleteProject, updateColumnsOrder, updateColumnOrder, getAllTags, getAllProjectGroups, getAllWidgets, getAllMaterials, getProjects, getProject, getAllPlans, StandalonePlan, toggleProjectPinned, getIdeas, moveIdeaToKanban, createIdea, moveProjectToIdeas } from '@/app/actions';
+import { quickCapture, updateProjectStatus, updateSettings, updateColumn, createColumn, createProject, deleteColumn, deleteProject, updateColumnsOrder, updateColumnOrder, getAllTags, getAllProjectGroups, getAllWidgets, getAllMaterials, getProjects, getProject, getAllPlans, StandalonePlan, toggleProjectPinned, getIdeas, moveIdeaToKanban, createIdea, moveProjectToIdeas } from '@/app/actions';
 
 import { ClientDndWrapper } from './ClientDndWrapper';
 
@@ -911,44 +911,50 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
             </div>
             </div>
 
-            <div className="px-4 py-2 border-b bg-muted/20">
-              <AICaptureInput
-                onBeginCapture={() => {
-                  const id = `optimistic-${uuidv4()}`;
-                  const colId = cols[0]?.id ?? 'todo';
-                  setIdeas((prev) => [
-                    {
-                      id,
-                      title: 'Capturing…',
-                      description: null,
-                      richContent: null,
-                      materialsList: null,
-                      plans: null,
-                      inspiration: null,
-                      imageUrl: null,
-                      tags: null,
-                      attachments: null,
-                      status: colId,
-                      position: -1,
-                      createdAt: new Date(),
-                      updatedAt: new Date(),
-                      isTask: false,
-                      isIdea: true,
-                    } as Project,
-                    ...prev,
-                  ]);
-                  return id;
-                }}
-                onEndCapture={(tempId) =>
-                  setIdeas((prev) => prev.filter((p) => p.id !== tempId))
-                }
-                onCaptured={async () => {
+            {/* Quick capture: the floating "+" bottom right, shared with the
+                rest of the suite. Same logic as the old inline field — a
+                placeholder card while the server works, then the ideas view
+                refreshes. Enter sends; Shift+Enter starts the description. */}
+            <CaptureFab
+              title="Quick capture"
+              placeholder="What's the idea?"
+              hint="First line becomes the title, the rest the description. Paste a link for a preview image."
+              empty="Ideas land in the Ideas bin."
+              onCapture={async (text) => {
+                const tempId = `optimistic-${uuidv4()}`;
+                const colId = cols[0]?.id ?? 'todo';
+                setIdeas((prev) => [
+                  {
+                    id: tempId,
+                    title: 'Capturing…',
+                    description: null,
+                    richContent: null,
+                    materialsList: null,
+                    plans: null,
+                    inspiration: null,
+                    imageUrl: null,
+                    tags: null,
+                    attachments: null,
+                    status: colId,
+                    position: -1,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                    isTask: false,
+                    isIdea: true,
+                  } as Project,
+                  ...prev,
+                ]);
+                try {
+                  const result = await quickCapture(text);
                   await refreshIdeas();
                   setActiveView('ideas');
                   await loadTagsAndGroups();
-                }}
-              />
-            </div>
+                  return { notice: result.notice };
+                } finally {
+                  setIdeas((prev) => prev.filter((p) => p.id !== tempId));
+                }
+              }}
+            />
 
             {/* Dashboard Section */}
             {activeView === 'dashboard' && (
