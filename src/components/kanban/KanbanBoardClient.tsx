@@ -1,17 +1,19 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+import { KanbanBoard } from './KanbanBoard';
 import type { SettingsData, Column } from './KanbanBoard';
 import type { StandalonePlan } from '@/app/actions';
-import { KanbanSkeleton } from './KanbanSkeleton';
 
-// Render KanbanBoard on the server so first paint shows real content. The
-// localStorage-backed settings (active tab, hidden columns) defer their real
-// value to a post-mount read in useLocalStorage to avoid hydration mismatches.
-const KanbanBoard = dynamic(
-  () => import('./KanbanBoard').then(mod => ({ default: mod.KanbanBoard })),
-  { loading: () => <KanbanSkeleton /> }
-);
+// A plain import, deliberately. This used to be next/dynamic with a loading
+// skeleton so the board was code-split; but on the server dynamic() renders
+// its Lazy child beside a PreloadChunks sibling that the client never renders,
+// which shifts React's useId tree for everything inside the board. Every
+// Radix id (the Sheet trigger, the tabs) then hydrated with a mismatch warning
+// on each load. The board is this page's whole content, so there is nothing
+// to gain from splitting it off; its heavy views are still lazy-loaded
+// individually inside KanbanBoard. The localStorage-backed settings (active
+// tab, hidden columns) still defer their real value to a post-mount read in
+// useLocalStorage, so the server and first client render agree.
 
 type KanbanBoardClientProps = {
   initialProjects: Record<string, unknown>[];
