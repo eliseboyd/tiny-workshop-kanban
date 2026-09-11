@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo, useTransition } from 'react';
+import { useState, useEffect, useRef, useMemo, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   DragStartEvent,
@@ -13,7 +13,7 @@ import dynamic from 'next/dynamic';
 import { DashboardSection } from './DashboardSection';
 import { ModeToggle } from '@/components/mode-toggle';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import SubNav from "@eliseboyd/design/nav/sub-nav";
 import { Menu, LayoutDashboard, Columns3, FileStack, CheckCircle2, Lightbulb } from 'lucide-react';
 import { AICaptureInput } from './AICaptureInput';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -138,6 +138,18 @@ type KanbanBoardProps = {
 
 import { v4 as uuidv4 } from 'uuid';
 
+type BoardView = 'dashboard' | 'kanban' | 'ideas' | 'plans' | 'completed';
+
+// The board's views, in nav order. Rendered by the suite's <SubNav> in view
+// mode (see the return below); the icons are what survive on a phone.
+const VIEWS: { id: BoardView; label: string; icon: ReactNode }[] = [
+  { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
+  { id: 'kanban', label: 'Kanban', icon: <Columns3 className="h-4 w-4" /> },
+  { id: 'ideas', label: 'Ideas', icon: <Lightbulb className="h-4 w-4" /> },
+  { id: 'plans', label: 'Plans', icon: <FileStack className="h-4 w-4" /> },
+  { id: 'completed', label: 'Completed', icon: <CheckCircle2 className="h-4 w-4" /> },
+];
+
 export function KanbanBoard({ initialProjects, initialSettings, initialColumns, initialIdeas = [], initialTags = [], initialProjectGroups = [], initialWidgets = [], initialMaterials = [], initialPlans = [] }: KanbanBoardProps) {
   const router = useRouter();
   const confirmDialog = useConfirm();
@@ -205,7 +217,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
   const [titleInput, setTitleInput] = useState(initialSettings.boardTitle);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
-  const [activeView, setActiveView] = useLocalStorage<'dashboard' | 'kanban' | 'plans' | 'completed' | 'ideas'>('kanban-view', 'dashboard');
+  const [activeView, setActiveView] = useLocalStorage<BoardView>('kanban-view', 'dashboard');
   const [ideas, setIdeas] = useState<Project[]>(mapProjects(initialIdeas));
   const [editingIdeaIndex, setEditingIdeaIndex] = useState<number | null>(null);
   
@@ -823,7 +835,18 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
 
   return (
     <>
-      <div className="flex flex-col min-h-screen">
+      {/* The suite's floating section pill (fixed, centred, under the master
+          bar). The views are client state, not routes, so it runs in
+          view mode: current + onSelect. Labels collapse to icons on phones. */}
+      <SubNav
+        label="Views"
+        items={VIEWS}
+        current={activeView}
+        onSelect={(id) => setActiveView(id as BoardView)}
+      />
+      {/* pt-24 plus the title row's own padding keeps the board title clear
+          of the pill, whose bottom edge sits about 6.1rem from the top. */}
+      <div className="flex flex-col min-h-screen pt-24">
         <div className="flex flex-col border-b">
             <div className="flex items-center justify-between p-4 pb-2">
             <div className="h-9 flex items-center">
@@ -925,34 +948,6 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
                   await loadTagsAndGroups();
                 }}
               />
-            </div>
-
-            {/* View Tabs */}
-            <div className="px-4 py-2 border-b bg-muted/30 overflow-x-auto">
-              <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'dashboard' | 'kanban' | 'plans' | 'completed' | 'ideas')}>
-                <TabsList className="w-auto">
-                  <TabsTrigger value="dashboard" className="gap-1.5">
-                    <LayoutDashboard className="h-4 w-4" />
-                    <span className="hidden md:inline">Dashboard</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="kanban" className="gap-1.5">
-                    <Columns3 className="h-4 w-4" />
-                    <span className="hidden md:inline">Kanban</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="ideas" className="gap-1.5">
-                    <Lightbulb className="h-4 w-4" />
-                    <span className="hidden md:inline">Ideas</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="plans" className="gap-1.5">
-                    <FileStack className="h-4 w-4" />
-                    <span className="hidden md:inline">Plans</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="completed" className="gap-1.5">
-                    <CheckCircle2 className="h-4 w-4" />
-                    <span className="hidden md:inline">Completed</span>
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
             </div>
 
             {/* Dashboard Section */}
