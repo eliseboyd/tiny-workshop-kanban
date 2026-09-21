@@ -1103,6 +1103,7 @@ const getSettingsCached = unstable_cache(async () => {
         visibleTags: data.visible_tags || [],
         hiddenProjects: data.hidden_projects || [],
         hiddenTags: data.hidden_tags || [],
+        hiddenColumns: data.hidden_columns || [],
     };
   }
   
@@ -1137,6 +1138,7 @@ const getSettingsCached = unstable_cache(async () => {
             visibleTags: [],
             hiddenProjects: [],
             hiddenTags: [],
+            hiddenColumns: [],
           };
       }
   }
@@ -1150,6 +1152,7 @@ const getSettingsCached = unstable_cache(async () => {
     visibleTags: [],
     hiddenProjects: [],
     hiddenTags: [],
+    hiddenColumns: [],
   };
 }, ['board:settings'], BOARD_CACHE_OPTS);
 
@@ -1171,6 +1174,7 @@ export async function updateSettings(data: Record<string, unknown>) {
   if (data.visibleTags !== undefined) dbData.visible_tags = data.visibleTags;
   if (data.hiddenProjects !== undefined) dbData.hidden_projects = data.hiddenProjects;
   if (data.hiddenTags !== undefined) dbData.hidden_tags = data.hiddenTags;
+  if (data.hiddenColumns !== undefined) dbData.hidden_columns = data.hiddenColumns;
 
   const { error } = await supabase.from('settings').update(dbData).eq('id', current.id);
   if (error) console.error('Error updating settings:', error);
@@ -1799,6 +1803,49 @@ export async function updateTag(name: string, updates: { color?: string; emoji?:
     throw error;
   }
   
+  revalidateBoard();
+}
+
+// Tag names are the primary key and are stored by name on projects, in the
+// board settings and in widget filters, so a rename has to rewrite all of
+// them. Merging into an existing tag is refused rather than silently joined.
+export async function renameTag(oldName: string, newName: string) {
+  const supabase = createServiceRoleClient();
+  const trimmed = newName.trim();
+  if (!trimmed || trimmed === oldName) return;
+
+  const { data: clash } = await supabase.from('tags').select('name').eq('name', trimmed).maybeSingle();
+  if (clash) throw new Error(`A tag named "${trimmed}" already exists`);
+
+  const { data: old, error: readError } = await supabase.from('tags').select('*').eq('name', oldName).single();
+  if (readError || !old) throw readError ?? new Error('Tag not found');
+
+  const { error: insertError } = await supabase.from('tags').insert({ ...old, name: trimmed });
+  if (insertError) throw insertError;
+
+  const { data: projects } = await supabase.from('projects').select('id, tags').contains('tags', [oldName]);
+  for (const project of projects ?? []) {
+    const tags = (project.tags as string[]).map((t) => (t === oldName ? trimmed : t));
+    await supabase.from('projects').update({ tags }).eq('id', project.id);
+  }
+
+  const { data: settings } = await supabase.from('settings').select('id, hidden_tags, visible_tags').limit(1).single();
+  if (settings) {
+    const swap = (list: string[] | null) => (list ?? []).map((t) => (t === oldName ? trimmed : t));
+    await supabase
+      .from('settings')
+      .update({ hidden_tags: swap(settings.hidden_tags), visible_tags: swap(settings.visible_tags) })
+      .eq('id', settings.id);
+  }
+
+  const { data: widgets } = await supabase.from('widgets').select('id, config').contains('config', { filterType: 'tag', filterId: oldName });
+  for (const widget of widgets ?? []) {
+    await supabase.from('widgets').update({ config: { ...widget.config, filterId: trimmed } }).eq('id', widget.id);
+  }
+
+  const { error: deleteError } = await supabase.from('tags').delete().eq('name', oldName);
+  if (deleteError) throw deleteError;
+
   revalidateBoard();
 }
 

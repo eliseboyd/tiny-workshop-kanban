@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo, useTransition, type ReactNode } from 'react';
+import { useState, useEffect, useMemo, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   DragStartEvent,
@@ -12,9 +12,8 @@ import { FilterSection } from './FilterSection';
 import dynamic from 'next/dynamic';
 import { DashboardSection } from './DashboardSection';
 import { ModeToggle } from '@/components/mode-toggle';
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import SubNav from "@eliseboyd/design/nav/sub-nav";
-import { Menu, LayoutDashboard, Columns3, FileStack, CheckCircle2, Lightbulb } from 'lucide-react';
+import { LayoutDashboard, Columns3, FileStack, CheckCircle2, Lightbulb } from 'lucide-react';
 import CaptureFab from '@eliseboyd/design/capture';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 
@@ -36,7 +35,6 @@ const IdeasView = dynamic(() => import('./IdeasView').then(m => ({ default: m.Id
 const ProjectModal = dynamic(() => import('./ProjectModal').then(m => ({ default: m.ProjectModal })));
 const SettingsModal = dynamic(() => import('./SettingsModal').then(m => ({ default: m.SettingsModal })));
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Plus, Settings, KanbanSquareDashed } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { quickCapture, updateProjectStatus, updateSettings, updateColumn, createColumn, createProject, deleteColumn, deleteProject, updateColumnsOrder, updateColumnOrder, getAllTags, getAllProjectGroups, getAllWidgets, getAllMaterials, getProjects, getProject, getAllPlans, StandalonePlan, toggleProjectPinned, getIdeas, moveIdeaToKanban, createIdea, moveProjectToIdeas } from '@/app/actions';
@@ -116,6 +114,7 @@ export type SettingsData = {
     visibleTags?: string[];
     hiddenProjects?: string[];
     hiddenTags?: string[];
+    hiddenColumns?: string[];
 };
 
 export type Column = {
@@ -212,17 +211,12 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
   const [materials, setMaterials] = useState<MaterialItem[]>(initialMaterials as unknown as MaterialItem[]);
   const [allPlans, setAllPlans] = useState<Array<StandalonePlan & { source: 'standalone' | 'project' }>>(initialPlans);
 
-  // Board title editing state
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [titleInput, setTitleInput] = useState(initialSettings.boardTitle);
-  const titleInputRef = useRef<HTMLInputElement>(null);
-
   const [activeView, setActiveView] = useLocalStorage<BoardView>('kanban-view', 'dashboard');
   const [ideas, setIdeas] = useState<Project[]>(mapProjects(initialIdeas));
   const [editingIdeaIndex, setEditingIdeaIndex] = useState<number | null>(null);
   
   // Hidden columns state (array of column IDs)
-  const [hiddenColumns, setHiddenColumns] = useLocalStorage<string[]>('hidden-columns', []);
+  const [hiddenColumns, setHiddenColumns] = useState<string[]>(initialSettings.hiddenColumns || []);
 
   // Sync items when props change
   useEffect(() => {
@@ -231,7 +225,6 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
   
   useEffect(() => {
     setSettingsState(initialSettings);
-    setTitleInput(initialSettings.boardTitle);
   }, [initialSettings]);
 
   useEffect(() => {
@@ -734,26 +727,12 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
       await updateProjectStatus(projectId, newColumnId, newPosition);
   };
 
-  const handleToggleColumnVisibility = (columnId: string) => {
-      setHiddenColumns(prev => 
-          prev.includes(columnId) 
-              ? prev.filter(id => id !== columnId)
-              : [...prev, columnId]
-      );
-  };
-
-  const handleBoardTitleClick = () => {
-      setIsEditingTitle(true);
-      setTimeout(() => titleInputRef.current?.focus(), 0);
-  };
-
-  const handleBoardTitleBlur = async () => {
-      setIsEditingTitle(false);
-      if (titleInput !== settingsState.boardTitle) {
-          const newSettings = { ...settingsState, boardTitle: titleInput };
-          setSettingsState(newSettings);
-          await updateSettings({ boardTitle: titleInput });
-      }
+  const handleToggleColumnVisibility = async (columnId: string) => {
+      const newHiddenColumns = hiddenColumns.includes(columnId)
+          ? hiddenColumns.filter(id => id !== columnId)
+          : [...hiddenColumns, columnId];
+      setHiddenColumns(newHiddenColumns);
+      await updateSettings({ hiddenColumns: newHiddenColumns });
   };
 
   // Filter handlers
@@ -843,73 +822,16 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
         items={VIEWS}
         current={activeView}
         onSelect={(id) => setActiveView(id as BoardView)}
-      />
-      {/* pt-24 plus the title row's own padding keeps the board title clear
-          of the pill, whose bottom edge sits about 6.1rem from the top. */}
-      <div className="flex flex-col min-h-screen pt-24">
+      >
+        <ModeToggle />
+        <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)} aria-label="Open settings">
+          <Settings className="h-4 w-4" />
+        </Button>
+      </SubNav>
+      {/* pt-28 keeps the board content clear of the pill, whose bottom edge
+          sits about 6.1rem from the top. */}
+      <div className="flex flex-col min-h-screen pt-28">
         <div className="flex flex-col border-b">
-            <div className="flex items-center justify-between p-4 pb-2">
-            <div className="h-9 flex items-center">
-                {isEditingTitle ? (
-                    <Input
-                        ref={titleInputRef}
-                        value={titleInput}
-                        onChange={(e) => setTitleInput(e.target.value)}
-                        onBlur={handleBoardTitleBlur}
-                        onKeyDown={(e) => e.key === 'Enter' && titleInputRef.current?.blur()}
-                        className="text-2xl font-bold h-9 py-0 px-1 w-fit min-w-[200px] bg-transparent border-none focus-visible:ring-1"
-                    />
-                ) : (
-                    <h1
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`Rename board: ${settingsState.boardTitle}`}
-                        className="text-2xl font-bold cursor-text hover:bg-accent/50 rounded px-1 -ml-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        onClick={handleBoardTitleClick}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            handleBoardTitleClick();
-                          }
-                        }}
-                    >
-                        {settingsState.boardTitle}
-                    </h1>
-                )}
-            </div>
-            <div className="flex md:hidden">
-                <Sheet>
-                    <SheetTrigger asChild>
-                        <Button variant="ghost" size="icon" className="mr-2" aria-label="Open menu">
-                            <Menu className="h-5 w-5" />
-                        </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-[250px] sm:w-[300px]">
-                        <SheetHeader className="mb-4">
-                            <SheetTitle>Menu</SheetTitle>
-                            <SheetDescription>
-                                Manage your board settings and projects.
-                            </SheetDescription>
-                        </SheetHeader>
-                        <div className="flex flex-col gap-4">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium">Theme</span>
-                                <ModeToggle />
-                            </div>
-                            <Button variant="outline" className="justify-start" onClick={() => setIsSettingsOpen(true)}>
-                                <Settings className="mr-2 h-4 w-4" /> Settings
-                            </Button>
-                        </div>
-                    </SheetContent>
-                </Sheet>
-            </div>
-            <div className="hidden md:flex gap-2">
-                <ModeToggle />
-                <Button variant="outline" size="icon" onClick={() => setIsSettingsOpen(true)} aria-label="Open settings">
-                  <Settings className="h-4 w-4" />
-                </Button>
-            </div>
-            </div>
 
             {/* Quick capture: the floating "+" bottom right, shared with the
                 rest of the suite. Same logic as the old inline field — a
@@ -1129,7 +1051,13 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
       {isSettingsOpen && (
         <SettingsModal
           isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
+          onClose={() => {
+            setIsSettingsOpen(false);
+            // Tags, groups and settings may have changed; pull the board's
+            // client copies and the server-rendered projects back in line.
+            loadTagsAndGroups();
+            router.refresh();
+          }}
         />
       )}
     </>

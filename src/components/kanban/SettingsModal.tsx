@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getSettings, updateSettings, getAllMediaFiles, deleteMediaFile, getAllTags, createTag, updateTag, deleteTag, getAllProjectGroups, createProjectGroup, updateProjectGroup, deleteProjectGroup, uploadFile, getImageStyles, createImageStyle, updateImageStyle, deleteImageStyle, uploadImageBase64, type ImageStyle } from '@/app/actions';
+import { getSettings, updateSettings, getAllMediaFiles, deleteMediaFile, getAllTags, createTag, updateTag, renameTag, deleteTag, getAllProjectGroups, createProjectGroup, updateProjectGroup, deleteProjectGroup, uploadFile, getImageStyles, createImageStyle, updateImageStyle, deleteImageStyle, uploadImageBase64, type ImageStyle } from '@/app/actions';
 import { logout } from '@/app/login/actions';
 import { Loader2, LogOut, Trash2, Image as ImageIcon, FileText, Plus, Edit2, Upload, X, Code, Wand2, Sparkles } from 'lucide-react';
 import Image from 'next/image';
@@ -51,17 +51,31 @@ type ProjectGroup = {
 
 // Tag item component with local color state
 function TagItem({ 
-  tag, 
-  onUpdate, 
-  onDelete, 
+  tag,
+  onUpdate,
+  onRename,
+  onDelete,
   onIconUpload 
 }: { 
   tag: Tag; 
   onUpdate: (name: string, updates: Partial<Tag>) => void;
+  onRename: (name: string, newName: string) => void;
   onDelete: (name: string) => void;
   onIconUpload: (name: string, file: File) => void;
 }) {
   const [localColor, setLocalColor] = useState(tag.color);
+  const [localName, setLocalName] = useState(tag.name);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLocalName(tag.name);
+  }, [tag.name]);
+
+  const commitName = () => {
+    const next = localName.trim();
+    if (next && next !== tag.name) onRename(tag.name, next);
+    else setLocalName(tag.name);
+  };
 
   // Sync local state when tag color changes
   useEffect(() => {
@@ -85,7 +99,17 @@ function TagItem({
       ) : (
         <span className="text-xl">{tag.emoji || '🏷️'}</span>
       )}
-      <span className="flex-1 font-medium">{tag.name}</span>
+      <Input
+        value={localName}
+        onChange={(e) => setLocalName(e.target.value)}
+        onBlur={commitName}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+          if (e.key === 'Escape') { setLocalName(tag.name); e.currentTarget.blur(); }
+        }}
+        aria-label={`Rename tag ${tag.name}`}
+        className="flex-1 h-8 font-medium bg-transparent border-transparent hover:border-input focus-visible:border-input"
+      />
       <div className="flex items-center gap-2">
         <div 
           className="w-8 h-8 rounded border flex-shrink-0"
@@ -379,6 +403,16 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       loadTags();
     } catch (error) {
       console.error('Failed to update tag', error);
+    }
+  };
+
+  const handleRenameTag = async (name: string, newName: string) => {
+    try {
+      await renameTag(name, newName);
+      loadTags();
+    } catch (error) {
+      console.error('Failed to rename tag', error);
+      setSettingsError(error instanceof Error ? error.message : 'Failed to rename tag');
     }
   };
 
@@ -707,6 +741,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       key={tag.name}
                       tag={tag}
                       onUpdate={handleUpdateTag}
+                      onRename={handleRenameTag}
                       onDelete={handleDeleteTag}
                       onIconUpload={handleTagIconUpload}
                     />
