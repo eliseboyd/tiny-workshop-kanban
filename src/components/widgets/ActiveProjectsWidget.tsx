@@ -10,6 +10,7 @@ import { ScrollFade } from './ScrollFade';
 import { useDragHandle } from './WidgetsSection';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { isInProjectGroup } from '@/lib/project-groups';
 
 type Tag = {
   name: string;
@@ -22,6 +23,8 @@ type ProjectGroup = {
   name: string;
   color: string;
   emoji?: string;
+  tags?: string[];
+  matchMode?: 'any' | 'all';
 };
 
 type Column = {
@@ -88,7 +91,8 @@ export function ActiveProjectsWidget({
         return p.tags?.includes(filterBy);
       }
       if (filterType === 'group' && filterBy !== 'all') {
-        return p.parentProjectId === filterBy;
+        const group = projectGroups.find(g => g.id === filterBy);
+        return group ? isInProjectGroup(p.tags, group) : false;
       }
 
       return true;
@@ -113,7 +117,7 @@ export function ActiveProjectsWidget({
     });
 
     return filtered;
-  }, [projects, widget.config.showType, sortBy, filterBy, filterType, doneColumn, columns]);
+  }, [projects, projectGroups, widget.config.showType, sortBy, filterBy, filterType, doneColumn, columns]);
 
   // Track project as recently opened
   const trackRecentProject = (projectId: string) => {
@@ -247,9 +251,7 @@ export function ActiveProjectsWidget({
           <ul className="divide-y">
             {displayProjects.map(project => {
               const column = columns.find(c => c.id === project.status);
-              const projectGroup = project.parentProjectId 
-                ? projectGroups.find(g => g.id === project.parentProjectId)
-                : null;
+              const projectGroup = projectGroups.find(g => isInProjectGroup(project.tags, g)) ?? null;
 
               return (
                 <li 

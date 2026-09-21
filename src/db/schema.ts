@@ -53,6 +53,8 @@ export const projectGroups = kanban.table('project_groups', {
   color: text('color').notNull().default('#64748b'),
   emoji: text('emoji'),
   icon: text('icon'),
+  tags: text('tags').array().notNull().default([]), // The tags that make up this project
+  matchMode: text('match_mode').notNull().default('any'), // 'any' | 'all' of those tags
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 

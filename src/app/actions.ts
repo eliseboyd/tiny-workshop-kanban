@@ -4,6 +4,7 @@ import { createServiceRoleClient } from '@/utils/supabase/admin';
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
+import type { ProjectGroupMatchMode } from '@/lib/project-groups';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { writeFile, mkdir } from 'fs/promises';
 import type { IncomingMessage } from 'http';
@@ -1898,20 +1899,27 @@ const getAllProjectGroupsCached = unstable_cache(async () => {
     return [];
   }
 
-  return data ?? [];
+  // Map snake_case to camelCase for the client
+  return (data ?? []).map(({ match_mode, ...g }) => ({
+    ...g,
+    tags: (g.tags as string[] | null) ?? [],
+    matchMode: (match_mode as ProjectGroupMatchMode) ?? 'any',
+  }));
 }, ['board:project-groups'], BOARD_CACHE_OPTS);
 
 export async function getAllProjectGroups() {
   return getAllProjectGroupsCached();
 }
 
-export async function createProjectGroup(group: { name: string; color: string; emoji?: string; icon?: string }) {
+export async function createProjectGroup(group: { name: string; color: string; emoji?: string; icon?: string; tags?: string[]; matchMode?: ProjectGroupMatchMode }) {
   const supabase = createServiceRoleClient();
+  const { matchMode, ...rest } = group;
   const { error } = await supabase
     .from('project_groups')
     .insert({
       id: uuidv4(),
-      ...group,
+      ...rest,
+      match_mode: matchMode ?? 'any',
     });
   
   if (error) {
@@ -1922,11 +1930,14 @@ export async function createProjectGroup(group: { name: string; color: string; e
   revalidateBoard();
 }
 
-export async function updateProjectGroup(id: string, updates: { name?: string; color?: string; emoji?: string; icon?: string }) {
+export async function updateProjectGroup(id: string, updates: { name?: string; color?: string; emoji?: string; icon?: string; tags?: string[]; matchMode?: ProjectGroupMatchMode }) {
   const supabase = createServiceRoleClient();
+  const { matchMode, ...rest } = updates;
+  const dbData: Record<string, unknown> = { ...rest };
+  if (matchMode !== undefined) dbData.match_mode = matchMode;
   const { error } = await supabase
     .from('project_groups')
-    .update(updates)
+    .update(dbData)
     .eq('id', id);
   
   if (error) {
@@ -1939,12 +1950,6 @@ export async function updateProjectGroup(id: string, updates: { name?: string; c
 
 export async function deleteProjectGroup(id: string) {
   const supabase = createServiceRoleClient();
-  
-  // Remove parent_project_id from all projects in this group
-  await supabase
-    .from('projects')
-    .update({ parent_project_id: null })
-    .eq('parent_project_id', id);
   
   // Delete the project group
   const { error } = await supabase

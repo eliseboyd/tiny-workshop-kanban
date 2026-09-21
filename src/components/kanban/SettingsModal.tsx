@@ -6,6 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -47,6 +49,8 @@ type ProjectGroup = {
   color: string;
   emoji?: string;
   icon?: string;
+  tags: string[];
+  matchMode: 'any' | 'all';
 };
 
 // Tag item component with local color state
@@ -169,14 +173,18 @@ function TagItem({
   );
 }
 
-// Project group item component with local color state
+// Project group item: a named collection of tags. The top row is the same
+// name/colour/icon strip as a tag; the bottom row picks which tags make up
+// the project and whether a card needs any or all of them.
 function ProjectGroupItem({ 
   group, 
+  allTags,
   onUpdate, 
   onDelete, 
   onIconUpload 
 }: { 
   group: ProjectGroup; 
+  allTags: Tag[];
   onUpdate: (id: string, updates: Partial<ProjectGroup>) => void;
   onDelete: (id: string, name: string) => void;
   onIconUpload: (id: string, file: File) => void;
@@ -189,8 +197,16 @@ function ProjectGroupItem({
     setLocalColor(group.color);
   }, [group.color]);
 
+  const toggleTag = (name: string) => {
+    const next = group.tags.includes(name)
+      ? group.tags.filter((t) => t !== name)
+      : [...group.tags, name];
+    onUpdate(group.id, { tags: next });
+  };
+
   return (
-    <div className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+    <div className="flex flex-col gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+    <div className="flex items-center gap-2">
       {group.icon ? (
         <div className="relative w-8 h-8 flex-shrink-0">
           <Image
@@ -262,6 +278,48 @@ function ProjectGroupItem({
         <Trash2 className="h-4 w-4" />
       </Button>
     </div>
+    <div className="flex flex-wrap items-center gap-1.5 pl-1">
+      <span className="text-xs text-muted-foreground mr-1">Cards with</span>
+      <div className="inline-flex rounded-md border text-xs overflow-hidden">
+        {(['any', 'all'] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            onClick={() => mode !== group.matchMode && onUpdate(group.id, { matchMode: mode })}
+            className={cn(
+              'px-2 py-0.5 transition-colors',
+              group.matchMode === mode ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+            )}
+          >
+            {mode}
+          </button>
+        ))}
+      </div>
+      <span className="text-xs text-muted-foreground mr-1">of:</span>
+      {allTags.length === 0 ? (
+        <span className="text-xs text-muted-foreground">No tags yet</span>
+      ) : (
+        allTags.map((tag) => {
+          const on = group.tags.includes(tag.name);
+          return (
+            <Badge
+              key={tag.name}
+              variant={on ? 'default' : 'outline'}
+              className="cursor-pointer select-none"
+              style={on ? { backgroundColor: tag.color, borderColor: tag.color } : { borderColor: tag.color }}
+              onClick={() => toggleTag(tag.name)}
+            >
+              {tag.emoji && <span className="mr-1">{tag.emoji}</span>}
+              {tag.name}
+            </Badge>
+          );
+        })
+      )}
+      {group.tags.length === 0 && allTags.length > 0 && (
+        <span className="text-xs text-muted-foreground italic ml-1">— pick at least one tag or nothing will match</span>
+      )}
+    </div>
+    </div>
   );
 }
 
@@ -327,6 +385,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   useEffect(() => {
     if (isOpen && activeTab === 'projects') {
       loadProjectGroups();
+      loadTags();
     }
   }, [isOpen, activeTab]);
 
@@ -475,7 +534,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const handleDeleteProjectGroup = async (id: string, name: string) => {
     const ok = await confirmDialog({
       title: `Delete project group "${name}"?`,
-      description: "Cards in this group won't be deleted.",
+      description: "Cards keep their tags; only the project is removed.",
       confirmLabel: 'Delete',
       destructive: true,
     });
@@ -796,6 +855,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <ProjectGroupItem
                       key={group.id}
                       group={group}
+                      allTags={tags}
                       onUpdate={handleUpdateProjectGroup}
                       onDelete={handleDeleteProjectGroup}
                       onIconUpload={handleProjectGroupIconUpload}

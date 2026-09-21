@@ -11,9 +11,10 @@ import { ScrollFade } from './ScrollFade';
 import { useDragHandle } from './WidgetsSection';
 import { resolveWorkflowLanes, findDoneColumn } from '@/lib/board-columns';
 import { renderTagLaneAccentIcon } from '@/lib/tag-lane-accent-icons';
+import { isInProjectGroup } from '@/lib/project-groups';
 
 type Tag = { name: string; color: string; emoji?: string };
-type ProjectGroup = { id: string; name: string; color: string; emoji?: string };
+type ProjectGroup = { id: string; name: string; color: string; emoji?: string; tags?: string[]; matchMode?: 'any' | 'all' };
 type Column = { id: string; title: string; order: number };
 
 export type TagLaneBoardConfig = {
@@ -44,6 +45,7 @@ type TagLaneBoardWidgetProps = {
 function useFilteredLaneProjects(
   projects: Project[],
   columns: Column[],
+  projectGroups: ProjectGroup[],
   config: TagLaneBoardConfig
 ) {
   return useMemo(() => {
@@ -62,7 +64,8 @@ function useFilteredLaneProjects(
       if (config.filterType === 'tag') {
         return p.tags?.includes(config.filterId) ?? false;
       }
-      return p.parentProjectId === config.filterId;
+      const group = projectGroups.find((g) => g.id === config.filterId);
+      return group ? isInProjectGroup(p.tags, group) : false;
     });
 
     const sorted = [...filtered].sort((a, b) => {
@@ -73,7 +76,7 @@ function useFilteredLaneProjects(
     });
 
     return { lanes, items: sorted };
-  }, [projects, columns, config.filterType, config.filterId]);
+  }, [projects, columns, projectGroups, config.filterType, config.filterId]);
 }
 
 function columnBadgeLabel(
@@ -167,7 +170,7 @@ export function TagLaneBoardWidget({
   const config = widget.config as TagLaneBoardConfig;
   const viewMode = config.viewMode ?? 'cards';
 
-  const { lanes, items } = useFilteredLaneProjects(projects, columns, config);
+  const { lanes, items } = useFilteredLaneProjects(projects, columns, projectGroups, config);
 
   const filterMeta =
     config.filterType === 'tag'

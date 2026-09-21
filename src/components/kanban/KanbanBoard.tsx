@@ -84,6 +84,8 @@ type ProjectGroup = {
   color: string;
   emoji?: string;
   icon?: string;
+  tags: string[];
+  matchMode: 'any' | 'all';
 };
 
 type Widget = {
@@ -136,6 +138,7 @@ type KanbanBoardProps = {
 };
 
 import { v4 as uuidv4 } from 'uuid';
+import { isInProjectGroup, isInAnyProjectGroup } from '@/lib/project-groups';
 
 type BoardView = 'dashboard' | 'kanban' | 'ideas' | 'plans' | 'completed';
 
@@ -313,7 +316,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
   const dashboardProjectGroups = useMemo(() => {
     return projectGroups.map(group => ({
       ...group,
-      count: items.filter(item => item.parentProjectId === group.id).length,
+      count: items.filter(item => isInProjectGroup(item.tags, group)).length,
     })).filter(group => group.count > 0);
   }, [projectGroups, items]);
 
@@ -328,11 +331,10 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
           );
       }
       
-      // Filter by project groups
+      // Filter by project groups (a card is in a group when its tags match)
       if (activeGroups.length > 0) {
-          filtered = filtered.filter(item => 
-              item.parentProjectId && activeGroups.includes(item.parentProjectId)
-          );
+          const active = projectGroups.filter(g => activeGroups.includes(g.id));
+          filtered = filtered.filter(item => isInAnyProjectGroup(item.tags, active));
       }
       
       // Filter untagged
@@ -344,13 +346,11 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
       
       // Filter ungrouped
       if (showUngrouped) {
-          filtered = filtered.filter(item => 
-              !item.parentProjectId
-          );
+          filtered = filtered.filter(item => !isInAnyProjectGroup(item.tags, projectGroups));
       }
       
       return filtered;
-  }, [items, activeTags, activeGroups, showUntagged, showUngrouped]);
+  }, [items, projectGroups, activeTags, activeGroups, showUntagged, showUngrouped]);
 
   function findContainer(id: string) {
     if (cols.find(c => c.id === id)) return id;
@@ -742,10 +742,21 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
       );
   };
 
+  // Selecting a project also selects its tags, so the tag chips show what
+  // the project is made of. Deselecting drops those tags unless another
+  // active project still needs them.
   const handleGroupToggle = (groupId: string) => {
-      setActiveGroups(prev => 
-          prev.includes(groupId) ? prev.filter(g => g !== groupId) : [...prev, groupId]
-      );
+      const group = projectGroups.find(g => g.id === groupId);
+      const groupTags = group?.tags ?? [];
+      if (activeGroups.includes(groupId)) {
+          const remaining = activeGroups.filter(g => g !== groupId);
+          const stillNeeded = new Set(projectGroups.filter(g => remaining.includes(g.id)).flatMap(g => g.tags));
+          setActiveGroups(remaining);
+          setActiveTags(prev => prev.filter(t => !groupTags.includes(t) || stillNeeded.has(t)));
+      } else {
+          setActiveGroups([...activeGroups, groupId]);
+          setActiveTags(prev => Array.from(new Set([...prev, ...groupTags])));
+      }
   };
 
   const handleClearFilters = () => {
@@ -771,12 +782,14 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
 
   const handleDashboardProjectClick = (groupId: string) => {
       // If this project is the only active filter, clear it
-      if (activeGroups.length === 1 && activeGroups[0] === groupId && activeTags.length === 0) {
+      if (activeGroups.length === 1 && activeGroups[0] === groupId) {
           setActiveGroups([]);
-      } else {
-          // Otherwise, clear all filters and show only this project
-          setActiveGroups([groupId]);
           setActiveTags([]);
+      } else {
+          // Otherwise, clear all filters and show only this project (and its tags)
+          const group = projectGroups.find(g => g.id === groupId);
+          setActiveGroups([groupId]);
+          setActiveTags(group?.tags ?? []);
           setShowUntagged(false);
           setShowUngrouped(false);
       }
