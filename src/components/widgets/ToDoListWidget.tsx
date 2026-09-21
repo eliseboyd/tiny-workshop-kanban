@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import type { Project } from '@/components/kanban/KanbanBoard';
 import { ScrollFade } from './ScrollFade';
 import { useDragHandle } from './WidgetsSection';
+import { isInProjectGroup } from '@/lib/project-groups';
 
 type Tag = {
   name: string;
@@ -21,6 +22,8 @@ type ProjectGroup = {
   name: string;
   color: string;
   emoji?: string;
+  tags?: string[];
+  matchMode?: 'any' | 'all';
 };
 
 type Column = {
@@ -79,7 +82,8 @@ export function ToDoListWidget({
     } else if (widget.config.filterType === 'tag') {
       return project.tags?.includes(widget.config.filterId || '');
     } else {
-      return project.parentProjectId === widget.config.filterId;
+      const group = projectGroups.find(g => g.id === widget.config.filterId);
+      return group ? isInProjectGroup(project.tags, group) : false;
     }
   });
 

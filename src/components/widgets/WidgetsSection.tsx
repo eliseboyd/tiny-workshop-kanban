@@ -48,6 +48,8 @@ type ProjectGroup = {
   name: string;
   color: string;
   emoji?: string;
+  tags?: string[];
+  matchMode?: 'any' | 'all';
 };
 
 type Widget = {

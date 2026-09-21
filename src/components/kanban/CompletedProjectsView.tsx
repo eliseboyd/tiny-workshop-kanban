@@ -11,6 +11,7 @@ import { Filter, Search, X, Calendar, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { isInProjectGroup } from '@/lib/project-groups';
 
 type Tag = {
   name: string;
@@ -25,6 +26,8 @@ type ProjectGroup = {
   color: string;
   emoji?: string;
   icon?: string;
+  tags?: string[];
+  matchMode?: 'any' | 'all';
 };
 
 type CompletedProjectsViewProps = {
@@ -72,7 +75,8 @@ export function CompletedProjectsView({
 
       // Project group filter
       if (selectedProjectGroup) {
-        if (p.parentProjectId !== selectedProjectGroup) return false;
+        const group = projectGroups.find(g => g.id === selectedProjectGroup);
+        if (!group || !isInProjectGroup(p.tags, group)) return false;
       }
 
       // Date filter
@@ -103,7 +107,7 @@ export function CompletedProjectsView({
 
       return true;
     });
-  }, [projects, searchQuery, selectedTags, selectedProjectGroup, dateFilter]);
+  }, [projects, projectGroups, searchQuery, selectedTags, selectedProjectGroup, dateFilter]);
 
   // Sort projects
   const sortedProjects = useMemo(() => {

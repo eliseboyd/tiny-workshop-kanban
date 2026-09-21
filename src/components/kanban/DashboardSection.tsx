@@ -27,6 +27,8 @@ type ProjectGroup = {
   emoji?: string;
   icon?: string;
   count: number;
+  tags?: string[];
+  matchMode?: 'any' | 'all';
 };
 
 type DashboardItem = {
@@ -361,7 +363,7 @@ export function DashboardSection({
                 columns={columns}
                 materials={materials}
                 tags={tags.map(t => ({ name: t.name, color: t.color, emoji: t.emoji }))}
-                projectGroups={projectGroups.map(g => ({ id: g.id, name: g.name, color: g.color, emoji: g.emoji }))}
+                projectGroups={projectGroups.map(g => ({ id: g.id, name: g.name, color: g.color, emoji: g.emoji, tags: g.tags, matchMode: g.matchMode }))}
                 onProjectClick={onProjectCardClick || (() => {})}
                 onRefresh={onRefreshWidgets}
                 isLoading={isLoading}

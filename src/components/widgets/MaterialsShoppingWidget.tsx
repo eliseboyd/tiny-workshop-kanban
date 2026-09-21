@@ -10,6 +10,7 @@ import type { Project } from '@/components/kanban/KanbanBoard';
 import { v4 as uuidv4 } from 'uuid';
 import { ScrollFade } from './ScrollFade';
 import { useDragHandle } from './WidgetsSection';
+import { isInProjectGroup } from '@/lib/project-groups';
 
 // Helper to render text with clickable links
 function renderTextWithLinks(text: string) {
@@ -47,6 +48,8 @@ type ProjectGroup = {
   name: string;
   color: string;
   emoji?: string;
+  tags?: string[];
+  matchMode?: 'any' | 'all';
 };
 
 type MaterialItem = {
@@ -125,11 +128,12 @@ export function MaterialsShoppingWidget({
     if (widget.config.filterType === 'tag' && widget.config.filterId) {
       filtered = filtered.filter(m => m.projectTags.includes(widget.config.filterId!));
     } else if (widget.config.filterType === 'project-group' && widget.config.filterId) {
-      filtered = filtered.filter(m => m.parentProjectId === widget.config.filterId);
+      const group = projectGroups.find(g => g.id === widget.config.filterId);
+      filtered = filtered.filter(m => group ? isInProjectGroup(m.projectTags, group) : false);
     }
 
     return filtered;
-  }, [materials, widget.config]);
+  }, [materials, projectGroups, widget.config]);
 
   // Combine into display items
   const displayItems: DisplayItem[] = useMemo(() => {

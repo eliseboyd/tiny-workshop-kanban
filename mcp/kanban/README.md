@@ -36,8 +36,8 @@ You can tune tone (strict vs. minimal questions) there without changing code.
 | `search_projects` | Find cards by title/description; optional `is_idea` filter |
 | `list_tags` | All tag names (table + in-use on projects) |
 | `list_columns` | Kanban column `id` + title (for `move_idea_to_kanban`) |
-| `create_idea` | New idea with optional `tags`, `parent_project_id`, `rich_content` |
-| `update_project` | Patch title, description, tags, `parent_project_id` |
+| `create_idea` | New idea with optional `tags`, `rich_content` |
+| `update_project` | Patch title, description, tags |
 | `move_idea_to_kanban` | Promote idea to a column (`is_idea` → false) |
 
 ## Cursor

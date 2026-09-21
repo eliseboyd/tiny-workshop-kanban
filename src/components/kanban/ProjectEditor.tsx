@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Project, Column } from './KanbanBoard';
-import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllProjectGroups, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage, getColumns, moveIdeaToKanban, moveProjectToIdeas, deleteProject, getImageStyles, saveImageFromUrl, setProjectCompletedState, type ImageStyle } from '@/app/actions';
+import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage, getColumns, moveIdeaToKanban, moveProjectToIdeas, deleteProject, getImageStyles, saveImageFromUrl, setProjectCompletedState, type ImageStyle } from '@/app/actions';
 import Image from 'next/image';
 import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images, ExternalLink, Pencil, FolderKanban, ListTodo, CheckCircle2, Circle, Lightbulb, Crop, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -77,14 +77,6 @@ function renderTextWithLinks(text: string, className?: string) {
     return <span key={index}>{part}</span>;
   });
 }
-type ProjectGroup = {
-  id: string;
-  name: string;
-  color: string;
-  emoji?: string;
-  icon?: string;
-};
-
 type TagMetadata = {
   name: string;
   color: string;
@@ -199,14 +191,12 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   const [imageUrl, setImageUrl] = useState(project.imageUrl || '');
   const [richContent, setRichContent] = useState(project.richContent || '');
   const [tags, setTags] = useState<string[]>(project.tags || []);
-  const [parentProjectId, setParentProjectId] = useState<string | null>(project.parentProjectId || null);
   const [isCompleted, setIsCompleted] = useState<boolean>(project.isCompleted || false);
   const [isIdea, setIsIdea] = useState<boolean>(project.isIdea || false);
   const [localItemType, setLocalItemType] = useState<'project' | 'task' | 'idea'>(
     project.isIdea ? 'idea' : project.isTask ? 'task' : 'project'
   );
   const [columns, setColumns] = useState<Column[]>([]);
-  const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
   const [allTags, setAllTags] = useState<TagMetadata[]>([]);
   const [materialsList, setMaterialsList] = useState<Material[]>(() => {
     try {
@@ -578,15 +568,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
       .slice(0, 5);
   }, [tagInput, allTags, tags]);
 
-  // Project group handler
-  const handleProjectGroupChange = async (groupId: string) => {
-    const newGroupId = groupId === 'none' ? null : groupId;
-    setParentProjectId(newGroupId);
-    await updateProject(project.id, { parent_project_id: newGroupId });
-    router.refresh();
-  };
-  
-  
   // Completed status handler — must update kanban column (`status`), not only `is_completed`
   const handleToggleCompleted = async () => {
     const prev = isCompleted;
@@ -1262,13 +1243,11 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   // Load project groups, tags, columns, and image styles
   useEffect(() => {
     const loadData = async () => {
-      const [groups, tagsData, columnsData, stylesData] = await Promise.all([
-        getAllProjectGroups(),
+      const [tagsData, columnsData, stylesData] = await Promise.all([
         getAllTags(),
         getColumns(),
         getImageStyles(),
       ]);
-      setProjectGroups(groups);
       setAllTags(tagsData.map(t => ({ ...t, emoji: t.emoji ?? undefined, icon: t.icon ?? undefined })));
       setColumns(columnsData);
       setImageStyles(stylesData);
@@ -1979,39 +1958,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                         <span>Idea</span>
                       </div>
                     </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Project Group Selector */}
-              <div className="flex items-center gap-3 pb-2">
-                <label className="text-sm text-muted-foreground min-w-[80px]">Project:</label>
-                <Select value={parentProjectId || 'none'} onValueChange={handleProjectGroupChange}>
-                  <SelectTrigger className="w-[200px] h-8">
-                    <SelectValue placeholder="No project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">
-                      <span className="text-muted-foreground">None</span>
-                    </SelectItem>
-                    {projectGroups.length === 0 ? (
-                      <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                        Create project groups in Settings
-                      </div>
-                    ) : (
-                      projectGroups.map(group => (
-                        <SelectItem key={group.id} value={group.id}>
-                          <div className="flex items-center gap-2">
-                            {group.emoji && <span>{group.emoji}</span>}
-                            <span>{group.name}</span>
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: group.color }}
-                            />
-                          </div>
-                        </SelectItem>
-                      ))
-                    )}
                   </SelectContent>
                 </Select>
               </div>
