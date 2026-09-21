@@ -60,12 +60,10 @@ export type Project = {
     isIdea?: boolean;
     createdAt: Date | null;
     updatedAt: Date | null;
-    parentProjectId?: string | null;
     // Mapped from snake_case in Supabase
     rich_content?: string;
     image_url?: string;
     materials_list?: string;
-    parent_project_id?: string;
     is_task?: boolean;
     is_completed?: boolean;
     is_idea?: boolean;
@@ -104,7 +102,6 @@ type MaterialItem = {
   projectId: string;
   projectTitle: string;
   projectTags: string[];
-  parentProjectId: string | null;
 };
 
 export type SettingsData = {
@@ -173,7 +170,6 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
           richContent: (p.rich_content ?? p.richContent ?? null) as string | null,
           imageUrl: (p.image_url ?? p.imageUrl ?? null) as string | null,
           materialsList: (p.materials_list ?? p.materialsList ?? null) as string | null,
-          parentProjectId: (p.parent_project_id ?? p.parentProjectId ?? null) as string | null,
           isTask: Boolean(p.is_task ?? p.isTask ?? false),
           isCompleted: Boolean(p.is_completed ?? p.isCompleted ?? false),
           isIdea: Boolean(p.is_idea ?? p.isIdea ?? false),
