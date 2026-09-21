@@ -37,6 +37,7 @@ export const settings = kanban.table('settings', {
   visibleTags: text('visible_tags').array().default([]), // Which tags are visible by default
   hiddenProjects: text('hidden_projects').array().default([]), // Which project groups are hidden
   hiddenTags: text('hidden_tags').array().default([]), // Which tags are hidden
+  hiddenColumns: text('hidden_columns').array().default([]), // Which board columns are collapsed
 });
 
 export const tags = kanban.table('tags', {

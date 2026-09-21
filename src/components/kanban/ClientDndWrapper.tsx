@@ -120,10 +120,15 @@ export function ClientDndWrapper({
         <SortableContext items={cols.map(c => c.id)} strategy={horizontalListSortingStrategy}>
           {cols.map((col) => {
             const isHidden = hiddenColumns.includes(col.id);
+            const isIdeaColumn = col.title.toLowerCase().includes('idea');
             
             // Render full-width column indicator when hidden (especially for mobile)
             if (isHidden) {
-              const itemCount = filteredItems.filter((i) => i.status === col.id).length;
+              // The Ideas column stands in for the Ideas bin, so count that
+              // rather than the (legacy) cards still carrying its status.
+              const itemCount = isIdeaColumn && ideasCount !== undefined
+                ? ideasCount
+                : filteredItems.filter((i) => i.status === col.id).length;
               return (
                 <button
                   key={col.id}
@@ -151,7 +156,6 @@ export function ClientDndWrapper({
             }
             
             // Render normal column when visible
-            const isIdeaColumn = col.title.toLowerCase().includes('idea');
             return (
               <KanbanColumn
                 key={col.id}
