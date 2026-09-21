@@ -26,6 +26,10 @@ const nextConfig: NextConfig = {
     // allowedDevOrigins: ['tiny-workshop-kanban.local'], // Uncomment if needed for specific local setups
     serverActions: {
       bodySizeLimit: '5mb',
+      // Served at tinywork.shop/kanban via home's rewrites: the browser's
+      // Origin is the apex while x-forwarded-host is kanban.tinywork.shop,
+      // and Next aborts the action (500 on /login) unless the apex is listed.
+      allowedOrigins: ['tinywork.shop'],
     },
   },
   images: {
