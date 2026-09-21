@@ -180,7 +180,6 @@ type MaterialItem = {
   projectId: string;
   projectTitle: string;
   projectTags: string[];
-  parentProjectId: string | null;
 };
 
 type Column = {

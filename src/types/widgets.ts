@@ -36,7 +36,6 @@ export interface TodoItem {
   projectTitle: string;
   status: string;
   tags: string[];
-  parentProjectId?: string | null;
 }
 
 export interface MaterialItem {
@@ -47,7 +46,6 @@ export interface MaterialItem {
   projectId: string;
   projectTitle: string;
   projectTags: string[];
-  parentProjectId?: string | null;
 }
 
 

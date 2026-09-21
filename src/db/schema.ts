@@ -14,7 +14,6 @@ export const projects = kanban.table('projects', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
   tags: text('tags').array(), 
   attachments: jsonb('attachments').$type<{ id: string; url: string; name: string; type: string; size: number }[]>().default([]),
-  parentProjectId: text('parent_project_id'), // For grouping cards under a project
   isIdea: boolean('is_idea').notNull().default(false),
 });
 

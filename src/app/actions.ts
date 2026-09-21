@@ -318,7 +318,7 @@ function extractPlatformImage(url: string): string | null {
 // materials_list, attachments) are fetched on-demand via getProject() when the
 // modal opens.
 const PROJECT_CARD_COLUMNS =
-  'id, title, description, status, position, image_url, tags, parent_project_id, is_task, is_completed, is_idea, pinned, created_at';
+  'id, title, description, status, position, image_url, tags, is_task, is_completed, is_idea, pinned, created_at';
 
 // Cards render descriptions line-clamped (~2 lines); shipping full multi-KB
 // descriptions in the initial RSC payload just bloats first load. The modal
@@ -483,7 +483,6 @@ export async function updateProject(id: string, data: Record<string, unknown>) {
   if (data.attachments !== undefined) dbData.attachments = data.attachments;
   if (data.status !== undefined) dbData.status = data.status;
   if (data.position !== undefined) dbData.position = data.position;
-  if (data.parent_project_id !== undefined) dbData.parent_project_id = data.parent_project_id;
   if (data.is_task !== undefined) dbData.is_task = data.is_task;
   if (data.is_completed !== undefined) dbData.is_completed = data.is_completed;
   if (data.is_idea !== undefined) dbData.is_idea = data.is_idea;
@@ -2071,7 +2070,7 @@ export async function getAllMaterials() {
   const supabase = createServiceRoleClient();
   const { data: projects, error } = await supabase
     .from('projects')
-    .select('id, title, tags, parent_project_id, materials_list');
+    .select('id, title, tags, materials_list');
   
   if (error) {
     console.error('Error fetching projects for materials:', error);
@@ -2086,7 +2085,6 @@ export async function getAllMaterials() {
     projectId: string;
     projectTitle: string;
     projectTags: string[];
-    parentProjectId: string | null;
   }> = [];
   
   projects.forEach(project => {
@@ -2112,7 +2110,6 @@ export async function getAllMaterials() {
           projectId: project.id,
           projectTitle: project.title,
           projectTags: project.tags || [],
-          parentProjectId: project.parent_project_id,
         });
       });
     }
