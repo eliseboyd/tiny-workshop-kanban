@@ -11,6 +11,7 @@ import { ListTodo, ShoppingCart, Tags, FolderKanban, ListChecks, Trash2, Calenda
 import { cn } from '@/lib/utils';
 import { TAG_LANE_ACCENT_LUCIDE_OPTIONS } from '@/lib/tag-lane-accent-icons';
 import { createWidget, updateWidget, deleteWidget } from '@/app/actions';
+import type { MerlinLocation } from '@/types/locations';
 import { useRouter } from 'next/navigation';
 
 type Tag = {
@@ -36,6 +37,7 @@ type WidgetConfig = {
   type: 'todo-list' | 'materials-shopping' | 'project-todos' | 'day-plan' | 'active-projects' | 'tag-lane-board';
   title: string;
   config: Record<string, unknown>;
+  location_key?: string | null;
 };
 
 type AddWidgetDialogProps = {
@@ -46,6 +48,10 @@ type AddWidgetDialogProps = {
   projectGroups: ProjectGroup[];
   projects?: Project[];
   editingWidget?: WidgetConfig | null;
+  /** Merlin locations; empty hides the "Show at" picker. */
+  locations?: MerlinLocation[];
+  /** Default for a new widget. */
+  currentLocationKey?: string | null;
 };
 
 type WidgetType = 'todo-list' | 'materials-shopping' | 'project-todos' | 'day-plan' | 'active-projects' | 'tag-lane-board';
@@ -102,6 +108,8 @@ export function AddWidgetDialog({
   projectGroups,
   projects = [],
   editingWidget,
+  locations = [],
+  currentLocationKey = null,
 }: AddWidgetDialogProps) {
   const router = useRouter();
   const [step, setStep] = useState<'type' | 'config'>(editingWidget ? 'config' : 'type');
@@ -145,6 +153,10 @@ export function AddWidgetDialog({
   const [accentLucide, setAccentLucide] = useState(
     (editingWidget?.config?.accentLucide as string) || ''
   );
+  // null = shown at every location
+  const [locationKey, setLocationKey] = useState<string | null>(
+    editingWidget ? editingWidget.location_key ?? null : currentLocationKey
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -169,6 +181,7 @@ export function AddWidgetDialog({
         setAccentColor((editingWidget.config?.accentColor as string) || '');
         setAccentEmoji((editingWidget.config?.accentEmoji as string) || '');
         setAccentLucide((editingWidget.config?.accentLucide as string) || '');
+        setLocationKey(editingWidget.location_key ?? null);
       } else {
         // New widget - reset to type selection
         setStep('type');
@@ -186,8 +199,11 @@ export function AddWidgetDialog({
         setAccentColor('');
         setAccentEmoji('');
         setAccentLucide('');
+        setLocationKey(currentLocationKey);
       }
     }
+    // currentLocationKey is only a default for a new widget; it must not reset the form
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, editingWidget]);
 
   const handleSelectType = (type: WidgetType) => {
@@ -288,12 +304,14 @@ export function AddWidgetDialog({
         await updateWidget(widgetId, {
           title: title.trim(),
           config,
+          locationKey,
         });
       } else {
         await createWidget({
           type: selectedType,
           title: title.trim(),
           config,
+          locationKey,
         });
       }
 
@@ -788,6 +806,30 @@ export function AddWidgetDialog({
                     ? 'Show items already owned'
                     : 'Show completed tasks'}
                 </Label>
+              </div>
+            )}
+
+            {/* Location — which dashboard layout this widget belongs to */}
+            {locations.length > 0 && (
+              <div className="space-y-2 pt-2 border-t">
+                <Label>Show at</Label>
+                <div className="flex gap-2">
+                  {[{ key: null as string | null, label: 'Everywhere', emoji: null as string | null }, ...locations].map((loc) => (
+                    <button
+                      key={loc.key ?? '__all'}
+                      type="button"
+                      onClick={() => setLocationKey(loc.key)}
+                      className={cn(
+                        "flex-1 p-2.5 rounded-lg border-2 transition-all text-sm",
+                        locationKey === loc.key
+                          ? "border-primary bg-primary/5"
+                          : "border-muted hover:border-muted-foreground/30"
+                      )}
+                    >
+                      {loc.emoji ? `${loc.emoji} ` : ''}{loc.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 

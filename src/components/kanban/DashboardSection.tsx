@@ -11,6 +11,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, r
 import { CSS } from '@dnd-kit/utilities';
 import { WidgetsSection } from '@/components/widgets';
 import type { Project } from './KanbanBoard';
+import type { MerlinLocation } from '@/types/locations';
 
 type Tag = {
   name: string;
@@ -47,6 +48,7 @@ type Widget = {
   title: string;
   config: Record<string, unknown>;
   position: number;
+  location_key?: string | null;
 };
 
 type MaterialItem = {
@@ -79,6 +81,10 @@ type DashboardSectionProps = {
   onRefreshWidgets?: () => void | Promise<void>;
   isLoading?: boolean;
   isDashboardOnly?: boolean;
+  /** Merlin locations; empty hides the switcher and shows every widget. */
+  locations?: MerlinLocation[];
+  currentLocationKey?: string | null;
+  onLocationChange?: (key: string) => void;
 };
 
 // Sortable item component
@@ -231,6 +237,9 @@ export function DashboardSection({
   onRefreshWidgets,
   isLoading = false,
   isDashboardOnly = false,
+  locations = [],
+  currentLocationKey = null,
+  onLocationChange,
 }: DashboardSectionProps) {
   const [isExpanded, setIsExpanded] = useLocalStorage('dashboard-expanded', true);
   const [items, setItems] = useState<DashboardItem[]>([]);
@@ -282,6 +291,14 @@ export function DashboardSection({
   };
 
   const displayItems = items.length > 0 ? items : combinedItems;
+
+  // Each location has its own widget layout. A widget with no location, or one
+  // whose location no longer exists in Merlin, shows everywhere.
+  const visibleWidgets = useMemo(() => {
+    if (!currentLocationKey || locations.length === 0) return widgets;
+    const known = new Set(locations.map(l => l.key));
+    return widgets.filter(w => !w.location_key || !known.has(w.location_key) || w.location_key === currentLocationKey);
+  }, [widgets, locations, currentLocationKey]);
 
   // Always render the container to prevent layout shift
   return (
@@ -354,10 +371,37 @@ export function DashboardSection({
               </DndContext>
             ) : null} */}
 
+            {/* Location switcher — tells Merlin too */}
+            {locations.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">I&apos;m at</span>
+                <div className="inline-flex rounded-lg border bg-muted/30 p-0.5" role="group" aria-label="Location">
+                  {locations.map(loc => (
+                    <button
+                      key={loc.key}
+                      type="button"
+                      aria-pressed={currentLocationKey === loc.key}
+                      onClick={() => currentLocationKey !== loc.key && onLocationChange?.(loc.key)}
+                      className={cn(
+                        "rounded-md px-3 py-1 text-sm font-medium transition-colors",
+                        currentLocationKey === loc.key
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {loc.emoji ? `${loc.emoji} ` : ''}{loc.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Widgets Section */}
             <div className={cn(!isDashboardOnly && displayItems.length > 0 && "pt-4 border-t mt-4")}>
               <WidgetsSection
-                widgets={widgets}
+                widgets={visibleWidgets}
+                locations={locations}
+                currentLocationKey={currentLocationKey}
                 projects={projects}
                 columns={columns}
                 materials={materials}

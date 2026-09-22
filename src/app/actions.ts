@@ -1987,6 +1987,7 @@ export async function createWidget(widget: {
   title: string;
   config: Record<string, unknown>;
   position?: number;
+  locationKey?: string | null;
 }) {
   const supabase = createServiceRoleClient();
   
@@ -2007,6 +2008,7 @@ export async function createWidget(widget: {
       title: widget.title,
       config: widget.config,
       position: widget.position ?? nextPosition,
+      location_key: widget.locationKey ?? null,
     });
   
   if (error) {
@@ -2021,11 +2023,15 @@ export async function updateWidget(id: string, updates: {
   title?: string;
   config?: Record<string, unknown>;
   position?: number;
+  locationKey?: string | null;
 }) {
   const supabase = createServiceRoleClient();
+  const { locationKey, ...rest } = updates;
+  const row: Record<string, unknown> = { ...rest };
+  if ('locationKey' in updates) row.location_key = locationKey ?? null;
   const { error } = await supabase
     .from('widgets')
-    .update(updates)
+    .update(row)
     .eq('id', id);
   
   if (error) {
@@ -2051,13 +2057,16 @@ export async function deleteWidget(id: string) {
   revalidateBoard();
 }
 
-export async function reorderWidgets(widgetIds: string[]) {
+// `positions` is for a reorder of a filtered list (one location's widgets):
+// the visible widgets' existing slots, ascending, so the drag reshuffles slots
+// already in use and never collides with widgets hidden at this location.
+export async function reorderWidgets(widgetIds: string[], positions?: number[]) {
   const supabase = createServiceRoleClient();
   
   for (let i = 0; i < widgetIds.length; i++) {
     await supabase
       .from('widgets')
-      .update({ position: i })
+      .update({ position: positions?.[i] ?? i })
       .eq('id', widgetIds[i]);
   }
   

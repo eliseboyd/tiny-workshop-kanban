@@ -16,6 +16,8 @@ import SubNav from "@eliseboyd/design/nav/sub-nav";
 import { LayoutDashboard, Columns3, FileStack, CheckCircle2, Lightbulb } from 'lucide-react';
 import CaptureFab from '@eliseboyd/design/capture';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { getLocationState, setCurrentLocation } from '@/app/merlin-actions';
+import type { MerlinLocation } from '@/types/locations';
 
 // Tab views are only rendered when the user switches to them — lazy-load so
 // their code isn't in the initial board bundle.
@@ -92,6 +94,7 @@ type Widget = {
   title: string;
   config: Record<string, unknown>;
   position: number;
+  location_key?: string | null;
 };
 
 type MaterialItem = {
@@ -207,6 +210,8 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
     (initialProjectGroups as Array<ProjectGroup & { emoji?: string | null; icon?: string | null }>).map(g => ({ ...g, emoji: g.emoji ?? undefined, icon: g.icon ?? undefined }))
   );
   const [widgets, setWidgets] = useState<Widget[]>(initialWidgets as unknown as Widget[]);
+  const [locations, setLocations] = useState<MerlinLocation[]>([]);
+  const [currentLocationKey, setCurrentLocationKey] = useState<string | null>(null);
   const [materials, setMaterials] = useState<MaterialItem[]>(initialMaterials as unknown as MaterialItem[]);
   const [allPlans, setAllPlans] = useState<Array<StandalonePlan & { source: 'standalone' | 'project' }>>(initialPlans);
 
@@ -251,12 +256,15 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
     await loadTagsAndGroups();
 
     if (activeView === 'dashboard') {
-      const [widgetsData, materialsData, plansData] = await Promise.all([
+      const [widgetsData, materialsData, plansData, locationState] = await Promise.all([
         getAllWidgets(),
         getAllMaterials(),
         getAllPlans(),
+        getLocationState(),
       ]);
       setWidgets(widgetsData as unknown as Widget[]);
+      setLocations(locationState.locations);
+      setCurrentLocationKey(locationState.currentKey);
       setMaterials(materialsData as unknown as MaterialItem[]);
       setAllPlans(plansData);
     } else if (activeView === 'plans') {
@@ -266,6 +274,18 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
     }
     
     setIsDashboardLoading(false);
+  };
+
+  // Optimistic: the layout switches at once; Merlin is told in the background
+  // and the switch is undone if it didn't take.
+  const handleLocationChange = async (key: string) => {
+    const previous = currentLocationKey;
+    setCurrentLocationKey(key);
+    const { ok } = await setCurrentLocation(key);
+    if (!ok) {
+      console.error('Could not set location in Merlin:', key);
+      setCurrentLocationKey(previous);
+    }
   };
 
   useEffect(() => {
@@ -902,6 +922,9 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
                   onRefreshWidgets={loadDashboardData}
                   isLoading={isDashboardLoading}
                   isDashboardOnly={true}
+                  locations={locations}
+                  currentLocationKey={currentLocationKey}
+                  onLocationChange={handleLocationChange}
               />
             )}
 
