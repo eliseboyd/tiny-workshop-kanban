@@ -18,6 +18,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, r
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import { updateWidget, reorderWidgets } from '@/app/actions';
+import type { MerlinLocation } from '@/types/locations';
 import { useRouter } from 'next/navigation';
 import type { Project } from '@/components/kanban/KanbanBoard';
 
@@ -58,6 +59,7 @@ type Widget = {
   title: string;
   config: Record<string, unknown>;
   position: number;
+  location_key?: string | null;
 };
 
 // Resize handle component
@@ -198,6 +200,8 @@ type WidgetsSectionProps = {
   onProjectClick: (project: Project) => void;
   onRefresh?: () => void | Promise<void>;
   isLoading?: boolean;
+  locations?: MerlinLocation[];
+  currentLocationKey?: string | null;
 };
 
 export function WidgetsSection({
@@ -210,6 +214,8 @@ export function WidgetsSection({
   onProjectClick,
   onRefresh,
   isLoading = false,
+  locations = [],
+  currentLocationKey = null,
 }: WidgetsSectionProps) {
   const router = useRouter();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -254,8 +260,12 @@ export function WidgetsSection({
       const newWidgets = arrayMove(localWidgets, oldIndex, newIndex);
       setLocalWidgets(newWidgets);
       
-      // Persist the new order
-      await reorderWidgets(newWidgets.map(w => w.id));
+      // Persist the new order. `widgets` may be one location's subset, so reuse
+      // the slots these widgets already hold rather than renumbering from 0.
+      await reorderWidgets(
+        newWidgets.map(w => w.id),
+        localWidgets.map(w => w.position).sort((a, b) => a - b)
+      );
       router.refresh();
       onRefresh?.();
     }
@@ -304,6 +314,8 @@ export function WidgetsSection({
             projectGroups={projectGroups}
             projects={projects.map(p => ({ id: p.id, title: p.title }))}
             editingWidget={editingWidget}
+            locations={locations}
+            currentLocationKey={currentLocationKey}
           />
         )}
       </>
@@ -470,6 +482,8 @@ export function WidgetsSection({
           projectGroups={projectGroups}
           projects={projects.map(p => ({ id: p.id, title: p.title }))}
           editingWidget={editingWidget}
+          locations={locations}
+          currentLocationKey={currentLocationKey}
         />
       )}
     </>

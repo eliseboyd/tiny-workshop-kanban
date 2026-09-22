@@ -63,6 +63,7 @@ export const widgets = kanban.table('widgets', {
   title: text('title').notNull(),
   config: jsonb('config').$type<Record<string, unknown>>().notNull().default({}),
   position: integer('position').notNull().default(0),
+  locationKey: text('location_key'), // Merlin location key; null = shown at every location
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 

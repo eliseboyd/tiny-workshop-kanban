@@ -16,6 +16,7 @@ import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { getSupabaseUrl } from '@/utils/supabase/env';
 import type { CardTodos, FilingTodo, Todo } from '@/types/todos';
+import type { LocationState, MerlinLocation } from '@/types/locations';
 
 const DONE_WINDOW_DAYS = 7;
 
@@ -183,4 +184,37 @@ export async function reopenCardTodo(itemId: string): Promise<boolean> {
   if (!data || data.length === 0) return false;
   await db.from('signals').insert({ item_id: itemId, kind: 'reopened', payload: { source: 'kanban' } });
   return true;
+}
+
+// --- Locations (merlin migration 0040) ---
+//
+// Not gated on isMerlinConfigured(): that is about the ingest endpoint, and
+// these only need the service-role client. Any failure — the tables not being
+// there included — reads as "no locations", which hides the switcher and
+// leaves every widget visible.
+export async function getLocationState(): Promise<LocationState> {
+  try {
+    const db = merlinClient();
+    const [locs, cur] = await Promise.all([
+      db.from('locations').select('key, label, emoji, position').order('position'),
+      db.from('current_location').select('location_key').maybeSingle(),
+    ]);
+    if (locs.error) return { locations: [], currentKey: null };
+    const locations = (locs.data ?? []) as MerlinLocation[];
+    const key = (cur.data?.location_key as string | null | undefined) ?? null;
+    return { locations, currentKey: locations.some((l) => l.key === key) ? key : null };
+  } catch {
+    return { locations: [], currentKey: null };
+  }
+}
+
+// Tells Merlin where she is; set_location() rescores in the same call.
+// Nothing in the kanban schema changes, so no board revalidation.
+export async function setCurrentLocation(key: string): Promise<{ ok: boolean }> {
+  try {
+    const { data, error } = await merlinClient().rpc('set_location', { p_key: key, p_source: 'kanban' });
+    return { ok: !error && data === true };
+  } catch {
+    return { ok: false };
+  }
 }
