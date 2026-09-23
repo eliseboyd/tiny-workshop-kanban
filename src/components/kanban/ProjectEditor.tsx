@@ -23,6 +23,8 @@ import { useRouter } from 'next/navigation';
 import { compressImage } from '@/utils/image-compression';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { ProjectTodos } from './ProjectTodos';
+import { getLocationState } from '@/app/merlin-actions';
+import type { MerlinLocation } from '@/types/locations';
 
 // Dynamically import PDFViewer to avoid SSR issues
 const PDFViewer = dynamic(() => import('@/components/ui/pdf-viewer').then(mod => ({ default: mod.PDFViewer })), {
@@ -198,6 +200,8 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   );
   const [columns, setColumns] = useState<Column[]>([]);
   const [allTags, setAllTags] = useState<TagMetadata[]>([]);
+  const [locations, setLocations] = useState<MerlinLocation[]>([]);
+  const [locationKey, setLocationKey] = useState<string | null>(project.location_key ?? null);
   const [materialsList, setMaterialsList] = useState<Material[]>(() => {
     try {
       if (!project.materialsList) return [];
@@ -1243,12 +1247,14 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   // Load project groups, tags, columns, and image styles
   useEffect(() => {
     const loadData = async () => {
-      const [tagsData, columnsData, stylesData] = await Promise.all([
+      const [tagsData, columnsData, stylesData, locationState] = await Promise.all([
         getAllTags(),
         getColumns(),
         getImageStyles(),
+        getLocationState(),
       ]);
       setAllTags(tagsData.map(t => ({ ...t, emoji: t.emoji ?? undefined, icon: t.icon ?? undefined })));
+      setLocations(locationState.locations);
       setColumns(columnsData);
       setImageStyles(stylesData);
     };
@@ -1961,6 +1967,34 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Location — hidden until Merlin has locations */}
+              {locations.length > 0 && (
+                <div className="flex items-center gap-3 pb-2">
+                  <label className="text-sm text-muted-foreground min-w-[80px]">Location:</label>
+                  <Select
+                    value={locationKey ?? '__any'}
+                    onValueChange={async (v) => {
+                      const next = v === '__any' ? null : v;
+                      setLocationKey(next);
+                      await updateProject(project.id, { locationKey: next });
+                      router.refresh();
+                    }}
+                  >
+                    <SelectTrigger className="w-[140px] h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__any">Anywhere</SelectItem>
+                      {locations.map(loc => (
+                        <SelectItem key={loc.key} value={loc.key}>
+                          {loc.emoji ? `${loc.emoji} ` : ''}{loc.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               {/* Tags Row */}
               <div className="flex flex-wrap gap-2 items-center min-h-[32px]">

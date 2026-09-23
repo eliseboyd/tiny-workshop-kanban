@@ -16,6 +16,7 @@ import SubNav from "@eliseboyd/design/nav/sub-nav";
 import { LayoutDashboard, Columns3, FileStack, CheckCircle2, Lightbulb } from 'lucide-react';
 import CaptureFab from '@eliseboyd/design/capture';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { LocationSwitcher } from './LocationSwitcher';
 import { getLocationState, setCurrentLocation } from '@/app/merlin-actions';
 import type { MerlinLocation } from '@/types/locations';
 
@@ -53,6 +54,7 @@ export type Project = {
     inspiration: string | null;
     imageUrl: string | null;
     tags: string[] | null;
+    location_key?: string | null;
     attachments: Record<string, unknown>[] | null;
     status: string;
     position: number;
@@ -256,15 +258,12 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
     await loadTagsAndGroups();
 
     if (activeView === 'dashboard') {
-      const [widgetsData, materialsData, plansData, locationState] = await Promise.all([
+      const [widgetsData, materialsData, plansData] = await Promise.all([
         getAllWidgets(),
         getAllMaterials(),
         getAllPlans(),
-        getLocationState(),
       ]);
       setWidgets(widgetsData as unknown as Widget[]);
-      setLocations(locationState.locations);
-      setCurrentLocationKey(locationState.currentKey);
       setMaterials(materialsData as unknown as MaterialItem[]);
       setAllPlans(plansData);
     } else if (activeView === 'plans') {
@@ -278,7 +277,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
 
   // Optimistic: the layout switches at once; Merlin is told in the background
   // and the switch is undone if it didn't take.
-  const handleLocationChange = async (key: string) => {
+  const handleLocationChange = async (key: string | null) => {
     const previous = currentLocationKey;
     setCurrentLocationKey(key);
     const { ok } = await setCurrentLocation(key);
@@ -287,6 +286,14 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
       setCurrentLocationKey(previous);
     }
   };
+
+  // Location is needed on every view (it filters the board), so load it once.
+  useEffect(() => {
+    getLocationState().then(({ locations, currentKey }) => {
+      setLocations(locations);
+      setCurrentLocationKey(currentKey);
+    });
+  }, []);
 
   useEffect(() => {
     if (activeView === 'dashboard') {
@@ -321,24 +328,32 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
     return () => window.clearTimeout(t);
   }, []);
 
+  // Cards at the current location, plus cards with no location (or one Merlin
+  // no longer knows). With no location set, everything.
+  const locatedItems = useMemo(() => {
+    if (!currentLocationKey || locations.length === 0) return items;
+    const known = new Set(locations.map(l => l.key));
+    return items.filter(i => !i.location_key || !known.has(i.location_key) || i.location_key === currentLocationKey);
+  }, [items, locations, currentLocationKey]);
+
   // Calculate counts for dashboard
   const dashboardTags = useMemo(() => {
     return tags.map(tag => ({
       ...tag,
-      count: items.filter(item => item.tags?.includes(tag.name)).length,
+      count: locatedItems.filter(item => item.tags?.includes(tag.name)).length,
     })).filter(tag => tag.count > 0);
-  }, [tags, items]);
+  }, [tags, locatedItems]);
 
   const dashboardProjectGroups = useMemo(() => {
     return projectGroups.map(group => ({
       ...group,
-      count: items.filter(item => isInProjectGroup(item.tags, group)).length,
+      count: locatedItems.filter(item => isInProjectGroup(item.tags, group)).length,
     })).filter(group => group.count > 0);
-  }, [projectGroups, items]);
+  }, [projectGroups, locatedItems]);
 
   // Filter items based on active filters
   const filteredItems = useMemo(() => {
-      let filtered = items;
+      let filtered = locatedItems;
       
       // Filter by tags
       if (activeTags.length > 0) {
@@ -366,7 +381,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
       }
       
       return filtered;
-  }, [items, projectGroups, activeTags, activeGroups, showUntagged, showUngrouped]);
+  }, [locatedItems, projectGroups, activeTags, activeGroups, showUntagged, showUngrouped]);
 
   function findContainer(id: string) {
     if (cols.find(c => c.id === id)) return id;
@@ -917,7 +932,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
                   onProjectClick={handleDashboardProjectClick}
                   widgets={widgets}
                   materials={materials}
-                  projects={items}
+                  projects={locatedItems}
                   onProjectCardClick={handleEditProject}
                   onRefreshWidgets={loadDashboardData}
                   isLoading={isDashboardLoading}
@@ -948,6 +963,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
                   onToggleUngrouped={handleToggleUngrouped}
                   actions={
                     <>
+                      <LocationSwitcher locations={locations} currentKey={currentLocationKey} onChange={handleLocationChange} className="mr-2" />
                       <Button variant="outline" size="sm" onClick={handleCreateColumn}>
                         <KanbanSquareDashed className="mr-2 h-4 w-4" /> Add Column
                       </Button>

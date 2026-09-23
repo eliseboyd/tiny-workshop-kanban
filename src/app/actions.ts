@@ -318,7 +318,7 @@ function extractPlatformImage(url: string): string | null {
 // materials_list, attachments) are fetched on-demand via getProject() when the
 // modal opens.
 const PROJECT_CARD_COLUMNS =
-  'id, title, description, status, position, image_url, tags, is_task, is_completed, is_idea, pinned, created_at';
+  'id, title, description, status, position, image_url, tags, location_key, is_task, is_completed, is_idea, pinned, created_at';
 
 // Cards render descriptions line-clamped (~2 lines); shipping full multi-KB
 // descriptions in the initial RSC payload just bloats first load. The modal
@@ -480,6 +480,7 @@ export async function updateProject(id: string, data: Record<string, unknown>) {
   if (data.inspiration !== undefined) dbData.inspiration = JSON.stringify(data.inspiration);
   if (data.imageUrl !== undefined) dbData.image_url = data.imageUrl;
   if (data.tags !== undefined) dbData.tags = data.tags;
+  if (data.locationKey !== undefined) dbData.location_key = data.locationKey ?? null;
   if (data.attachments !== undefined) dbData.attachments = data.attachments;
   if (data.status !== undefined) dbData.status = data.status;
   if (data.position !== undefined) dbData.position = data.position;

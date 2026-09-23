@@ -12,6 +12,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { WidgetsSection } from '@/components/widgets';
 import type { Project } from './KanbanBoard';
 import type { MerlinLocation } from '@/types/locations';
+import { LocationSwitcher } from './LocationSwitcher';
 
 type Tag = {
   name: string;
@@ -84,7 +85,7 @@ type DashboardSectionProps = {
   /** Merlin locations; empty hides the switcher and shows every widget. */
   locations?: MerlinLocation[];
   currentLocationKey?: string | null;
-  onLocationChange?: (key: string) => void;
+  onLocationChange?: (key: string | null) => void;
 };
 
 // Sortable item component
@@ -371,30 +372,7 @@ export function DashboardSection({
               </DndContext>
             ) : null} */}
 
-            {/* Location switcher — tells Merlin too */}
-            {locations.length > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">I&apos;m at</span>
-                <div className="inline-flex rounded-lg border bg-muted/30 p-0.5" role="group" aria-label="Location">
-                  {locations.map(loc => (
-                    <button
-                      key={loc.key}
-                      type="button"
-                      aria-pressed={currentLocationKey === loc.key}
-                      onClick={() => currentLocationKey !== loc.key && onLocationChange?.(loc.key)}
-                      className={cn(
-                        "rounded-md px-3 py-1 text-sm font-medium transition-colors",
-                        currentLocationKey === loc.key
-                          ? "bg-background text-foreground shadow-sm"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      {loc.emoji ? `${loc.emoji} ` : ''}{loc.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            <LocationSwitcher locations={locations} currentKey={currentLocationKey} onChange={(k) => onLocationChange?.(k)} />
 
             {/* Widgets Section */}
             <div className={cn(!isDashboardOnly && displayItems.length > 0 && "pt-4 border-t mt-4")}>

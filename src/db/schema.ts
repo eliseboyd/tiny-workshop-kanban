@@ -12,7 +12,8 @@ export const projects = kanban.table('projects', {
   status: text('status').notNull().default('todo'), // todo, in-progress, done
   position: integer('position').notNull().default(0),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-  tags: text('tags').array(), 
+  tags: text('tags').array(),
+  locationKey: text('location_key'), // Merlin location key; null = anywhere 
   attachments: jsonb('attachments').$type<{ id: string; url: string; name: string; type: string; size: number }[]>().default([]),
   isIdea: boolean('is_idea').notNull().default(false),
 });
