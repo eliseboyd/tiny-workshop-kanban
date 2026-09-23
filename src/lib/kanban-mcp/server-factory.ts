@@ -95,7 +95,7 @@ const MCP_INSTRUCTIONS = `Workflow for new items (follow unless the user already
 
 2) **Missing fields** — If title, tags, description, link, or parent project are unclear, ask **one concise follow-up** (bullet list is fine). Offer optional extras: "Anything else—tags, link, nest under another card?"
 
-3) **Tools** — create_idea always creates an **idea** (Ideas bin). To land **directly in a column**, still create_idea then move_idea_to_kanban with the chosen column_id. Use update_project to add tags or a description after the fact. Projects (groups) are collections of tags, so tag the card to put it in one.
+3) **Tools** — create_idea always creates an **idea** (Ideas bin). To land **directly in a column**, still create_idea then move_idea_to_kanban with the chosen column_id. Use update_project to add tags or a description after the fact. Projects (groups) are collections of tags, so tag the card to put it in one. A card can have a location (Merlin's locations, e.g. home or studio; omit for anywhere) — the board hides cards from other locations while the user is somewhere.
 
 4) **Linking** — Use search_projects when the user might want to attach to an existing card or match tags to existing names.`;
 
@@ -218,6 +218,7 @@ export function createKanbanMcpServer(supabase: KanbanClient): McpServer {
           .optional()
           .describe('Optional HTML body (e.g. link paragraph)'),
         tags: z.array(z.string()).optional().describe('Tag names to attach'),
+        location: z.string().optional().describe("Location key, e.g. 'home' or 'studio'. Omit for anywhere."),
       },
     },
     async ({
@@ -225,6 +226,7 @@ export function createKanbanMcpServer(supabase: KanbanClient): McpServer {
       description,
       rich_content: richContent,
       tags,
+      location,
     }) => {
       const id = uuidv4();
       const status = await getFirstColumnId(supabase);
@@ -244,6 +246,7 @@ export function createKanbanMcpServer(supabase: KanbanClient): McpServer {
         position: 0,
         is_idea: true,
         is_task: false,
+        location_key: location?.trim() || null,
       });
 
       if (error) return jsonResult({ error: error.message });
@@ -255,12 +258,13 @@ export function createKanbanMcpServer(supabase: KanbanClient): McpServer {
     'update_project',
     {
       description:
-        'Update an existing project or idea: title, description, tags.',
+        'Update an existing project or idea: title, description, tags, location.',
       inputSchema: {
         id: z.string().describe('Project UUID'),
         title: z.string().optional(),
         description: z.string().nullable().optional(),
         tags: z.array(z.string()).optional(),
+        location: z.string().nullable().optional().describe("Location key ('home' / 'studio'); null for anywhere"),
       },
     },
     async ({
@@ -268,9 +272,11 @@ export function createKanbanMcpServer(supabase: KanbanClient): McpServer {
       title,
       description,
       tags,
+      location,
     }) => {
       const db: Record<string, unknown> = {};
       if (title !== undefined) db.title = title;
+      if (location !== undefined) db.location_key = location?.trim() || null;
       if (description !== undefined) db.description = description;
       if (tags !== undefined) {
         for (const t of tags) {

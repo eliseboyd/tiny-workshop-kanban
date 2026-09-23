@@ -208,9 +208,9 @@ export async function getLocationState(): Promise<LocationState> {
   }
 }
 
-// Tells Merlin where she is; set_location() rescores in the same call.
-// Nothing in the kanban schema changes, so no board revalidation.
-export async function setCurrentLocation(key: string): Promise<{ ok: boolean }> {
+// Tells Merlin where she is (null clears it); set_location() rescores in the
+// same call. Nothing in the kanban schema changes, so no board revalidation.
+export async function setCurrentLocation(key: string | null): Promise<{ ok: boolean }> {
   try {
     const { data, error } = await merlinClient().rpc('set_location', { p_key: key, p_source: 'kanban' });
     return { ok: !error && data === true };
