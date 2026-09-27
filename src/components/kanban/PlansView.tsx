@@ -17,6 +17,7 @@ import {
   getAllPlans
 } from '@/app/actions';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import styles from './PlansView.module.css';
 
 type Project = {
   id: string;
@@ -205,31 +206,31 @@ export function PlansView({ initialPlans, projects, onPlanClick }: PlansViewProp
   return (
     <div 
       className={cn(
-        "flex-1 p-6 transition-all",
-        isDragging && "bg-primary/5 ring-2 ring-primary/30 ring-inset"
+        styles.Root,
+        isDragging && styles.RootDragging
       )}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-semibold">Plans & Sketches</h2>
+      <div className={styles.Header}>
+        <div className={styles.HeaderStart}>
+          <h2 className={styles.Heading}>Plans & Sketches</h2>
           {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <Loader2 className={styles.Spinner} />
           ) : (
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className={styles.CountBadge}>
               {filteredPlans.length} {filteredPlans.length === 1 ? 'item' : 'items'}
             </Badge>
           )}
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className={styles.HeaderActions}>
           {/* Filter */}
           <Select value={filterMode} onValueChange={(v: 'all' | 'unassigned' | 'assigned') => setFilterMode(v)}>
-            <SelectTrigger className="w-[160px]">
-              <Filter className="h-3.5 w-3.5 mr-2" />
+            <SelectTrigger className={styles.FilterTrigger}>
+              <Filter className={styles.FilterIcon} />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -243,7 +244,7 @@ export function PlansView({ initialPlans, projects, onPlanClick }: PlansViewProp
           <input
             type="file"
             id="plans-upload-input"
-            className="hidden"
+            className={styles.FileInput}
             multiple
             accept="image/*,.pdf"
             onChange={handleFileUpload}
@@ -253,7 +254,7 @@ export function PlansView({ initialPlans, projects, onPlanClick }: PlansViewProp
             onClick={() => document.getElementById('plans-upload-input')?.click()}
             disabled={isUploading}
           >
-            <Upload className="h-4 w-4 mr-2" />
+            <Upload className={styles.UploadIcon} />
             {isUploading ? 'Uploading...' : 'Upload'}
           </Button>
         </div>
@@ -261,11 +262,11 @@ export function PlansView({ initialPlans, projects, onPlanClick }: PlansViewProp
 
       {/* Drop zone hint */}
       {isDragging && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm pointer-events-none">
-          <div className="bg-primary/10 border-2 border-dashed border-primary rounded-xl p-12 text-center">
-            <Upload className="h-12 w-12 text-primary mx-auto mb-4" />
-            <p className="text-lg font-medium text-primary">Drop files to upload</p>
-            <p className="text-sm text-muted-foreground mt-1">Images and PDFs supported</p>
+        <div className={styles.DropOverlay}>
+          <div className={styles.DropPanel}>
+            <Upload className={styles.DropIcon} />
+            <p className={styles.DropTitle}>Drop files to upload</p>
+            <p className={styles.DropHint}>Images and PDFs supported</p>
           </div>
         </div>
       )}
@@ -273,11 +274,11 @@ export function PlansView({ initialPlans, projects, onPlanClick }: PlansViewProp
       {/* Plans grid */}
       {filteredPlans.length === 0 ? (
         <div 
-          className="border-2 border-dashed rounded-xl p-12 text-center cursor-pointer hover:bg-muted/10 transition-colors"
+          className={styles.Empty}
           onClick={() => document.getElementById('plans-upload-input')?.click()}
         >
-          <FolderOpen className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-          <p className="text-muted-foreground">
+          <FolderOpen className={styles.EmptyIcon} />
+          <p className={styles.EmptyTitle}>
             {filterMode === 'unassigned' 
               ? 'No unassigned plans'
               : filterMode === 'assigned'
@@ -285,19 +286,19 @@ export function PlansView({ initialPlans, projects, onPlanClick }: PlansViewProp
                 : 'No plans yet'
             }
           </p>
-          <p className="text-sm text-muted-foreground/70 mt-1">
+          <p className={styles.EmptyHint}>
             Drop files here or click to upload
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div className={styles.Grid}>
           {filteredPlans.map(plan => (
             <div
               key={`${plan.source}-${plan.id}`}
               className={cn(
-                "group relative border rounded-lg overflow-hidden bg-card hover:shadow-lg transition-all cursor-pointer",
-                selectedPlan === plan.id && "ring-2 ring-primary",
-                !plan.projectId && plan.source === 'standalone' && "border-amber-500/30"
+                styles.Card,
+                selectedPlan === plan.id && styles.CardSelected,
+                !plan.projectId && plan.source === 'standalone' && styles.CardUnassigned
               )}
               onClick={() => {
                 if (onPlanClick) {
@@ -308,74 +309,74 @@ export function PlansView({ initialPlans, projects, onPlanClick }: PlansViewProp
               }}
             >
               {/* Thumbnail */}
-              <div className="aspect-[4/3] relative bg-muted/20 overflow-hidden">
+              <div className={styles.Thumb}>
                 {plan.type.startsWith('image/') ? (
                   <Image
                     src={plan.url}
                     alt={plan.name}
                     fill
-                    className="object-cover"
+                    className={styles.ThumbImage}
                     unoptimized
                   />
                 ) : plan.type === 'application/pdf' ? (
-                  <div className="w-full h-full relative">
+                  <div className={styles.PdfFrame}>
                     {/* PDF thumbnail using embed - shows first page */}
                     <embed
                       src={`${plan.url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
                       type="application/pdf"
-                      className="w-full h-full pointer-events-none"
+                      className={styles.PdfEmbed}
                       style={{ transform: 'scale(1)', transformOrigin: 'top left' }}
                     />
                     {/* Overlay to prevent interaction and show PDF badge */}
-                    <div className="absolute bottom-1 right-1">
-                      <span className="text-[9px] uppercase font-bold tracking-wider bg-red-600 text-white px-1.5 py-0.5 rounded">
+                    <div className={styles.PdfBadgeWrap}>
+                      <span className={styles.PdfBadge}>
                         PDF
                       </span>
                     </div>
                   </div>
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
-                    <FileText className="h-10 w-10 opacity-50" />
-                    <span className="text-[10px] uppercase font-bold tracking-wider mt-1">
+                  <div className={styles.FileFallback}>
+                    <FileText className={styles.FileIcon} />
+                    <span className={styles.FileType}>
                       {plan.type.split('/')[1] || 'FILE'}
                     </span>
                   </div>
                 )}
 
                 {/* Hover overlay */}
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                <div className={styles.Overlay}>
                   <Button 
                     size="sm" 
                     variant="secondary" 
-                    className="h-8 w-8 p-0"
+                    className={styles.IconButton}
                     onClick={(e) => {
                       e.stopPropagation();
                       window.open(plan.url, '_blank');
                     }}
                   >
-                    <ExternalLink className="h-4 w-4" />
+                    <ExternalLink className={styles.Icon} />
                   </Button>
                   {plan.source === 'standalone' && (
                     <>
                       <Button 
                         size="sm" 
                         variant="secondary" 
-                        className="h-8 w-8 p-0"
+                        className={styles.IconButton}
                         onClick={(e) => {
                           e.stopPropagation();
                           setAssigningPlan(plan.id);
                         }}
                         title="Assign to project"
                       >
-                        <Link2 className="h-4 w-4" />
+                        <Link2 className={styles.Icon} />
                       </Button>
                       <Button 
                         size="sm" 
                         variant="destructive" 
-                        className="h-8 w-8 p-0"
+                        className={styles.IconButton}
                         onClick={(e) => handleDeletePlan(plan.id, e)}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className={styles.Icon} />
                       </Button>
                     </>
                   )}
@@ -383,8 +384,8 @@ export function PlansView({ initialPlans, projects, onPlanClick }: PlansViewProp
 
                 {/* Source badge */}
                 {plan.source === 'project' && (
-                  <div className="absolute top-2 left-2">
-                    <Badge variant="secondary" className="text-[10px] h-5 bg-background/80 backdrop-blur-sm">
+                  <div className={styles.SourceBadgeWrap}>
+                    <Badge variant="secondary" className={styles.SourceBadge}>
                       From Project
                     </Badge>
                   </div>
@@ -392,8 +393,8 @@ export function PlansView({ initialPlans, projects, onPlanClick }: PlansViewProp
 
                 {/* Unassigned indicator */}
                 {!plan.projectId && plan.source === 'standalone' && (
-                  <div className="absolute top-2 right-2">
-                    <Badge variant="outline" className="text-[10px] h-5 bg-amber-500/20 border-amber-500/50 text-amber-700 dark:text-amber-400">
+                  <div className={styles.UnassignedBadgeWrap}>
+                    <Badge variant="outline" className={styles.UnassignedBadge}>
                       Unassigned
                     </Badge>
                   </div>
@@ -401,25 +402,25 @@ export function PlansView({ initialPlans, projects, onPlanClick }: PlansViewProp
               </div>
 
               {/* Info */}
-              <div className="p-2.5">
-                <p className="text-xs font-medium truncate" title={plan.name}>
+              <div className={styles.Info}>
+                <p className={styles.Name} title={plan.name}>
                   {plan.name}
                 </p>
-                <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
-                  <span className="flex items-center gap-0.5">
-                    <HardDrive className="h-2.5 w-2.5" />
+                <div className={styles.Meta}>
+                  <span className={styles.MetaItem}>
+                    <HardDrive className={styles.MetaIcon} />
                     {formatSize(plan.size)}
                   </span>
                   {plan.createdAt && (
-                    <span className="flex items-center gap-0.5">
-                      <Calendar className="h-2.5 w-2.5" />
+                    <span className={styles.MetaItem}>
+                      <Calendar className={styles.MetaIcon} />
                       {formatDate(plan.createdAt)}
                     </span>
                   )}
                 </div>
                 {plan.projectTitle && (
-                  <p className="text-[10px] text-primary mt-1 truncate flex items-center gap-1">
-                    <Link2 className="h-2.5 w-2.5" />
+                  <p className={styles.ProjectLink}>
+                    <Link2 className={styles.MetaIcon} />
                     {plan.projectTitle}
                   </p>
                 )}
@@ -429,11 +430,11 @@ export function PlansView({ initialPlans, projects, onPlanClick }: PlansViewProp
 
           {/* Add more card */}
           <div
-            className="border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/10 cursor-pointer transition-colors min-h-[180px]"
+            className={styles.AddCard}
             onClick={() => document.getElementById('plans-upload-input')?.click()}
           >
-            <Upload className="h-8 w-8 opacity-50 mb-2" />
-            <span className="text-xs">Add more</span>
+            <Upload className={styles.AddIcon} />
+            <span className={styles.AddLabel}>Add more</span>
           </div>
         </div>
       )}
@@ -441,32 +442,32 @@ export function PlansView({ initialPlans, projects, onPlanClick }: PlansViewProp
       {/* Assign to project modal */}
       {assigningPlan && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          className={styles.AssignBackdrop}
           onClick={() => setAssigningPlan(null)}
         >
           <div 
-            className="bg-background rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl"
+            className={styles.AssignPanel}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Assign to Project</h3>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setAssigningPlan(null)}>
-                <X className="h-4 w-4" />
+            <div className={styles.AssignHeader}>
+              <h3 className={styles.AssignTitle}>Assign to Project</h3>
+              <Button variant="ghost" size="sm" className={styles.IconButton} onClick={() => setAssigningPlan(null)}>
+                <X className={styles.Icon} />
               </Button>
             </div>
             
-            <div className="space-y-2 max-h-[300px] overflow-auto">
+            <div className={styles.AssignList}>
               <button
-                className="w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 transition-colors text-sm flex items-center gap-2"
+                className={cn(styles.AssignOption, styles.AssignOptionUnassign)}
                 onClick={() => handleAssignProject(assigningPlan, null)}
               >
-                <X className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Unassign</span>
+                <X className={styles.MutedIcon} />
+                <span className={styles.Muted}>Unassign</span>
               </button>
               {projects.map(project => (
                 <button
                   key={project.id}
-                  className="w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 transition-colors text-sm"
+                  className={styles.AssignOption}
                   onClick={() => handleAssignProject(assigningPlan, project.id)}
                 >
                   {project.title}
