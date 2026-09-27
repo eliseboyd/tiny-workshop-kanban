@@ -1,0 +1,36 @@
+.Main {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--background);
+}
+
+.ErrorMain {
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.ErrorBox {
+  max-width: 28rem;
+  text-align: center;
+}
+
+.ErrorBox > :where(:not(:last-child)) {
+  margin-block-start: 0;
+  margin-block-end: 0.75rem;
+}
+
+.Title {
+  font-size: 1.25rem;
+  line-height: var(--text-xl--line-height);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.Message {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: var(--muted-foreground);
+}
