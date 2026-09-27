@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Project, Column } from './KanbanBoard';
-import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage, getColumns, moveIdeaToKanban, moveProjectToIdeas, deleteProject, getImageStyles, saveImageFromUrl, setProjectCompletedState, type ImageStyle } from '@/app/actions';
+import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, getAllTags, ensureTagExists, moveProjectFromDoneIfNeeded, fetchAndSetOgImage, getColumns, moveIdeaToKanban, moveProjectToIdeas, deleteProject, getImageStyles, saveImageFromUrl, setProjectCompletedState, setProjectArchived, type ImageStyle } from '@/app/actions';
 import Image from 'next/image';
 import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images, ExternalLink, Pencil, FolderKanban, ListTodo, CheckCircle2, Circle, Lightbulb, Crop, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -102,6 +102,7 @@ type ProjectEditorProps = {
   onMoveToIdeas?: () => void;
   onProjectUpdate?: (id: string, updates: Partial<Project>) => void;
   onProjectDelete?: (id: string) => void;
+  onArchiveChange?: (id: string, archived: boolean) => void;
   // The board already holds Merlin's locations; passing them in lets the
   // dropdown render at once instead of queueing behind the editor's other
   // server actions. Fetched here only where no list is passed (project page).
@@ -165,7 +166,7 @@ function StylePicker({
   );
 }
 
-export function ProjectEditor({ project, onClose, isModal = false, className, ideaNavigation, onMoveToIdeas, onProjectUpdate, onProjectDelete, locations: locationsProp }: ProjectEditorProps) {
+export function ProjectEditor({ project, onClose, isModal = false, className, ideaNavigation, onMoveToIdeas, onProjectUpdate, onProjectDelete, onArchiveChange, locations: locationsProp }: ProjectEditorProps) {
   const router = useRouter();
   const confirmDialog = useConfirm();
   const [ogImageError, setOgImageError] = useState<string | null>(null);
@@ -198,6 +199,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   const [richContent, setRichContent] = useState(project.richContent || '');
   const [tags, setTags] = useState<string[]>(project.tags || []);
   const [isCompleted, setIsCompleted] = useState<boolean>(project.isCompleted || false);
+  const [isArchived, setIsArchived] = useState<boolean>(Boolean(project.archived_at));
   const [isIdea, setIsIdea] = useState<boolean>(project.isIdea || false);
   const [localItemType, setLocalItemType] = useState<'project' | 'task' | 'idea'>(
     project.isIdea ? 'idea' : project.isTask ? 'task' : 'project'
@@ -477,6 +479,21 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
     onClose?.();
   };
   
+  // Archiving closes the modal (the card leaves the board / Ideas grid);
+  // unarchiving keeps it open so the change is visible.
+  const handleToggleArchived = async () => {
+    const next = !isArchived;
+    try {
+      await setProjectArchived(project.id, next);
+    } catch (error) {
+      console.error('Failed to archive project:', error);
+      return;
+    }
+    setIsArchived(next);
+    onArchiveChange?.(project.id, next);
+    if (next) await handleClose();
+  };
+
   // Handle back navigation - save before navigating
   const handleBack = async () => {
     // Cancel any pending debounced save
@@ -1273,6 +1290,10 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   useEffect(() => {
     setIsIdea(project.isIdea || false);
   }, [project.isIdea]);
+
+  useEffect(() => {
+    setIsArchived(Boolean(project.archived_at));
+  }, [project.archived_at]);
   
   // Swipe back gesture for mobile with visual feedback
   const touchStartX = useRef(0);
@@ -2548,7 +2569,13 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
 
             {/* Delete link — inside the scroll area, below all content */}
             {isModal && (
-              <div className="flex justify-center pt-8 pb-2">
+              <div className="flex justify-center gap-6 pt-8 pb-2">
+                <button
+                  onClick={handleToggleArchived}
+                  className="text-xs text-muted-foreground/40 hover:text-foreground transition-colors underline-offset-2 hover:underline"
+                >
+                  {isArchived ? 'Unarchive Project' : 'Archive Project'}
+                </button>
                 <button
                   onClick={handleDeleteProject}
                   className="text-xs text-muted-foreground/40 hover:text-destructive transition-colors underline-offset-2 hover:underline"

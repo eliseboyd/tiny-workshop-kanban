@@ -16,6 +16,7 @@ export const projects = kanban.table('projects', {
   locationKey: text('location_key'), // Merlin location key; null = anywhere 
   attachments: jsonb('attachments').$type<{ id: string; url: string; name: string; type: string; size: number }[]>().default([]),
   isIdea: boolean('is_idea').notNull().default(false),
+  archivedAt: timestamp('archived_at', { withTimezone: true }), // null = not archived
 });
 
 export const columns = kanban.table('columns', {

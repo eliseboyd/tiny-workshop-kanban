@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Project, Column } from './KanbanBoard';
 import { KanbanCard } from './KanbanCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Lightbulb, Plus, Search, X } from 'lucide-react';
+import { Archive, Lightbulb, Plus, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type Tag = {
@@ -21,6 +21,8 @@ type IdeasViewProps = {
   tags: Tag[];
   columns: Column[];
   onIdeaClick: (idea: Project) => void;
+  archived?: Project[];
+  onArchivedClick?: (project: Project) => void;
   onMoveToKanban: (ideaId: string, columnId: string) => void;
   onDeleteIdea: (ideaId: string) => void;
   onCreateIdea?: () => void;
@@ -31,6 +33,8 @@ export function IdeasView({
   tags,
   columns,
   onIdeaClick,
+  archived = [],
+  onArchivedClick,
   onMoveToKanban,
   onDeleteIdea,
   onCreateIdea,
@@ -44,24 +48,31 @@ export function IdeasView({
     setLocalIdeas(propIdeas);
   }, [propIdeas]);
 
-  const filteredIdeas = useMemo(() => {
-    return localIdeas
-      .filter(idea => {
-        if (searchQuery) {
-          const q = searchQuery.toLowerCase();
-          if (
-            !idea.title.toLowerCase().includes(q) &&
-            !idea.description?.toLowerCase().includes(q)
-          )
-            return false;
-        }
-        if (selectedTags.length > 0) {
-          if (!selectedTags.some(t => idea.tags?.includes(t))) return false;
-        }
-        return true;
-      })
-      .sort((a, b) => a.position - b.position);
-  }, [localIdeas, searchQuery, selectedTags]);
+  // Search and tag filters apply to the Archived section too.
+  const matchesFilters = useCallback((idea: Project) => {
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      if (
+        !idea.title.toLowerCase().includes(q) &&
+        !idea.description?.toLowerCase().includes(q)
+      )
+        return false;
+    }
+    if (selectedTags.length > 0) {
+      if (!selectedTags.some(t => idea.tags?.includes(t))) return false;
+    }
+    return true;
+  }, [searchQuery, selectedTags]);
+
+  const filteredIdeas = useMemo(
+    () => localIdeas.filter(matchesFilters).sort((a, b) => a.position - b.position),
+    [localIdeas, matchesFilters]
+  );
+
+  const filteredArchived = useMemo(
+    () => archived.filter(matchesFilters),
+    [archived, matchesFilters]
+  );
 
   const hasActiveFilters = searchQuery || selectedTags.length > 0;
 
@@ -126,33 +137,57 @@ export function IdeasView({
         )}
       </div>
 
-      {/* Card grid */}
-      {filteredIdeas.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center flex-col gap-3 text-muted-foreground">
-          <Lightbulb className="h-12 w-12 opacity-20" />
-          <p className="text-sm">
-            {hasActiveFilters
-              ? 'No ideas match your filters.'
-              : 'No ideas yet. Create one to get started.'}
-          </p>
-        </div>
-      ) : (
-        <div className="flex flex-wrap gap-3 p-4 content-start overflow-y-auto flex-1">
-          {filteredIdeas.map(idea => (
-            <div key={idea.id} className="w-60 shrink-0">
-              <KanbanCard
-                project={idea}
-                onClick={() => onIdeaClick(idea)}
-                onDelete={() => onDeleteIdea(idea.id)}
-                onMoveToColumn={(columnId) => onMoveToKanban(idea.id, columnId)}
-                columns={columns}
-                size="small"
-                className="h-full"
-              />
+      <div className="flex-1 overflow-y-auto">
+        {/* Card grid */}
+        {filteredIdeas.length === 0 ? (
+          <div className="flex items-center justify-center flex-col gap-3 py-16 text-muted-foreground">
+            <Lightbulb className="h-12 w-12 opacity-20" />
+            <p className="text-sm">
+              {hasActiveFilters
+                ? 'No ideas match your filters.'
+                : 'No ideas yet. Create one to get started.'}
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-3 p-4 content-start">
+            {filteredIdeas.map(idea => (
+              <div key={idea.id} className="w-60 shrink-0">
+                <KanbanCard
+                  project={idea}
+                  onClick={() => onIdeaClick(idea)}
+                  onDelete={() => onDeleteIdea(idea.id)}
+                  onMoveToColumn={(columnId) => onMoveToKanban(idea.id, columnId)}
+                  columns={columns}
+                  size="small"
+                  className="h-full"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Archived — ideas and board projects archived from the project modal */}
+        {filteredArchived.length > 0 && (
+          <section className="border-t px-4 pt-4 pb-6">
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Archive className="h-4 w-4" /> Archived
+              <span className="text-xs opacity-70">{filteredArchived.length}</span>
+            </h2>
+            <div className="flex flex-wrap gap-3 content-start opacity-70">
+              {filteredArchived.map(project => (
+                <div key={project.id} className="w-60 shrink-0">
+                  <KanbanCard
+                    project={project}
+                    onClick={() => onArchivedClick?.(project)}
+                    size="small"
+                    className="h-full"
+                  />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          </section>
+        )}
+      </div>
     </div>
   );
 }
