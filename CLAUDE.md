@@ -11,8 +11,8 @@ Keep it up to date so automated PRs stay consistent with the codebase.
 |-------|-----------|
 | Framework | Next.js 16 (App Router) |
 | Language | TypeScript 5 — strict mode enabled |
-| Styling | CSS Modules (migrating from Tailwind CSS v4) |
-| UI primitives | Base UI (`@base-ui/react`), migrating from Shadcn/Radix |
+| Styling | CSS Modules on `@eliseboyd/design` tokens (no Tailwind) |
+| UI primitives | Base UI (`@base-ui/react`) wrapped in `src/components/ui/` |
 | Database | Supabase (Postgres) via Drizzle ORM |
 | Auth | Supabase Auth (`@supabase/ssr`) |
 | Deployment | Vercel — kanban.tinywork.shop, served at tinywork.shop/kanban via the home hub's rewrites (basePath `/kanban`) |
@@ -82,7 +82,7 @@ src/
   components/    # Shared React components
   db/            # Drizzle schema and client
   hooks/         # Custom React hooks
-  lib/           # Shared utilities (e.g. cn())
+  lib/           # Shared utilities (e.g. cn() — plain clsx)
   types/         # TypeScript type definitions
   utils/         # Supabase client helpers (browser / server / admin)
 migrations/      # Drizzle migration files
@@ -104,27 +104,37 @@ migrations/      # Drizzle migration files
 - All new pages go under `src/app/`.
 
 ### Styling
-Migrating to Base UI + CSS Modules; Tailwind is removed once the last file is
-converted. Plan: `~/repos/orchestrator/plans/base-ui-css-modules.md`.
-- New and converted code uses CSS Modules, not Tailwind. Colocate
-  `Component.module.css` with the component; class names are PascalCase part
-  names (`.Popup`, `.Item`).
+CSS Modules + Base UI; Tailwind was removed (MER-37). Plan and history:
+`~/repos/orchestrator/plans/base-ui-css-modules.md`.
+- Colocate `Component.module.css` with the component; class names are
+  PascalCase part names (`.Popup`, `.Item`).
 - Behaviour comes from Base UI (`import { Dialog } from '@base-ui/react/dialog'`),
   wrapped in `src/components/ui/`. Check there before building from scratch.
   Compose with `render={<El />}`, not `asChild`.
-- Only theme tokens from `@eliseboyd/design`: `var(--primary)`,
-  `var(--radius-lg)`, `var(--shadow-md)`, `var(--font-sans)`. No raw colours.
+- Only theme tokens from `@eliseboyd/design` (imported via `base.css` in
+  `globals.css`): `var(--primary)`, `var(--radius-lg)`, `var(--shadow-md)`,
+  `var(--blur-sm)`, `var(--font-sans)`. No raw colours, with one exception
+  left over from the migration: Tailwind palette colours the old markup used
+  are oklch literals with a comment naming the swatch
+  (`oklch(62.7% 0.194 149.214); /* green-600 */`). Replace them with tokens
+  deliberately, not as a side effect of another change.
+- Text sizes: `font-size: 0.875rem; line-height: var(--text-sm--line-height)`
+  (xs … 4xl variables live in `globals.css`). Never write the ratio as a
+  literal `calc(1.25 / 0.875)` — Lightning CSS minifies it and text drifts
+  sub-pixel (MER-52).
 - Style state with Base UI's data attributes (`[data-checked]`,
-  `[data-popup-open]`); animate with `[data-starting-style]` /
-  `[data-ending-style]`.
+  `[data-popup-open]`, `[data-highlighted]`); animate with
+  `[data-starting-style]` / `[data-ending-style]`.
 - Dark mode: the tokens already flip. Use `:global(.dark) &` only when they don't.
-- Breakpoints are hard-coded to match Tailwind's: `40rem` / `48rem` / `64rem`.
-- `cn()` from `@/lib/utils` merges classes: `cn(styles.Card, isCompact && styles.Compact)`.
-- Module CSS is unlayered, so it beats Tailwind utilities. When converting an
-  element, remove all its utilities in the same edit.
-- Exception: `src/components/ui/*.module.css` wrap their rules in
-  `@layer components`, so a call site's `className` (utility or module class)
-  still overrides the primitive's defaults, as twMerge used to.
+- Breakpoints: `40rem` / `48rem` / `64rem` / `80rem` in `@media (min-width: …)`.
+- Hover rules go inside `@media (hover: hover)`.
+- `cn()` from `@/lib/utils` is plain `clsx`: `cn(styles.Card, isCompact && styles.Compact)`.
+  It no longer de-duplicates conflicting classes — put modifiers after the
+  base class in the module file.
+- Cascade: `src/app/preflight.css` (Tailwind's old reset, vendored) is in
+  `@layer base`; `src/components/ui/*.module.css` are in `@layer components`,
+  so a call site's module class always overrides a primitive's defaults;
+  everything else is unlayered.
 
 ### Database
 - Schema lives in `src/db/`. Run migrations with `drizzle-kit`.

@@ -18,11 +18,12 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { LocationSwitcher } from './LocationSwitcher';
 import { getLocationState, setCurrentLocation } from '@/app/merlin-actions';
 import type { MerlinLocation } from '@/types/locations';
+import styles from './KanbanBoard.module.css';
 
 // Tab views are only rendered when the user switches to them — lazy-load so
 // their code isn't in the initial board bundle.
 const TabViewFallback = () => (
-  <div className="flex-1 flex items-center justify-center p-8 text-sm text-muted-foreground">
+  <div className={styles.TabFallback}>
     Loading…
   </div>
 );
@@ -149,11 +150,11 @@ type BoardView = 'dashboard' | 'kanban' | 'ideas' | 'plans' | 'completed';
 // The board's views, in nav order. Rendered by the suite's <SubNav> in view
 // mode (see the return below); the icons are what survive on a phone.
 const VIEWS: { id: BoardView; label: string; icon: ReactNode }[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
-  { id: 'kanban', label: 'Kanban', icon: <Columns3 className="h-4 w-4" /> },
-  { id: 'ideas', label: 'Ideas', icon: <Lightbulb className="h-4 w-4" /> },
-  { id: 'plans', label: 'Plans', icon: <FileStack className="h-4 w-4" /> },
-  { id: 'completed', label: 'Completed', icon: <CheckCircle2 className="h-4 w-4" /> },
+  { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className={styles.Icon} /> },
+  { id: 'kanban', label: 'Kanban', icon: <Columns3 className={styles.Icon} /> },
+  { id: 'ideas', label: 'Ideas', icon: <Lightbulb className={styles.Icon} /> },
+  { id: 'plans', label: 'Plans', icon: <FileStack className={styles.Icon} /> },
+  { id: 'completed', label: 'Completed', icon: <CheckCircle2 className={styles.Icon} /> },
 ];
 
 export function KanbanBoard({ initialProjects, initialSettings, initialColumns, initialIdeas = [], initialTags = [], initialProjectGroups = [], initialWidgets = [], initialMaterials = [], initialPlans = [] }: KanbanBoardProps) {
@@ -871,13 +872,13 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
       >
         <ModeToggle />
         <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)} aria-label="Open settings">
-          <Settings className="h-4 w-4" />
+          <Settings className={styles.Icon} />
         </Button>
       </SubNav>
       {/* pt-28 keeps the board content clear of the pill, whose bottom edge
           sits about 6.1rem from the top. */}
-      <div className="flex flex-col min-h-screen pt-28">
-        <div className="flex flex-col border-b">
+      <div className={styles.Root}>
+        <div className={styles.Top}>
 
             {/* Quick capture: the floating "+" bottom right, shared with the
                 rest of the suite. Same logic as the old inline field — a
@@ -965,12 +966,12 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
                   onToggleUngrouped={handleToggleUngrouped}
                   actions={
                     <>
-                      <LocationSwitcher locations={locations} currentKey={currentLocationKey} onChange={handleLocationChange} className="mr-2" />
+                      <LocationSwitcher locations={locations} currentKey={currentLocationKey} onChange={handleLocationChange} className={styles.LocationSwitcher} />
                       <Button variant="outline" size="sm" onClick={handleCreateColumn}>
-                        <KanbanSquareDashed className="mr-2 h-4 w-4" /> Add Column
+                        <KanbanSquareDashed className={styles.ButtonIcon} /> Add Column
                       </Button>
                       <Button size="sm" onClick={() => cols.length > 0 && setIsCreatingInColumn(cols[0].id)}>
-                        <Plus className="mr-2 h-4 w-4" /> New Project
+                        <Plus className={styles.ButtonIcon} /> New Project
                       </Button>
                     </>
                   }
@@ -980,7 +981,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
 
         {/* Kanban Board */}
         {activeView === 'kanban' && (
-          <div className="flex flex-col flex-1 min-h-0">
+          <div className={styles.Board}>
             <ClientDndWrapper
                 items={items}
                 cols={cols}

@@ -5,6 +5,7 @@ import { X, ChevronLeft, ChevronRight, Trash2, Image as ImageIcon } from 'lucide
 import Image from 'next/image';
 import { Button } from './button';
 import { cn } from '@/lib/utils';
+import styles from './lightbox.module.css';
 
 export type LightboxItem = {
   id: string;
@@ -78,18 +79,18 @@ export function Lightbox({
 
   return (
     <div
-      className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center"
+      className={styles.Overlay}
       onClick={onClose}
     >
       {/* Close button */}
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-4 right-4 z-10 text-white hover:bg-white/10"
+        className={styles.Close}
         onClick={onClose}
         aria-label="Close"
       >
-        <X className="h-6 w-6" />
+        <X className={styles.CloseIcon} />
       </Button>
 
       {/* Navigation buttons */}
@@ -98,32 +99,32 @@ export function Lightbox({
           <Button
             variant="ghost"
             size="icon"
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-white hover:bg-white/10 h-12 w-12"
+            className={styles.Prev}
             onClick={(e) => {
               e.stopPropagation();
               goToPrev();
             }}
             aria-label="Previous image"
           >
-            <ChevronLeft className="h-8 w-8" />
+            <ChevronLeft className={styles.NavIcon} />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 text-white hover:bg-white/10 h-12 w-12"
+            className={styles.Next}
             onClick={(e) => {
               e.stopPropagation();
               goToNext();
             }}
             aria-label="Next image"
           >
-            <ChevronRight className="h-8 w-8" />
+            <ChevronRight className={styles.NavIcon} />
           </Button>
         </>
       )}
 
       {/* Action buttons */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
+      <div className={styles.Actions}>
         {showSetCoverButton && onSetAsCover && (
           <Button
             variant="secondary"
@@ -132,9 +133,9 @@ export function Lightbox({
               e.stopPropagation();
               onSetAsCover(currentItem.url);
             }}
-            className="gap-2"
+            className={styles.ActionButton}
           >
-            <ImageIcon className="h-4 w-4" />
+            <ImageIcon className={styles.ActionIcon} />
             Set as Cover
           </Button>
         )}
@@ -152,9 +153,9 @@ export function Lightbox({
                 setCurrentIndex(currentIndex - 1);
               }
             }}
-            className="gap-2"
+            className={styles.ActionButton}
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className={styles.ActionIcon} />
             Delete
           </Button>
         )}
@@ -162,35 +163,35 @@ export function Lightbox({
 
       {/* Image counter */}
       {items.length > 1 && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 text-white bg-black/50 px-3 py-1 rounded-full text-sm">
+        <div className={styles.Counter}>
           {currentIndex + 1} / {items.length}
         </div>
       )}
 
       {/* Image */}
       <div
-        className="relative w-full h-full p-8 md:p-16 flex items-center justify-center"
+        className={styles.Stage}
         onClick={(e) => e.stopPropagation()}
       >
         {currentItem.type.startsWith('image/') ? (
-          <div className="relative w-full h-full">
+          <div className={styles.ImageFrame}>
             <Image
               src={currentItem.url}
               alt={currentItem.name}
               fill
-              className="object-contain"
+              className={styles.Image}
               unoptimized
               priority
             />
           </div>
         ) : (
-          <div className="text-white text-center">
+          <div className={styles.Fallback}>
             <p>File preview not available</p>
             <a
               href={currentItem.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-400 underline mt-2"
+              className={styles.FallbackLink}
             >
               Open in new tab
             </a>
@@ -200,15 +201,13 @@ export function Lightbox({
 
       {/* Swipe indicators for mobile */}
       {items.length > 1 && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 flex gap-2 md:hidden">
+        <div className={styles.Dots}>
           {items.map((_, index) => (
             <div
               key={index}
               className={cn(
-                'h-1.5 rounded-full transition-all',
-                index === currentIndex
-                  ? 'w-6 bg-white'
-                  : 'w-1.5 bg-white/50'
+                styles.Dot,
+                index === currentIndex && styles.DotActive
               )}
             />
           ))}

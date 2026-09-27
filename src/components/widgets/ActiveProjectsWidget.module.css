@@ -1,0 +1,234 @@
+.Root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  border-style: solid;
+  border-width: 1px;
+  background-color: var(--card);
+  box-shadow: var(--shadow-sm);
+}
+
+.Header {
+  flex-shrink: 0;
+  cursor: grab;
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  background-color: color-mix(in oklab, var(--muted) 30%, transparent);
+  padding-inline: 1rem;
+  padding-block: 0.75rem;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.HeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.TitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.Title {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  font-weight: 600;
+}
+
+.CountBadge {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+}
+
+.Actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  opacity: 0%;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+@media (hover: hover) {
+  .Root:hover .Actions {
+    opacity: 100%;
+  }
+}
+
+.SettingsButton {
+  height: 1.75rem;
+  width: 1.75rem;
+  padding: 0;
+}
+
+.SettingsIcon {
+  height: 0.875rem;
+  width: 0.875rem;
+}
+
+.Subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  color: var(--muted-foreground);
+}
+
+.Toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  background-color: color-mix(in oklab, var(--muted) 10%, transparent);
+  padding-inline: 1rem;
+  padding-block: 0.5rem;
+}
+
+.FilterGroup {
+  display: flex;
+  min-width: 150px;
+  flex: 1;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.SortGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.ToolbarIcon {
+  height: 0.875rem;
+  width: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.Trigger {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+}
+
+/* `border-none shadow-none`: shadow-none only zeroed the base shadow, so the
+ * focus ring still showed. */
+.PlainTrigger {
+  border-style: none;
+  box-shadow: none;
+
+  &:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+  }
+}
+
+.OptionRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.Empty {
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: var(--muted-foreground);
+}
+
+.List > :where(:not(:last-child)) {
+  border-top-style: solid;
+  border-bottom-style: solid;
+  border-top-width: 0;
+  border-bottom-width: 1px;
+}
+
+.Item {
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  gap: 0.75rem;
+  padding-inline: 1rem;
+  padding-block: 0.625rem;
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+
+  @media (hover: hover) {
+    &:hover {
+      background-color: color-mix(in oklab, var(--muted) 30%, transparent);
+    }
+  }
+}
+
+.ItemMain {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.TaskIcon {
+  height: 0.875rem;
+  width: 0.875rem;
+  flex-shrink: 0;
+  color: color-mix(in oklab, oklch(54.6% 0.245 262.881) 60%, transparent); /* blue-600 */
+}
+
+.ProjectIcon {
+  height: 0.875rem;
+  width: 0.875rem;
+  flex-shrink: 0;
+  color: color-mix(in oklab, var(--muted-foreground) 50%, transparent);
+}
+
+.ItemTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  font-weight: 500;
+}
+
+.ItemMeta {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ItemBadge {
+  height: 1.25rem;
+  padding-inline: 0.375rem;
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+}
+
+.GroupEmoji {
+  margin-right: 0.25rem;
+}
+
+.OpenIcon {
+  height: 0.875rem;
+  width: 0.875rem;
+  color: var(--muted-foreground);
+  opacity: 0%;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+@media (hover: hover) {
+  .Item:hover .OpenIcon {
+    opacity: 100%;
+  }
+}

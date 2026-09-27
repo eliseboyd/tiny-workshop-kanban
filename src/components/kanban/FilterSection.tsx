@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import styles from './FilterSection.module.css';
 
 type Tag = {
   name: string;
@@ -65,18 +66,15 @@ export function FilterSection({
   }
 
   return (
-    <div className="border-t bg-muted/20">
-      <div className="px-4 py-2">
-        <div className="flex flex-wrap items-center gap-2">
+    <div className={styles.Root}>
+      <div className={styles.Inner}>
+        <div className={styles.Row}>
           {/* Project Groups */}
           {visibleGroups.map(group => (
             <Badge
               key={group.id}
               variant={activeGroups.includes(group.id) ? "default" : "outline"}
-              className={cn(
-                "cursor-pointer transition-all hover:scale-105",
-                activeGroups.includes(group.id) && "ring-2 ring-offset-1 ring-offset-background"
-              )}
+              className={cn(styles.Chip, activeGroups.includes(group.id) && styles.ChipActive)}
               style={{
                 backgroundColor: activeGroups.includes(group.id) ? group.color : undefined,
                 borderColor: group.color,
@@ -84,17 +82,17 @@ export function FilterSection({
               }}
               onClick={() => onGroupToggle(group.id)}
             >
-              {group.emoji && <span className="mr-1">{group.emoji}</span>}
+              {group.emoji && <span className={styles.ChipEmoji}>{group.emoji}</span>}
               {group.name}
               {activeGroups.includes(group.id) && (
-                <X className="ml-1 h-3 w-3" />
+                <X className={styles.ChipClearIcon} />
               )}
             </Badge>
           ))}
 
           {/* Separator if both groups and tags exist */}
           {visibleGroups.length > 0 && visibleTags.length > 0 && (
-            <span className="text-muted-foreground/30">|</span>
+            <span className={styles.Separator}>|</span>
           )}
 
           {/* Tags */}
@@ -102,10 +100,7 @@ export function FilterSection({
             <Badge
               key={tag.name}
               variant={activeTags.includes(tag.name) ? "default" : "outline"}
-              className={cn(
-                "cursor-pointer transition-all hover:scale-105",
-                activeTags.includes(tag.name) && "ring-2 ring-offset-1 ring-offset-background"
-              )}
+              className={cn(styles.Chip, activeTags.includes(tag.name) && styles.ChipActive)}
               style={{
                 backgroundColor: activeTags.includes(tag.name) ? tag.color : undefined,
                 borderColor: tag.color,
@@ -113,10 +108,10 @@ export function FilterSection({
               }}
               onClick={() => onTagToggle(tag.name)}
             >
-              {tag.emoji && <span className="mr-1">{tag.emoji}</span>}
+              {tag.emoji && <span className={styles.ChipEmoji}>{tag.emoji}</span>}
               {tag.name}
               {activeTags.includes(tag.name) && (
-                <X className="ml-1 h-3 w-3" />
+                <X className={styles.ChipClearIcon} />
               )}
             </Badge>
           ))}
@@ -125,15 +120,12 @@ export function FilterSection({
           {tags.length > 0 && (
             <Badge
               variant={showUntagged ? "default" : "outline"}
-              className={cn(
-                "cursor-pointer transition-all hover:scale-105",
-                showUntagged && "ring-2 ring-offset-1 ring-offset-background"
-              )}
+              className={cn(styles.Chip, showUntagged && styles.ChipActive)}
               onClick={() => onToggleUntagged()}
             >
               Untagged
               {showUntagged && (
-                <X className="ml-1 h-3 w-3" />
+                <X className={styles.ChipClearIcon} />
               )}
             </Badge>
           )}
@@ -143,7 +135,7 @@ export function FilterSection({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-xs"
+              className={styles.ClearButton}
               onClick={onClearFilters}
             >
               Clear
@@ -152,7 +144,7 @@ export function FilterSection({
 
           {/* Injected actions (e.g. Add Column / New Project) */}
           {actions && (
-            <div className="ml-auto flex items-center gap-2">
+            <div className={styles.Actions}>
               {actions}
             </div>
           )}

@@ -1,0 +1,6 @@
+/* Unlayered, so it beats the Dialog primitive's own max-width. */
+.Content {
+  @media (min-width: 40rem) {
+    max-width: 28rem;
+  }
+}

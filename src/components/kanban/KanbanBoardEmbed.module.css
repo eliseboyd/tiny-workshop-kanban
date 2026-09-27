@@ -1,0 +1,45 @@
+.Root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+.Header {
+  flex-shrink: 0;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  background-color: color-mix(in oklab, var(--background) 95%, transparent);
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+
+  @supports (backdrop-filter: var(--tw)) {
+    background-color: color-mix(in oklab, var(--background) 60%, transparent);
+  }
+}
+
+.HeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+}
+
+.Title {
+  font-size: 1.5rem;
+  line-height: var(--text-2xl--line-height);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.Meta {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  color: var(--muted-foreground);
+}
+
+.Board {
+  flex: 1;
+  overflow: hidden;
+}

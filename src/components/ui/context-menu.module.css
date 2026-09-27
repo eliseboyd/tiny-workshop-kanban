@@ -149,4 +149,17 @@
     line-height: var(--text-xs--line-height);
     letter-spacing: 0.1em;
   }
+
+  /* Icons the primitive renders itself (chevrons, check marks). */
+  .Glyph {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+  }
+
+  .RadioDot {
+    width: 0.5rem;
+    height: 0.5rem;
+    fill: currentColor;
+  }
 }

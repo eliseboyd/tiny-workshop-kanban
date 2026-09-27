@@ -1,0 +1,496 @@
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.Root {
+  flex: 1;
+  padding: 1.5rem;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.RootDragging {
+  background-color: color-mix(in oklab, var(--primary) 5%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--primary) 30%, transparent);
+}
+
+/* Header */
+.Header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.HeaderStart {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.Heading {
+  font-size: 1.25rem;
+  line-height: var(--text-xl--line-height);
+  font-weight: 600;
+}
+
+.Spinner {
+  width: 1rem;
+  height: 1rem;
+  color: var(--muted-foreground);
+  animation: spin 1s linear infinite;
+}
+
+.CountBadge {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+}
+
+.HeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.FilterTrigger {
+  width: 160px;
+}
+
+.FilterIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-right: 0.5rem;
+}
+
+.FileInput {
+  display: none;
+}
+
+.UploadIcon {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.5rem;
+}
+
+/* Drop overlay */
+.DropOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: color-mix(in oklab, var(--background) 80%, transparent);
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+  pointer-events: none;
+}
+
+.DropPanel {
+  padding: 3rem;
+  border-width: 2px;
+  border-style: dashed;
+  border-color: var(--primary);
+  border-radius: var(--radius-xl);
+  background-color: color-mix(in oklab, var(--primary) 10%, transparent);
+  text-align: center;
+}
+
+.DropIcon {
+  width: 3rem;
+  height: 3rem;
+  margin-inline: auto;
+  margin-bottom: 1rem;
+  color: var(--primary);
+}
+
+.DropTitle {
+  font-size: 1.125rem;
+  line-height: var(--text-lg--line-height);
+  font-weight: 500;
+  color: var(--primary);
+}
+
+.DropHint {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: var(--muted-foreground);
+}
+
+/* Empty state */
+.Empty {
+  padding: 3rem;
+  border-width: 2px;
+  border-style: dashed;
+  border-radius: var(--radius-xl);
+  text-align: center;
+  cursor: pointer;
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+
+  @media (hover: hover) {
+    &:hover {
+      background-color: color-mix(in oklab, var(--muted) 10%, transparent);
+    }
+  }
+}
+
+.EmptyIcon {
+  width: 3rem;
+  height: 3rem;
+  margin-inline: auto;
+  margin-bottom: 1rem;
+  color: color-mix(in oklab, var(--muted-foreground) 50%, transparent);
+}
+
+.EmptyTitle {
+  color: var(--muted-foreground);
+}
+
+.EmptyHint {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: color-mix(in oklab, var(--muted-foreground) 70%, transparent);
+}
+
+/* Grid */
+.Grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+
+  @media (min-width: 40rem) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  @media (min-width: 48rem) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  @media (min-width: 64rem) {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+/* Plan card */
+.Card {
+  position: relative;
+  overflow: hidden;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--radius-lg);
+  background-color: var(--card);
+  cursor: pointer;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+
+  @media (hover: hover) {
+    &:hover {
+      box-shadow: var(--shadow-lg);
+    }
+  }
+}
+
+.CardSelected {
+  box-shadow: 0 0 0 2px var(--primary);
+
+  @media (hover: hover) {
+    &:hover {
+      box-shadow: 0 0 0 2px var(--primary), var(--shadow-lg);
+    }
+  }
+}
+
+.CardUnassigned {
+  border-color: color-mix(in oklab, oklch(76.9% 0.188 70.08) 30%, transparent); /* amber-500 */
+}
+
+.Thumb {
+  position: relative;
+  aspect-ratio: 4/3;
+  overflow: hidden;
+  background-color: color-mix(in oklab, var(--muted) 20%, transparent);
+}
+
+.ThumbImage {
+  object-fit: cover;
+}
+
+.PdfFrame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.PdfEmbed {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.PdfBadgeWrap {
+  position: absolute;
+  right: 0.25rem;
+  bottom: 0.25rem;
+}
+
+.PdfBadge {
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  background-color: oklch(57.7% 0.245 27.325); /* red-600 */
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.FileFallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--muted-foreground);
+}
+
+.FileIcon {
+  width: 2.5rem;
+  height: 2.5rem;
+  opacity: 50%;
+}
+
+.FileType {
+  margin-top: 0.25rem;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.Overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: color-mix(in oklab, #000 60%, transparent);
+  opacity: 0%;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+@media (hover: hover) {
+  .Card:hover .Overlay {
+    opacity: 100%;
+  }
+}
+
+.IconButton {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+}
+
+.Icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.SourceBadgeWrap {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+}
+
+.SourceBadge {
+  height: 1.25rem;
+  font-size: 10px;
+  background-color: color-mix(in oklab, var(--background) 80%, transparent);
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+}
+
+.UnassignedBadgeWrap {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+}
+
+.UnassignedBadge {
+  height: 1.25rem;
+  font-size: 10px;
+  border-color: color-mix(in oklab, oklch(76.9% 0.188 70.08) 50%, transparent); /* amber-500 */
+  background-color: color-mix(in oklab, oklch(76.9% 0.188 70.08) 20%, transparent); /* amber-500 */
+  color: oklch(55.5% 0.163 48.998); /* amber-700 */
+
+  :global(.dark) & {
+    color: oklch(82.8% 0.189 84.429); /* amber-400 */
+  }
+}
+
+/* Card info */
+.Info {
+  padding: 0.625rem;
+}
+
+.Name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  font-weight: 500;
+}
+
+.Meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+
+.MetaItem {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.MetaIcon {
+  width: 0.625rem;
+  height: 0.625rem;
+}
+
+.ProjectLink {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  color: var(--primary);
+}
+
+/* Add more card */
+.AddCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  border-width: 2px;
+  border-style: dashed;
+  border-radius: var(--radius-lg);
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+
+  @media (hover: hover) {
+    &:hover {
+      background-color: color-mix(in oklab, var(--muted) 10%, transparent);
+    }
+  }
+}
+
+.AddIcon {
+  width: 2rem;
+  height: 2rem;
+  margin-bottom: 0.5rem;
+  opacity: 50%;
+}
+
+.AddLabel {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+}
+
+/* Assign modal */
+.AssignBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: color-mix(in oklab, #000 50%, transparent);
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+}
+
+.AssignPanel {
+  width: 100%;
+  max-width: 24rem;
+  margin-inline: 1rem;
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  background-color: var(--background);
+  box-shadow: var(--shadow-xl);
+}
+
+.AssignHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.AssignTitle {
+  font-weight: 600;
+}
+
+.AssignList {
+  max-height: 300px;
+  overflow: auto;
+
+  & > :where(:not(:last-child)) {
+    margin-block-end: 0.5rem;
+  }
+}
+
+.AssignOption {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  text-align: left;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+
+  @media (hover: hover) {
+    &:hover {
+      background-color: color-mix(in oklab, var(--muted) 50%, transparent);
+    }
+  }
+}
+
+.AssignOptionUnassign {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.MutedIcon {
+  width: 1rem;
+  height: 1rem;
+  color: var(--muted-foreground);
+}
+
+.Muted {
+  color: var(--muted-foreground);
+}

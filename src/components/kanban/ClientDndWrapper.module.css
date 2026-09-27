@@ -1,0 +1,95 @@
+.Board {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  gap: 1rem;
+  padding: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-user-select: none;
+  user-select: none;
+
+  @media (min-width: 48rem) {
+    scroll-snap-type: none;
+  }
+}
+
+.HiddenColumn {
+  position: relative;
+  flex-shrink: 0;
+  width: 85vw;
+  height: 8rem;
+  cursor: pointer;
+  scroll-snap-align: center;
+  border-radius: var(--radius-lg);
+  border-width: 2px;
+  border-style: dashed;
+  border-color: color-mix(in oklab, var(--muted-foreground) 30%, transparent);
+  background-color: color-mix(in oklab, var(--muted) 30%, transparent);
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: color-mix(in oklab, var(--muted-foreground) 50%, transparent);
+      background-color: color-mix(in oklab, var(--muted) 50%, transparent);
+    }
+  }
+
+  @media (min-width: 48rem) {
+    width: 15rem;
+    scroll-snap-align: none;
+  }
+}
+
+.HiddenColumnInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 0.75rem;
+  color: color-mix(in oklab, var(--muted-foreground) 60%, transparent);
+}
+
+@media (hover: hover) {
+  .HiddenColumn:hover .HiddenColumnInner {
+    color: color-mix(in oklab, var(--muted-foreground) 80%, transparent);
+  }
+}
+
+.HiddenColumnTitle {
+  font-size: 1rem;
+  line-height: var(--text-base--line-height);
+  font-weight: 500;
+  text-align: center;
+
+  @media (min-width: 48rem) {
+    font-size: 0.875rem;
+    line-height: var(--text-sm--line-height);
+  }
+}
+
+.HiddenColumnMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.HiddenColumnCount {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  font-weight: 700;
+  background-color: var(--muted);
+  padding-inline: 0.75rem;
+  padding-block: 0.25rem;
+  border-radius: 0.25rem;
+}
+
+.HiddenColumnHint {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  color: color-mix(in oklab, var(--muted-foreground) 50%, transparent);
+}
