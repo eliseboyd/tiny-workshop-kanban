@@ -10,13 +10,13 @@
     background-color: transparent;
     box-shadow: var(--shadow-xs);
     font-size: 1rem;
-    line-height: calc(1.5 / 1);
+    line-height: var(--text-base--line-height);
     outline: none;
     transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1);
 
     @media (min-width: 48rem) {
       font-size: 0.875rem;
-      line-height: calc(1.25 / 0.875);
+      line-height: var(--text-sm--line-height);
     }
 
     &::placeholder {
