@@ -1074,6 +1074,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
               setIdeas(prev => [...prev, { ...moved, isIdea: true }]);
             }
           } : undefined}
+          locations={locations}
           onProjectUpdate={(id, updates) => {
             setItems(prev => prev.map(item =>
               item.id === id ? { ...item, ...updates } : item
