@@ -1,0 +1,64 @@
+/* In the `components` layer so call-site utilities still win; see button.module.css. */
+@layer components {
+  .Card {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding-block: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background-color: var(--card);
+    color: var(--card-foreground);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .CardHeader {
+    container: card-header / inline-size;
+    display: grid;
+    grid-auto-rows: min-content;
+    grid-template-rows: auto auto;
+    align-items: start;
+    gap: 0.5rem;
+    padding-inline: 1.5rem;
+
+    &:has([data-slot="card-action"]) {
+      grid-template-columns: 1fr auto;
+    }
+    /* A call site adding a bottom border gets matching spacing. */
+    &:global(.border-b) {
+      padding-bottom: 1.5rem;
+    }
+  }
+
+  .CardTitle {
+    line-height: 1;
+    font-weight: 600;
+  }
+
+  .CardDescription {
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    line-height: calc(1.25 / 0.875);
+  }
+
+  .CardAction {
+    grid-column-start: 2;
+    grid-row: 1 / span 2;
+    align-self: start;
+    justify-self: end;
+  }
+
+  .CardContent {
+    padding-inline: 1.5rem;
+  }
+
+  .CardFooter {
+    display: flex;
+    align-items: center;
+    padding-inline: 1.5rem;
+
+    &:global(.border-t) {
+      padding-top: 1.5rem;
+    }
+  }
+}

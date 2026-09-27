@@ -228,7 +228,7 @@ export function PlansView({ initialPlans, projects, onPlanClick }: PlansViewProp
         <div className="flex items-center gap-3">
           {/* Filter */}
           <Select value={filterMode} onValueChange={(v: 'all' | 'unassigned' | 'assigned') => setFilterMode(v)}>
-            <SelectTrigger className="w-[160px] h-9">
+            <SelectTrigger className="w-[160px]">
               <Filter className="h-3.5 w-3.5 mr-2" />
               <SelectValue />
             </SelectTrigger>

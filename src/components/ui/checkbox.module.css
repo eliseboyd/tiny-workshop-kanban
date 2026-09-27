@@ -1,0 +1,40 @@
+/* In the `components` layer so call-site utilities still win; see button.module.css. */
+@layer components {
+  .Checkbox {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    border: 1px solid var(--primary);
+    border-radius: var(--radius-sm);
+    outline: none;
+
+    &:focus-visible {
+      box-shadow:
+        0 0 0 2px var(--background),
+        0 0 0 4px var(--ring);
+    }
+    &[data-disabled] {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    &[data-checked] {
+      background-color: var(--primary);
+      color: var(--primary-foreground);
+    }
+  }
+
+  .Indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: currentColor;
+
+    & svg {
+      width: 1rem;
+      height: 1rem;
+    }
+  }
+}

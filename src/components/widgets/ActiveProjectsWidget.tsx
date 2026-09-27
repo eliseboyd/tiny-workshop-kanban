@@ -179,7 +179,7 @@ export function ActiveProjectsWidget({
         <div className="flex items-center gap-1 flex-1 min-w-[150px]">
           <Filter className="h-3.5 w-3.5 text-muted-foreground" />
           <Select value={filterType} onValueChange={handleFilterTypeChange}>
-            <SelectTrigger className="h-7 text-xs border-none shadow-none">
+            <SelectTrigger className="text-xs border-none shadow-none">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -190,7 +190,7 @@ export function ActiveProjectsWidget({
           </Select>
           {filterType === 'tag' && (
             <Select value={filterBy} onValueChange={setFilterBy}>
-              <SelectTrigger className="h-7 text-xs">
+              <SelectTrigger className="text-xs">
                 <SelectValue placeholder="Select tag" />
               </SelectTrigger>
               <SelectContent>
@@ -208,7 +208,7 @@ export function ActiveProjectsWidget({
           )}
           {filterType === 'group' && (
             <Select value={filterBy} onValueChange={setFilterBy}>
-              <SelectTrigger className="h-7 text-xs">
+              <SelectTrigger className="text-xs">
                 <SelectValue placeholder="Select group" />
               </SelectTrigger>
               <SelectContent>
@@ -228,7 +228,7 @@ export function ActiveProjectsWidget({
         <div className="flex items-center gap-1">
           <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-            <SelectTrigger className="h-7 text-xs">
+            <SelectTrigger className="text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

@@ -122,6 +122,9 @@ converted. Plan: `~/repos/orchestrator/plans/base-ui-css-modules.md`.
 - `cn()` from `@/lib/utils` merges classes: `cn(styles.Card, isCompact && styles.Compact)`.
 - Module CSS is unlayered, so it beats Tailwind utilities. When converting an
   element, remove all its utilities in the same edit.
+- Exception: `src/components/ui/*.module.css` wrap their rules in
+  `@layer components`, so a call site's `className` (utility or module class)
+  still overrides the primitive's defaults, as twMerge used to.
 
 ### Database
 - Schema lives in `src/db/`. Run migrations with `drizzle-kit`.

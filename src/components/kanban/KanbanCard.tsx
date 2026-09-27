@@ -213,8 +213,8 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
       className={className}
     >
       <ContextMenu onOpenChange={setContextMenuOpen}>
-      <ContextMenuTrigger asChild>
-      <Card 
+      <ContextMenuTrigger
+        render={<Card
         className={cn(
           "hover:shadow-md transition-all p-0 gap-0 overflow-hidden select-none relative group",
           !isTouchDevice && "cursor-grab active:cursor-grabbing",
@@ -227,11 +227,12 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
         onTouchEnd={handleTouchEnd}
         onContextMenu={(e) => {
           // Prevent text selection on long press (mobile only)
-          // On desktop, letting Radix handle this is required for the context menu to open
+          // On desktop, letting Base UI handle this is required for the context menu to open
           if (isTouchDevice) {
             e.preventDefault();
           }
         }}
+        />}
       >
         {!isCompact && (
           <div className={cn("relative w-full overflow-hidden", imageHeight)}>
@@ -299,16 +300,19 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
         {isTouchDevice && columns && columns.length > 1 && onMoveToColumn && (
           <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity md:hidden">
             <Sheet open={moveSheetOpen} onOpenChange={setMoveSheetOpen}>
-              <SheetTrigger asChild onClick={(e) => e.stopPropagation()}>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="h-9 px-3 shadow-md"
-                  aria-label="Move card to column"
-                >
-                  <ArrowRightLeft className="h-4 w-4 mr-1" />
-                  Move
-                </Button>
+              <SheetTrigger
+                onClick={(e) => e.stopPropagation()}
+                render={
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-9 px-3 shadow-md"
+                    aria-label="Move card to column"
+                  />
+                }
+              >
+                <ArrowRightLeft className="h-4 w-4 mr-1" />
+                Move
               </SheetTrigger>
               <SheetContent side="bottom" className="h-auto">
                 <SheetHeader>
@@ -337,7 +341,6 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
             </Sheet>
           </div>
         )}
-      </Card>
       </ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuItem onClick={(e) => {

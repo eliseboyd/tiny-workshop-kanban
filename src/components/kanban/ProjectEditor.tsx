@@ -1949,7 +1949,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               <div className="flex items-center gap-3 pb-2">
                 <label className="text-sm text-muted-foreground min-w-[80px]">Type:</label>
                 <Select value={localItemType} onValueChange={handleTypeChange}>
-                  <SelectTrigger className="w-[140px] h-8">
+                  <SelectTrigger className="w-[140px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1987,7 +1987,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                       await updateProject(project.id, { locationKey: next });
                     }}
                   >
-                    <SelectTrigger className="w-[140px] h-8">
+                    <SelectTrigger className="w-[140px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -2141,7 +2141,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                         <Checkbox
                           checked={item.toBuy}
                           onCheckedChange={() => handleUpdateMaterial(item.id, 'toBuy')}
-                          className="data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
+                          className="data-checked:bg-amber-600 data-checked:border-amber-600"
                         />
                         <span className="text-xs text-muted-foreground whitespace-nowrap">Need to buy</span>
                       </div>
@@ -2149,7 +2149,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                         <Checkbox
                           checked={item.toBuild}
                           onCheckedChange={() => handleUpdateMaterial(item.id, 'toBuild')}
-                          className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                          className="data-checked:bg-green-600 data-checked:border-green-600"
                         />
                         <span className="text-xs text-muted-foreground whitespace-nowrap">Already own</span>
                       </div>

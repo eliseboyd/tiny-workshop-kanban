@@ -1,0 +1,110 @@
+/* In the `components` layer so call-site utilities still win; see button.module.css. */
+@layer components {
+  .Backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background-color: rgb(0 0 0 / 0.5);
+    transition: opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    &[data-starting-style],
+    &[data-ending-style] {
+      opacity: 0;
+    }
+  }
+
+  .Popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: 50;
+    translate: -50% -50%;
+    display: grid;
+    gap: 1rem;
+    width: 100%;
+    max-width: calc(100% - 2rem);
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background-color: var(--background);
+    box-shadow: var(--shadow-lg);
+    outline: none;
+    transition:
+      opacity 200ms cubic-bezier(0.4, 0, 0.2, 1),
+      scale 200ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    @media (min-width: 40rem) {
+      max-width: 32rem;
+    }
+
+    &[data-starting-style],
+    &[data-ending-style] {
+      opacity: 0;
+      scale: 0.95;
+    }
+  }
+
+  .Close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    border-radius: var(--radius-xs);
+    opacity: 0.7;
+    transition: opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      opacity: 1;
+    }
+    &:focus {
+      outline: none;
+      box-shadow:
+        0 0 0 2px var(--background),
+        0 0 0 4px var(--ring);
+    }
+    &:disabled {
+      pointer-events: none;
+    }
+    & svg {
+      flex-shrink: 0;
+      pointer-events: none;
+    }
+    & svg:not([class*="size-"]) {
+      width: 1rem;
+      height: 1rem;
+    }
+  }
+
+  .Header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+
+    @media (min-width: 40rem) {
+      text-align: left;
+    }
+  }
+
+  .Footer {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+
+    @media (min-width: 40rem) {
+      flex-direction: row;
+      justify-content: flex-end;
+    }
+  }
+
+  .Title {
+    font-size: 1.125rem;
+    line-height: 1;
+    font-weight: 600;
+  }
+
+  .Description {
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    line-height: calc(1.25 / 0.875);
+  }
+}
