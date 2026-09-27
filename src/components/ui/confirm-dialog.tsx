@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import styles from './confirm-dialog.module.css';
 
 type ConfirmOptions = {
   title: string;
@@ -45,7 +46,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     <ConfirmContext.Provider value={confirm}>
       {children}
       <Dialog open={state !== null} onOpenChange={(open) => !open && handleResult(false)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className={styles.Content}>
           <DialogHeader>
             <DialogTitle>{state?.title}</DialogTitle>
             {state?.description && (

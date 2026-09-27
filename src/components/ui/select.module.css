@@ -212,4 +212,11 @@
       bottom: 0;
     }
   }
+
+  /* Icons the primitive renders itself (chevrons, check marks). */
+  .Glyph {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+  }
 }
