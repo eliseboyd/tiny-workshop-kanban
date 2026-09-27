@@ -1,5 +1,7 @@
 import { getProjects, getSettings, getColumns } from '@/app/actions';
 import { KanbanBoardEmbedClient } from '@/components/kanban/KanbanBoardEmbedClient';
+import { cn } from '@/lib/utils';
+import styles from './page.module.css';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,10 +19,10 @@ export default async function EmbedPage() {
   } catch (err) {
     console.error('[Embed] initial data load failed:', err);
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-background overflow-hidden p-6">
-        <div className="max-w-md space-y-3 text-center">
-          <h1 className="text-xl font-semibold tracking-tight">Unable to load embed</h1>
-          <p className="text-sm text-muted-foreground">
+      <main className={cn(styles.Main, styles.ErrorMain)}>
+        <div className={styles.ErrorBox}>
+          <h1 className={styles.Title}>Unable to load embed</h1>
+          <p className={styles.Message}>
             Check deployment logs. Ensure Supabase URL, anon key, and service role key are set on the host.
           </p>
         </div>
@@ -29,7 +31,7 @@ export default async function EmbedPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-background overflow-hidden">
+    <main className={styles.Main}>
       <KanbanBoardEmbedClient initialProjects={projects} initialSettings={settings} initialColumns={columns} />
     </main>
   );

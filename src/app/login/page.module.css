@@ -1,0 +1,46 @@
+.Root {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  background-color: color-mix(in oklab, var(--muted) 40%, transparent);
+  padding-inline: 1rem;
+}
+
+.Card {
+  width: 100%;
+  max-width: 24rem;
+}
+
+.Title {
+  font-size: 1.5rem;
+  line-height: var(--text-2xl--line-height);
+}
+
+.Form {
+  display: grid;
+  gap: 1rem;
+}
+
+.Field {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.Error {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: var(--destructive);
+  text-align: center;
+}
+
+.Actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.Submit {
+  width: 100%;
+}

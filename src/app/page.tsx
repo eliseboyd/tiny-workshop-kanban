@@ -1,5 +1,7 @@
 import { KanbanBoardClient } from '@/components/kanban/KanbanBoardClient';
 import { getProjects, getSettings, getColumns, getIdeas, getAllTags, getAllProjectGroups } from '@/app/actions';
+import { cn } from '@/lib/utils';
+import styles from './page.module.css';
 
 // Ensure dynamic rendering so we get fresh data from Supabase on every load
 export const dynamic = 'force-dynamic';
@@ -28,13 +30,13 @@ export default async function Home() {
   } catch (err) {
     console.error('[Home] initial data load failed:', err);
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-background overflow-auto p-6">
-        <div className="max-w-md space-y-3 text-center">
-          <h1 className="text-xl font-semibold tracking-tight">Unable to load the board</h1>
-          <p className="text-sm text-muted-foreground">
+      <main className={cn(styles.Main, styles.ErrorMain)}>
+        <div className={styles.ErrorBox}>
+          <h1 className={styles.Title}>Unable to load the board</h1>
+          <p className={styles.Message}>
             The server could not finish loading data. Check your deployment logs for the full error.
             Common causes: missing{' '}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs">SUPABASE_SERVICE_ROLE_KEY</code>{' '}
+            <code className={styles.Code}>SUPABASE_SERVICE_ROLE_KEY</code>{' '}
             or other Supabase env vars on the host.
           </p>
         </div>
@@ -43,7 +45,7 @@ export default async function Home() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-background overflow-auto">
+    <main className={styles.Main}>
       <KanbanBoardClient
         initialProjects={projects}
         initialSettings={settings}
