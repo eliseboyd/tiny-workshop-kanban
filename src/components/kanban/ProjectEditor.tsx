@@ -12,11 +12,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Lightbox, type LightboxItem } from '@/components/ui/lightbox';
 import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from '@/components/ui/context-menu';
+  Autocomplete,
+  AutocompleteContent,
+  AutocompleteInput,
+  AutocompleteItem,
+  AutocompleteList,
+} from '@/components/ui/autocomplete';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -267,6 +268,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editingMaterialRef = useRef<HTMLInputElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
+  const highlightedTagRef = useRef<TagMetadata | null>(null);
   const imageAreaRef = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const inspirationSectionRef = useRef<HTMLDivElement>(null);
@@ -2038,44 +2040,59 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                     </Badge>
                   );
                 })}
-                <div className="relative min-w-[120px]">
-                  <input
-                    ref={tagInputRef}
-                    value={tagInput}
-                    onChange={(e) => {
-                      setTagInput(e.target.value);
-                      setShowTagSuggestions(true);
-                    }}
-                    onFocus={() => setShowTagSuggestions(true)}
-                    onBlur={() => setTimeout(() => setShowTagSuggestions(false), 200)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && tagInput.trim()) {
-                        e.preventDefault();
-                        handleAddTag(tagInput);
-                      }
-                    }}
-                    className="w-full text-sm bg-transparent border-none outline-none text-muted-foreground placeholder:text-muted-foreground/30"
-                    placeholder="Add tag..."
-                  />
-                  {showTagSuggestions && tagSuggestions.length > 0 && (
-                    <div className="absolute top-full left-0 mt-1 bg-popover border rounded-md shadow-md z-50 min-w-[200px] max-w-[300px]">
-                      {tagSuggestions.map(tag => (
-                        <button
+                <Autocomplete
+                  mode="none"
+                  items={tagSuggestions}
+                  itemToStringValue={(tag: TagMetadata) => tag.name}
+                  value={tagInput}
+                  onValueChange={(value, details) => {
+                    // Picking a suggestion is handled in its onClick.
+                    if (details.reason === 'item-press') return;
+                    setTagInput(value);
+                    setShowTagSuggestions(true);
+                  }}
+                  open={showTagSuggestions && tagSuggestions.length > 0}
+                  onOpenChange={setShowTagSuggestions}
+                  onItemHighlighted={(tag) => {
+                    highlightedTagRef.current = tag ?? null;
+                  }}
+                >
+                  <div className="relative min-w-[120px]">
+                    <AutocompleteInput
+                      ref={tagInputRef}
+                      onFocus={() => setShowTagSuggestions(true)}
+                      onKeyDown={(e) => {
+                        // Enter on a highlighted suggestion picks it (Base UI);
+                        // otherwise Enter adds whatever was typed.
+                        if (e.key === 'Enter' && !highlightedTagRef.current && tagInput.trim()) {
+                          e.preventDefault();
+                          handleAddTag(tagInput);
+                        }
+                      }}
+                      className="w-full text-sm bg-transparent border-none outline-none text-muted-foreground placeholder:text-muted-foreground/30"
+                      placeholder="Add tag..."
+                    />
+                  </div>
+                  <AutocompleteContent className="w-auto min-w-[200px] max-w-[300px] shadow-md">
+                    <AutocompleteList className="max-h-[var(--available-height)]">
+                      {(tag: TagMetadata) => (
+                        <AutocompleteItem
                           key={tag.name}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors flex items-center gap-2"
+                          value={tag}
                           onClick={() => handleAddTag(tag.name)}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent data-[highlighted]:bg-accent data-[highlighted]:text-current transition-colors flex items-center gap-2"
                         >
                           {tag.emoji && <span className="text-base">{tag.emoji}</span>}
                           <span className="flex-1">#{tag.name}</span>
-                          <div 
-                            className="w-3 h-3 rounded-full flex-shrink-0" 
+                          <div
+                            className="w-3 h-3 rounded-full flex-shrink-0"
                             style={{ backgroundColor: tag.color }}
                           />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                        </AutocompleteItem>
+                      )}
+                    </AutocompleteList>
+                  </AutocompleteContent>
+                </Autocomplete>
               </div>
             </div>
 
