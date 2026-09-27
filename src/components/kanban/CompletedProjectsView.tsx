@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Filter, Search, X, Calendar, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import styles from './CompletedProjectsView.module.css';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { isInProjectGroup } from '@/lib/project-groups';
 
@@ -152,34 +153,34 @@ export function CompletedProjectsView({
   const hasActiveFilters = searchQuery || selectedTags.length > 0 || selectedProjectGroup || dateFilter !== 'all';
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className={styles.Root}>
       {/* Header */}
-      <div className="flex-none p-6 pb-4 border-b">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-6 w-6 text-green-600" />
-            <h2 className="text-2xl font-bold">Completed Projects</h2>
-            <Badge variant="secondary" className="ml-2">
+      <div className={styles.Header}>
+        <div className={styles.TitleRow}>
+          <div className={styles.TitleGroup}>
+            <CheckCircle2 className={styles.TitleIcon} />
+            <h2 className={styles.Title}>Completed Projects</h2>
+            <Badge variant="secondary" className={styles.Count}>
               {sortedProjects.length}
             </Badge>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col gap-3">
+        <div className={styles.Filters}>
           {/* Search and Sort Row */}
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className={styles.SearchRow}>
+            <div className={styles.SearchField}>
+              <Search className={styles.SearchIcon} />
               <Input
                 placeholder="Search completed projects..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className={styles.SearchInput}
               />
             </div>
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className={styles.SortTrigger}>
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
@@ -191,12 +192,12 @@ export function CompletedProjectsView({
           </div>
 
           {/* Filter Row */}
-          <div className="flex gap-2 items-center">
-            <Filter className="h-4 w-4 text-muted-foreground" />
+          <div className={styles.FilterRow}>
+            <Filter className={styles.FilterIcon} />
             
             {/* Date Filter */}
             <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as typeof dateFilter)}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className={styles.DateTrigger}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -212,14 +213,14 @@ export function CompletedProjectsView({
               value={selectedProjectGroup || 'all'} 
               onValueChange={(v) => setSelectedProjectGroup(v === 'all' ? null : v)}
             >
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className={styles.GroupTrigger}>
                 <SelectValue placeholder="All Projects" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Projects</SelectItem>
                 {projectGroups.map(group => (
                   <SelectItem key={group.id} value={group.id}>
-                    <div className="flex items-center gap-2">
+                    <div className={styles.GroupOption}>
                       {group.emoji && <span>{group.emoji}</span>}
                       <span>{group.name}</span>
                     </div>
@@ -230,29 +231,26 @@ export function CompletedProjectsView({
 
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters}>
-                <X className="h-4 w-4 mr-1" /> Clear
+                <X className={styles.ClearIcon} /> Clear
               </Button>
             )}
           </div>
 
           {/* Tag Filters */}
           {tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div className={styles.TagFilters}>
               {tags.map(tag => (
                 <Badge
                   key={tag.name}
                   variant={selectedTags.includes(tag.name) ? "default" : "outline"}
-                  className={cn(
-                    "cursor-pointer transition-all hover:scale-105",
-                    selectedTags.includes(tag.name) && "ring-2 ring-offset-1 ring-offset-background"
-                  )}
+                  className={cn(styles.Chip, selectedTags.includes(tag.name) && styles.ChipActive)}
                   style={selectedTags.includes(tag.name) ? { backgroundColor: tag.color, borderColor: tag.color } : {}}
                   onClick={() => toggleTag(tag.name)}
                 >
-                  {tag.emoji && <span className="mr-1">{tag.emoji}</span>}
+                  {tag.emoji && <span className={styles.ChipEmoji}>{tag.emoji}</span>}
                   {tag.name}
                   {selectedTags.includes(tag.name) && (
-                    <X className="ml-1 h-3 w-3" />
+                    <X className={styles.ChipClearIcon} />
                   )}
                 </Badge>
               ))}
@@ -262,72 +260,72 @@ export function CompletedProjectsView({
       </div>
 
       {/* Grid Content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className={styles.Content}>
         {sortedProjects.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <CheckCircle2 className="h-16 w-16 text-muted-foreground/20 mb-4" />
-            <h3 className="text-lg font-semibold text-muted-foreground mb-2">
+          <div className={styles.Empty}>
+            <CheckCircle2 className={styles.EmptyIcon} />
+            <h3 className={styles.EmptyTitle}>
               {hasActiveFilters ? 'No projects match your filters' : 'No completed projects yet'}
             </h3>
-            <p className="text-sm text-muted-foreground max-w-md">
+            <p className={styles.EmptyText}>
               {hasActiveFilters
                 ? 'Try adjusting your filters to see more results.'
                 : 'Projects marked as complete will appear here.'}
             </p>
           </div>
         ) : (
-          <div className="flex flex-wrap gap-3">
+          <div className={styles.Grid}>
             {sortedProjects.map(project => (
               <Card
                 key={project.id}
-                className="w-60 shrink-0 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] group overflow-hidden"
+                className={styles.Card}
                 onClick={() => onProjectClick(project)}
               >
                 {project.imageUrl && (
-                  <div className="relative w-full h-32 overflow-hidden bg-muted">
+                  <div className={styles.ImageWrap}>
                     <Image
                       src={project.imageUrl}
                       alt={project.title}
                       fill
-                      className="object-cover group-hover:scale-105 transition-transform"
+                      className={styles.Image}
                     />
                   </div>
                 )}
-                <CardContent className={cn("p-3", !project.imageUrl && "pt-4")}>
-                  <h3 className="font-semibold text-sm mb-1.5 line-clamp-2">
+                <CardContent className={cn(styles.CardBody, !project.imageUrl && styles.CardBodyNoImage)}>
+                  <h3 className={styles.CardTitle}>
                     {project.title}
                   </h3>
                   {project.description && (
-                    <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                    <p className={styles.CardDescription}>
                       {project.description}
                     </p>
                   )}
                   {project.tags && project.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-2">
+                    <div className={styles.CardTags}>
                       {project.tags.slice(0, 2).map(tagName => {
                         const tag = tags.find(t => t.name === tagName);
                         return (
                           <Badge
                             key={tagName}
                             variant="secondary"
-                            className="text-[10px] px-1.5 py-0"
+                            className={styles.CardTag}
                             style={tag ? { backgroundColor: tag.color + '20', color: tag.color } : {}}
                           >
-                            {tag?.emoji && <span className="mr-0.5">{tag.emoji}</span>}
+                            {tag?.emoji && <span className={styles.CardTagEmoji}>{tag.emoji}</span>}
                             {tagName}
                           </Badge>
                         );
                       })}
                       {project.tags.length > 2 && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                        <Badge variant="secondary" className={styles.CardTag}>
                           +{project.tags.length - 2}
                         </Badge>
                       )}
                     </div>
                   )}
                   {project.updatedAt && (
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <Calendar className="h-2.5 w-2.5" />
+                    <div className={styles.CardDate}>
+                      <Calendar className={styles.CardDateIcon} />
                       <span>
                         {format(parseISO(project.updatedAt.toString()), 'MMM d, yyyy')}
                       </span>

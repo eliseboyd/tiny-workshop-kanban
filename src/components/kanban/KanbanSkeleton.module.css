@@ -1,0 +1,118 @@
+.Root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.Header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-inline: 1rem;
+  padding-block: 0.75rem;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+
+.HeaderTitle {
+  height: 1.5rem;
+  width: 10rem;
+  background-color: var(--muted);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  border-radius: 0.25rem;
+}
+
+.HeaderActions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.HeaderButton {
+  height: 2rem;
+  width: 2rem;
+  background-color: var(--muted);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  border-radius: 0.25rem;
+}
+
+.Tabs {
+  padding-inline: 1rem;
+  padding-block: 0.5rem;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.Tab {
+  height: 2rem;
+  background-color: var(--muted);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  border-radius: 0.25rem;
+}
+
+.Toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-inline: 1rem;
+  padding-block: 0.5rem;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+
+.ToolbarButton {
+  height: 2rem;
+  width: 7rem;
+  background-color: var(--muted);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  border-radius: 0.25rem;
+}
+
+.Columns {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  flex: 1;
+  overflow: hidden;
+}
+
+.Column {
+  display: flex;
+  flex-direction: column;
+  width: 85vw;
+  flex-shrink: 0;
+  gap: 0.75rem;
+  border-radius: var(--radius-lg);
+  background-color: var(--muted);
+  padding: 0.75rem;
+
+  @media (min-width: 48rem) {
+    width: 15rem;
+    min-width: 240px;
+  }
+}
+
+.ColumnTitle {
+  height: 1.25rem;
+  width: 6rem;
+  background-color: color-mix(in oklab, var(--muted-foreground) 10%, transparent);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  border-radius: 0.25rem;
+}
+
+.Card {
+  height: 4rem;
+  width: 100%;
+  background-color: color-mix(in oklab, var(--muted-foreground) 10%, transparent);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  border-radius: var(--radius-lg);
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
