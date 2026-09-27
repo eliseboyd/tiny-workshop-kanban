@@ -3,6 +3,7 @@
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Project } from './KanbanBoard';
 import { ProjectEditor } from './ProjectEditor';
+import type { MerlinLocation } from '@/types/locations';
 
 type IdeaNavigation = {
   current: number;
@@ -19,9 +20,10 @@ type ProjectModalProps = {
   onMoveToIdeas?: () => void;
   onProjectUpdate?: (id: string, updates: Partial<Project>) => void;
   onProjectDelete?: (id: string) => void;
+  locations?: MerlinLocation[];
 };
 
-export function ProjectModal({ project, isOpen, onClose, ideaNavigation, onMoveToIdeas, onProjectUpdate, onProjectDelete }: ProjectModalProps) {
+export function ProjectModal({ project, isOpen, onClose, ideaNavigation, onMoveToIdeas, onProjectUpdate, onProjectDelete, locations }: ProjectModalProps) {
   if (!project) return null;
   
   return (
@@ -36,6 +38,7 @@ export function ProjectModal({ project, isOpen, onClose, ideaNavigation, onMoveT
             onMoveToIdeas={onMoveToIdeas}
             onProjectUpdate={onProjectUpdate}
             onProjectDelete={onProjectDelete}
+            locations={locations}
         />
       </DialogContent>
     </Dialog>

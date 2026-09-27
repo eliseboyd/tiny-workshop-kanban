@@ -102,6 +102,10 @@ type ProjectEditorProps = {
   onMoveToIdeas?: () => void;
   onProjectUpdate?: (id: string, updates: Partial<Project>) => void;
   onProjectDelete?: (id: string) => void;
+  // The board already holds Merlin's locations; passing them in lets the
+  // dropdown render at once instead of queueing behind the editor's other
+  // server actions. Fetched here only where no list is passed (project page).
+  locations?: MerlinLocation[];
 };
 
 function StylePicker({
@@ -161,7 +165,7 @@ function StylePicker({
   );
 }
 
-export function ProjectEditor({ project, onClose, isModal = false, className, ideaNavigation, onMoveToIdeas, onProjectUpdate, onProjectDelete }: ProjectEditorProps) {
+export function ProjectEditor({ project, onClose, isModal = false, className, ideaNavigation, onMoveToIdeas, onProjectUpdate, onProjectDelete, locations: locationsProp }: ProjectEditorProps) {
   const router = useRouter();
   const confirmDialog = useConfirm();
   const [ogImageError, setOgImageError] = useState<string | null>(null);
@@ -200,7 +204,8 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   );
   const [columns, setColumns] = useState<Column[]>([]);
   const [allTags, setAllTags] = useState<TagMetadata[]>([]);
-  const [locations, setLocations] = useState<MerlinLocation[]>([]);
+  const [fetchedLocations, setFetchedLocations] = useState<MerlinLocation[]>([]);
+  const locations = locationsProp ?? fetchedLocations;
   const [locationKey, setLocationKey] = useState<string | null>(project.location_key ?? null);
   const [materialsList, setMaterialsList] = useState<Material[]>(() => {
     try {
@@ -1222,17 +1227,21 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
     }
   }, [editingMaterialId]);
 
+  // Standalone project page only; the board passes its own list in.
+  useEffect(() => {
+    if (locationsProp) return;
+    getLocationState().then(state => setFetchedLocations(state.locations));
+  }, [locationsProp]);
+
   // Load project groups, tags, columns, and image styles
   useEffect(() => {
     const loadData = async () => {
-      const [tagsData, columnsData, stylesData, locationState] = await Promise.all([
+      const [tagsData, columnsData, stylesData] = await Promise.all([
         getAllTags(),
         getColumns(),
         getImageStyles(),
-        getLocationState(),
       ]);
       setAllTags(tagsData.map(t => ({ ...t, emoji: t.emoji ?? undefined, icon: t.icon ?? undefined })));
-      setLocations(locationState.locations);
       setColumns(columnsData);
       setImageStyles(stylesData);
     };
