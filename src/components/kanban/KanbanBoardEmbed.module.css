@@ -28,14 +28,14 @@
 
 .Title {
   font-size: 1.5rem;
-  line-height: calc(2 / 1.5);
+  line-height: var(--text-2xl--line-height);
   font-weight: 700;
   letter-spacing: -0.025em;
 }
 
 .Meta {
   font-size: 0.75rem;
-  line-height: calc(1 / 0.75);
+  line-height: var(--text-xs--line-height);
   color: var(--muted-foreground);
 }
 
