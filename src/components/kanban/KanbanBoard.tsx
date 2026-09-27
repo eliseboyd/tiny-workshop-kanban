@@ -41,7 +41,7 @@ const SettingsModal = dynamic(() => import('./SettingsModal').then(m => ({ defau
 import { Button } from '@/components/ui/button';
 import { Plus, Settings, KanbanSquareDashed } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/use-local-storage';
-import { quickCapture, updateProjectStatus, updateSettings, updateColumn, createColumn, createProject, deleteColumn, deleteProject, updateColumnsOrder, updateColumnOrder, getAllTags, getAllProjectGroups, getAllWidgets, getAllMaterials, getProjects, getProject, getAllPlans, StandalonePlan, toggleProjectPinned, getIdeas, moveIdeaToKanban, createIdea, moveProjectToIdeas } from '@/app/actions';
+import { quickCapture, updateProjectStatus, updateSettings, updateColumn, createColumn, createProject, deleteColumn, deleteProject, updateColumnsOrder, updateColumnOrder, getAllTags, getAllProjectGroups, getAllWidgets, getAllMaterials, getProjects, getProject, getAllPlans, StandalonePlan, toggleProjectPinned, getIdeas, moveIdeaToKanban, createIdea, moveProjectToIdeas, getArchived } from '@/app/actions';
 
 import { ClientDndWrapper } from './ClientDndWrapper';
 
@@ -72,6 +72,7 @@ export type Project = {
     is_task?: boolean;
     is_completed?: boolean;
     is_idea?: boolean;
+    archived_at?: string | null;
 };
 
 type Tag = {
@@ -219,6 +220,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
 
   const [activeView, setActiveView] = useLocalStorage<BoardView>('kanban-view', 'dashboard');
   const [ideas, setIdeas] = useState<Project[]>(mapProjects(initialIdeas));
+  const [archived, setArchived] = useState<Project[]>([]);
   const [editingIdeaIndex, setEditingIdeaIndex] = useState<number | null>(null);
   
   // Hidden columns state (array of column IDs)
@@ -303,6 +305,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
     } else if (activeView === 'ideas') {
       loadTagsAndGroups();
       getIdeas().then((data) => setIdeas(mapProjects(data)));
+      getArchived().then((data) => setArchived(mapProjects(data)));
     } else if (activeView === 'kanban') {
       loadTagsAndGroups();
     }
@@ -1012,6 +1015,8 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
             tags={tags}
             columns={cols}
             onIdeaClick={handleEditIdea}
+            archived={archived}
+            onArchivedClick={handleEditProject}
             onMoveToKanban={handleMoveIdeaToKanban}
             onDeleteIdea={handleDeleteIdea}
             onCreateIdea={handleCreateIdea}
@@ -1083,6 +1088,21 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
           onProjectDelete={(id) => {
             setItems(prev => prev.filter(item => item.id !== id));
             setIdeas(prev => prev.filter(item => item.id !== id));
+            setArchived(prev => prev.filter(item => item.id !== id));
+          }}
+          onArchiveChange={(id, isArchived) => {
+            // Optimistic: move the card between the board / Ideas grid and the
+            // Archived section; the server action revalidates in the background.
+            const project = { ...editingProject, archived_at: isArchived ? new Date().toISOString() : null };
+            if (isArchived) {
+              setItems(prev => prev.filter(item => item.id !== id));
+              setIdeas(prev => prev.filter(item => item.id !== id));
+              setArchived(prev => [project, ...prev.filter(item => item.id !== id)]);
+            } else {
+              setArchived(prev => prev.filter(item => item.id !== id));
+              if (project.isIdea) setIdeas(prev => [project, ...prev]);
+              else setItems(prev => [...prev, project]);
+            }
           }}
           onClose={() => {
             setIsModalOpen(false);

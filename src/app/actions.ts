@@ -318,7 +318,7 @@ function extractPlatformImage(url: string): string | null {
 // materials_list, attachments) are fetched on-demand via getProject() when the
 // modal opens.
 const PROJECT_CARD_COLUMNS =
-  'id, title, description, status, position, image_url, tags, location_key, is_task, is_completed, is_idea, pinned, created_at';
+  'id, title, description, status, position, image_url, tags, location_key, is_task, is_completed, is_idea, pinned, created_at, archived_at';
 
 // Cards render descriptions line-clamped (~2 lines); shipping full multi-KB
 // descriptions in the initial RSC payload just bloats first load. The modal
@@ -339,6 +339,7 @@ const getProjectsCached = unstable_cache(async () => {
     .from('projects')
     .select(PROJECT_CARD_COLUMNS)
     .or('is_idea.is.null,is_idea.eq.false')
+    .is('archived_at', null)
     .order('position', { ascending: true });
 
   if (error) {
@@ -359,6 +360,7 @@ const getIdeasCached = unstable_cache(async () => {
     .from('projects')
     .select(PROJECT_CARD_COLUMNS)
     .eq('is_idea', true)
+    .is('archived_at', null)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -371,6 +373,28 @@ const getIdeasCached = unstable_cache(async () => {
 
 export async function getIdeas() {
   return getIdeasCached();
+}
+
+// Archived ideas and board projects alike, for the Ideas tab's Archived
+// section. Newest-archived first.
+const getArchivedCached = unstable_cache(async () => {
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from('projects')
+    .select(PROJECT_CARD_COLUMNS)
+    .not('archived_at', 'is', null)
+    .order('archived_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching archived projects:', JSON.stringify(error, null, 2));
+    return [];
+  }
+
+  return truncateCardDescriptions(data ?? []);
+}, ['board:archived'], BOARD_CACHE_OPTS);
+
+export async function getArchived() {
+  return getArchivedCached();
 }
 
 export async function getProject(id: string) {
@@ -1013,6 +1037,21 @@ export async function deleteProject(id: string) {
   const supabase = createServiceRoleClient();
   const { error } = await supabase.from('projects').delete().eq('id', id);
   if (error) console.error('Error deleting project:', error);
+  revalidateBoard();
+}
+
+// Archiving leaves is_idea and status alone, so unarchiving puts the row back
+// exactly where it was (Ideas grid or its board column).
+export async function setProjectArchived(id: string, archived: boolean) {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from('projects')
+    .update({ archived_at: archived ? new Date().toISOString() : null })
+    .eq('id', id);
+  if (error) {
+    console.error('Error archiving project:', error);
+    throw error;
+  }
   revalidateBoard();
 }
 

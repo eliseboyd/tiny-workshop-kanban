@@ -20,10 +20,11 @@ type ProjectModalProps = {
   onMoveToIdeas?: () => void;
   onProjectUpdate?: (id: string, updates: Partial<Project>) => void;
   onProjectDelete?: (id: string) => void;
+  onArchiveChange?: (id: string, archived: boolean) => void;
   locations?: MerlinLocation[];
 };
 
-export function ProjectModal({ project, isOpen, onClose, ideaNavigation, onMoveToIdeas, onProjectUpdate, onProjectDelete, locations }: ProjectModalProps) {
+export function ProjectModal({ project, isOpen, onClose, ideaNavigation, onMoveToIdeas, onProjectUpdate, onProjectDelete, onArchiveChange, locations }: ProjectModalProps) {
   if (!project) return null;
   
   return (
@@ -38,6 +39,7 @@ export function ProjectModal({ project, isOpen, onClose, ideaNavigation, onMoveT
             onMoveToIdeas={onMoveToIdeas}
             onProjectUpdate={onProjectUpdate}
             onProjectDelete={onProjectDelete}
+            onArchiveChange={onArchiveChange}
             locations={locations}
         />
       </DialogContent>
