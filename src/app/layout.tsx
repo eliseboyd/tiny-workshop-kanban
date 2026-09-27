@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import styles from "./layout.module.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -85,6 +86,9 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
       >
+        {/* Base UI portals mount on <body>, outside this wrapper; isolating it
+            keeps them above anything in the app regardless of z-index. */}
+        <div className={styles.root}>
         {/* MasterNav renders plain <a>/<form action> — Next's basePath is not
             applied to those, so the /kanban prefix is spelled out here. */}
         <MasterNav
@@ -94,6 +98,7 @@ export default async function RootLayout({
           signOutAction="/kanban/auth/signout"
         />
         <ConfirmProvider>{children}</ConfirmProvider>
+        </div>
         </ThemeProvider>
       </body>
     </html>

@@ -11,8 +11,8 @@ Keep it up to date so automated PRs stay consistent with the codebase.
 |-------|-----------|
 | Framework | Next.js 16 (App Router) |
 | Language | TypeScript 5 — strict mode enabled |
-| Styling | Tailwind CSS v4 |
-| UI primitives | Shadcn UI (Radix-based) |
+| Styling | CSS Modules (migrating from Tailwind CSS v4) |
+| UI primitives | Base UI (`@base-ui/react`), migrating from Shadcn/Radix |
 | Database | Supabase (Postgres) via Drizzle ORM |
 | Auth | Supabase Auth (`@supabase/ssr`) |
 | Deployment | Vercel — kanban.tinywork.shop, served at tinywork.shop/kanban via the home hub's rewrites (basePath `/kanban`) |
@@ -104,9 +104,24 @@ migrations/      # Drizzle migration files
 - All new pages go under `src/app/`.
 
 ### Styling
-- Use Tailwind utility classes. Do not write custom CSS except in `globals.css`.
-- Use `cn()` from `@/lib/utils` to merge conditional classes.
-- Shadcn components are pre-installed — check `src/components/ui/` before building something from scratch.
+Migrating to Base UI + CSS Modules; Tailwind is removed once the last file is
+converted. Plan: `~/repos/orchestrator/plans/base-ui-css-modules.md`.
+- New and converted code uses CSS Modules, not Tailwind. Colocate
+  `Component.module.css` with the component; class names are PascalCase part
+  names (`.Popup`, `.Item`).
+- Behaviour comes from Base UI (`import { Dialog } from '@base-ui/react/dialog'`),
+  wrapped in `src/components/ui/`. Check there before building from scratch.
+  Compose with `render={<El />}`, not `asChild`.
+- Only theme tokens from `@eliseboyd/design`: `var(--primary)`,
+  `var(--radius-lg)`, `var(--shadow-md)`, `var(--font-sans)`. No raw colours.
+- Style state with Base UI's data attributes (`[data-checked]`,
+  `[data-popup-open]`); animate with `[data-starting-style]` /
+  `[data-ending-style]`.
+- Dark mode: the tokens already flip. Use `:global(.dark) &` only when they don't.
+- Breakpoints are hard-coded to match Tailwind's: `40rem` / `48rem` / `64rem`.
+- `cn()` from `@/lib/utils` merges classes: `cn(styles.Card, isCompact && styles.Compact)`.
+- Module CSS is unlayered, so it beats Tailwind utilities. When converting an
+  element, remove all its utilities in the same edit.
 
 ### Database
 - Schema lives in `src/db/`. Run migrations with `drizzle-kit`.
