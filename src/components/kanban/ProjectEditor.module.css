@@ -1,0 +1,1938 @@
+/* ProjectEditor — converted from Tailwind utilities (MER-35). Sections follow
+   the order of the component file, top to bottom. */
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Shared icon sizes */
+
+.Icon {
+  height: 1rem;
+  width: 1rem;
+}
+
+.IconXs {
+  height: 0.75rem;
+  width: 0.75rem;
+}
+
+.IconSpin {
+  height: 1rem;
+  width: 1rem;
+  animation: spin 1s linear infinite;
+}
+
+.SpinnerXs {
+  height: 0.75rem;
+  width: 0.75rem;
+  animation: spin 1s linear infinite;
+}
+
+.SpinnerLg {
+  height: 2rem;
+  width: 2rem;
+  animation: spin 1s linear infinite;
+}
+
+.IconLeading {
+  height: 1rem;
+  width: 1rem;
+  margin-right: 0.5rem;
+}
+
+.IconLeadingSpin {
+  height: 1rem;
+  width: 1rem;
+  margin-right: 0.5rem;
+  animation: spin 1s linear infinite;
+}
+
+.IconLeadingSm {
+  height: 1rem;
+  width: 1rem;
+  margin-right: 0.25rem;
+}
+
+.IconButton {
+  height: 2rem;
+  width: 2rem;
+  padding: 0;
+}
+
+.Hidden {
+  display: none;
+}
+
+.ImageCover {
+  object-fit: cover;
+}
+
+/* Dynamic-import loading states */
+
+.PdfLoading {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.EditorLoading {
+  min-height: 200px;
+  width: 100%;
+  border-radius: var(--radius-md);
+  border-width: 1px;
+  border-style: solid;
+  background-color: color-mix(in oklab, var(--muted) 20%, transparent);
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: var(--muted-foreground);
+}
+
+/* renderTextWithLinks */
+
+.Link {
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  word-break: break-all;
+}
+
+@media (hover: hover) {
+  .Link:hover {
+    text-decoration-line: underline;
+  }
+}
+
+.LinkIcon {
+  height: 0.75rem;
+  width: 0.75rem;
+  display: inline;
+  flex-shrink: 0;
+}
+
+/* StylePicker */
+
+.StylePicker {
+  background-color: var(--background);
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 30;
+  padding: 0.5rem;
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+.StylePickerLabel {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  font-weight: 500;
+  color: var(--muted-foreground);
+  padding-inline: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.StyleGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.375rem;
+}
+
+.StyleOption {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: var(--radius-md);
+  border-width: 1px;
+  border-style: solid;
+  text-align: left;
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+@media (hover: hover) {
+  .StyleOption:hover {
+    border-color: var(--primary);
+    background-color: color-mix(in oklab, var(--muted) 50%, transparent);
+  }
+}
+
+.StyleThumbDefault {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.25rem;
+  background-color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.StyleThumbIcon {
+  height: 1rem;
+  width: 1rem;
+  color: var(--muted-foreground);
+}
+
+.StyleName {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.StyleThumb {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  background-color: var(--muted);
+  flex-shrink: 0;
+}
+
+.StyleThumbImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.StyleThumbFallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.StyleThumbFallbackIcon {
+  height: 0.875rem;
+  width: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.StyleHint {
+  font-size: 10px;
+  color: var(--muted-foreground);
+  padding-inline: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+/* Root, error toast, swipe-back indicator */
+
+.Root {
+  display: flex;
+  height: 100%;
+  background-color: var(--background);
+  position: relative;
+}
+
+.ErrorToast {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 60;
+  max-width: 28rem;
+  border-radius: var(--radius-md);
+  border-width: 1px;
+  border-style: solid;
+  border-color: color-mix(in oklab, var(--destructive) 40%, transparent);
+  background-color: color-mix(in oklab, var(--destructive) 10%, transparent);
+  padding-inline: 1rem;
+  padding-block: 0.5rem;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: var(--destructive);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ErrorToastClose {
+  margin-left: 0.5rem;
+  opacity: 0.7;
+}
+
+@media (hover: hover) {
+  .ErrorToastClose:hover {
+    opacity: 1;
+  }
+}
+
+.SwipeBar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0.25rem;
+  background-color: var(--primary);
+  z-index: 50;
+  pointer-events: none;
+}
+
+.SwipeIndicator {
+  position: fixed;
+  left: 0;
+  top: 50%;
+  translate: 0 -50%;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.SwipePill {
+  background-color: color-mix(in oklab, var(--primary) 90%, transparent);
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+  border-top-right-radius: calc(infinity * 1px);
+  border-bottom-right-radius: calc(infinity * 1px);
+  padding: 1rem;
+  padding-right: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.SwipeIcon {
+  height: 1.75rem;
+  width: 1.75rem;
+  color: var(--primary-foreground);
+}
+
+.SwipeLabel {
+  font-size: 1rem;
+  line-height: var(--text-base--line-height);
+  font-weight: 600;
+  color: var(--primary-foreground);
+}
+
+/* Section sidebar (desktop) */
+
+.Sidebar {
+  display: none;
+  width: 12rem;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1.5rem;
+  padding-top: 6rem;
+  border-right-width: 1px;
+  border-right-style: solid;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  flex-shrink: 0;
+
+  @media (min-width: 48rem) {
+    display: flex;
+  }
+}
+
+.SidebarTitle {
+  font-weight: 600;
+  margin-bottom: 1rem;
+  padding-inline: 0.5rem;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.SidebarLink {
+  text-align: left;
+  padding-inline: 0.5rem;
+  padding-block: 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  font-weight: 500;
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.SidebarLinkActive {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.SidebarLinkInactive {
+  color: var(--muted-foreground);
+}
+
+@media (hover: hover) {
+  .SidebarLinkInactive:hover {
+    background-color: color-mix(in oklab, var(--accent) 50%, transparent);
+    color: var(--accent-foreground);
+  }
+}
+
+.SidebarSaving {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top-width: 1px;
+  border-top-style: solid;
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  color: var(--muted-foreground);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Main scroll column */
+
+.Main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Cover image area */
+
+.CoverWrap {
+  position: relative;
+}
+
+.CoverArea {
+  position: relative;
+  width: 100%;
+  height: 12rem;
+  background-color: color-mix(in oklab, var(--muted) 30%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+
+/* border-2 + border-b: Tailwind emits border-b after border-2, so the bottom stays 1px. */
+.CoverAreaDragging {
+  background-color: color-mix(in oklab, var(--muted) 50%, transparent);
+  border-width: 2px;
+  border-bottom-width: 1px;
+  border-style: dashed;
+  border-color: var(--primary);
+}
+
+.CoverAreaEmpty {
+  @media (min-width: 48rem) {
+    cursor: pointer;
+
+    @media (hover: hover) {
+      &:hover {
+        background-color: color-mix(in oklab, var(--muted) 40%, transparent);
+      }
+    }
+  }
+}
+
+.CoverAreaHovering {
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 50%, transparent);
+}
+
+.CoverStatus {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted-foreground);
+}
+
+.CoverUploading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted-foreground);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.CoverStatusText {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+}
+
+.CoverStatusHint {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  opacity: 0.6;
+}
+
+.CoverError {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--muted-foreground);
+  padding-inline: 1.5rem;
+  text-align: center;
+}
+
+.CoverErrorText {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: var(--destructive);
+}
+
+.CoverRetry {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  text-decoration-line: underline;
+  opacity: 0.7;
+}
+
+@media (hover: hover) {
+  .CoverRetry:hover {
+    opacity: 1;
+  }
+}
+
+.CoverOverlay {
+  position: absolute;
+  inset: 0;
+  background-color: color-mix(in oklab, #000 40%, transparent);
+  opacity: 0;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.CoverOverlayText {
+  color: white;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.CoverEmptyPrompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted-foreground);
+  opacity: 0;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.CoverEmptyIcon {
+  height: 2rem;
+  width: 2rem;
+  opacity: 0.5;
+}
+
+.CoverEmptyHint {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  opacity: 0.75;
+  display: none;
+
+  @media (min-width: 48rem) {
+    display: block;
+  }
+}
+
+.CoverTopBar {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.SavingPill {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: var(--muted-foreground);
+  padding-inline: 0.75rem;
+  padding-block: 0.5rem;
+  background-color: color-mix(in oklab, var(--background) 80%, transparent);
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+  border-radius: var(--radius-md);
+}
+
+/* Frosted buttons over the cover (desktop: h-8, /80 → /90 on hover) */
+.GlassButton {
+  height: 2rem;
+  background-color: color-mix(in oklab, var(--background) 80%, transparent);
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+}
+
+@media (hover: hover) {
+  .GlassButton:hover {
+    background-color: color-mix(in oklab, var(--background) 90%, transparent);
+  }
+}
+
+.GlassButtonTight {
+  gap: 0.25rem;
+}
+
+.OpenAsPageLabel {
+  display: none;
+
+  @media (min-width: 40rem) {
+    display: inline;
+  }
+}
+
+/* Mobile cover actions */
+
+.MobileCoverActions {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 20;
+
+  @media (min-width: 48rem) {
+    display: none;
+  }
+}
+
+/* Frosted buttons on mobile (h-9, /90 → solid on hover) */
+.MobileGlassButton {
+  height: 2.25rem;
+  background-color: color-mix(in oklab, var(--background) 90%, transparent);
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+}
+
+@media (hover: hover) {
+  .MobileGlassButton:hover {
+    background-color: var(--background);
+  }
+}
+
+.Grow {
+  flex: 1;
+}
+
+.FullWidth {
+  width: 100%;
+}
+
+.MobileStyleWrap {
+  position: relative;
+  flex: 1;
+}
+
+.MobileStylePicker {
+  position: absolute;
+  bottom: 100%;
+  margin-bottom: 0.5rem;
+  left: 0;
+  right: 0;
+}
+
+/* Desktop cover actions */
+
+.DesktopCoverActions {
+  display: none;
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  gap: 0.5rem;
+  z-index: 20;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+
+  @media (min-width: 48rem) {
+    display: flex;
+  }
+}
+
+.DesktopCoverActionsHidden {
+  opacity: 0;
+}
+
+@media (hover: hover) {
+  .CoverWrap:hover .CoverOverlay,
+  .CoverWrap:hover .CoverEmptyPrompt,
+  .CoverWrap:hover .DesktopCoverActionsHidden {
+    opacity: 1;
+  }
+}
+
+.ButtonLabel {
+  margin-left: 0.5rem;
+}
+
+.StylePickerAnchor {
+  position: relative;
+}
+
+.DesktopStylePicker {
+  position: absolute;
+  bottom: 100%;
+  margin-bottom: 0.5rem;
+  right: 0;
+  width: 13rem;
+}
+
+/* Choose-from-inspiration picker */
+
+.PickerBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  background-color: color-mix(in oklab, #000 60%, transparent);
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.PickerDialog {
+  background-color: var(--background);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  max-width: 28rem;
+  width: 100%;
+  max-height: 80%;
+  overflow: auto;
+  box-shadow: var(--shadow-xl);
+}
+
+.PickerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.PickerTitle {
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+}
+
+.PickerClose {
+  height: 1.75rem;
+  width: 1.75rem;
+  padding: 0;
+}
+
+.PickerGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.PickerItem {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border-width: 2px;
+  border-style: solid;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.PickerItemSelected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 30%, transparent);
+}
+
+.PickerItemUnselected {
+  border-color: transparent;
+}
+
+@media (hover: hover) {
+  .PickerItem:hover {
+    border-color: var(--primary);
+  }
+}
+
+.PickerCheckOverlay {
+  position: absolute;
+  inset: 0;
+  background-color: color-mix(in oklab, var(--primary) 20%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.PickerCheck {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: calc(infinity * 1px);
+  padding: 0.25rem;
+}
+
+.PickerEmpty {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: var(--muted-foreground);
+  text-align: center;
+  padding-block: 1rem;
+}
+
+/* Content area */
+
+.Content {
+  padding: 2rem;
+
+  @media (min-width: 40rem) {
+    padding: 2.5rem;
+  }
+}
+
+/* Attachment viewer */
+
+.AttachmentView {
+  max-width: 80rem;
+  margin-inline: auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.AttachmentHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+
+.AttachmentBack {
+  gap: 0.5rem;
+}
+
+.AttachmentNav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: var(--muted-foreground);
+}
+
+.AttachmentTitle {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 28rem;
+}
+
+.AttachmentBody {
+  flex: 1;
+  min-height: 0;
+}
+
+.AttachmentImageFrame {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: color-mix(in oklab, var(--muted) 10%, transparent);
+  border-radius: var(--radius-lg);
+}
+
+.AttachmentImage {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.AttachmentPdf {
+  width: 100%;
+  height: 100%;
+}
+
+.AttachmentFallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--muted-foreground);
+  gap: 1rem;
+}
+
+.AttachmentFallbackIcon {
+  height: 4rem;
+  width: 4rem;
+  opacity: 0.5;
+}
+
+.AttachmentFallbackName {
+  font-size: 1.125rem;
+  line-height: var(--text-lg--line-height);
+}
+
+.AttachmentDownload {
+  color: var(--primary);
+}
+
+@media (hover: hover) {
+  .AttachmentDownload:hover {
+    text-decoration-line: underline;
+  }
+}
+
+/* Sections column (space-y-8). Children that set their own margins come later
+   in this file, so they win at equal specificity like the utilities did. */
+
+.Sections {
+  max-width: 42rem;
+  margin-inline: auto;
+  width: 100%;
+  padding-inline: 1rem;
+
+  @media (min-width: 40rem) {
+    padding-inline: 0;
+  }
+}
+
+.Sections > :where(:not(:last-child)) {
+  margin-block-start: 0;
+  margin-block-end: 2rem;
+}
+
+/* Idea navigation */
+
+.IdeaNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: -1rem;
+  padding-top: 0.5rem;
+}
+
+.IdeaNavButton {
+  gap: 0.25rem;
+}
+
+.IdeaNavCount {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: var(--muted-foreground);
+}
+
+/* Overview: title, type, location, tags */
+
+.Stack2 > :where(:not(:last-child)) {
+  margin-block-start: 0;
+  margin-block-end: 0.5rem;
+}
+
+.TitleInput {
+  width: 100%;
+  font-size: 1.25rem;
+  line-height: 1.25;
+  font-weight: 700;
+  font-family: var(--font-sans-stack, var(--font-geist-sans, ui-sans-serif, system-ui, sans-serif));
+  letter-spacing: -0.025em;
+  background-color: transparent;
+  border-style: none;
+  outline-style: none;
+  resize: none;
+  overflow: hidden;
+
+  &::placeholder {
+    color: color-mix(in oklab, var(--muted-foreground) 40%, transparent);
+  }
+
+  @media (min-width: 48rem) {
+    font-size: 1.5rem;
+  }
+}
+
+.FieldRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 0.5rem;
+}
+
+.FieldLabel {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: var(--muted-foreground);
+  min-width: 80px;
+}
+
+.FieldSelect {
+  width: 140px;
+}
+
+.TypeOption {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.TypeIconProject {
+  height: 1rem;
+  width: 1rem;
+  color: oklch(54.1% 0.281 293.009); /* violet-600 */
+}
+
+.TypeIconTask {
+  height: 1rem;
+  width: 1rem;
+  color: oklch(54.6% 0.245 262.881); /* blue-600 */
+}
+
+.TypeIconIdea {
+  height: 1rem;
+  width: 1rem;
+  color: oklch(76.9% 0.188 70.08); /* amber-500 */
+}
+
+.Tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  min-height: 32px;
+}
+
+.Tag {
+  gap: 0.25rem;
+  padding-right: 0.25rem;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  font-weight: 400;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.TagIcon {
+  position: relative;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.TagIconImage {
+  border-radius: 0.25rem;
+  object-fit: cover;
+}
+
+.TagRemove {
+  border-radius: calc(infinity * 1px);
+  padding: 0.125rem;
+  margin-left: 0.25rem;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+@media (hover: hover) {
+  .TagRemove:hover {
+    opacity: 0.7;
+  }
+}
+
+.TagInputWrap {
+  position: relative;
+  min-width: 120px;
+}
+
+.TagInput {
+  width: 100%;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  background-color: transparent;
+  border-style: none;
+  outline-style: none;
+  color: var(--muted-foreground);
+
+  &::placeholder {
+    color: color-mix(in oklab, var(--muted-foreground) 30%, transparent);
+  }
+}
+
+.TagPopup {
+  width: auto;
+  min-width: 200px;
+  max-width: 300px;
+  box-shadow: var(--shadow-md);
+}
+
+.TagList {
+  max-height: var(--available-height);
+}
+
+.TagSuggestion {
+  width: 100%;
+  text-align: left;
+  padding-inline: 0.75rem;
+  padding-block: 0.5rem;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.TagSuggestion[data-highlighted] {
+  background-color: var(--accent);
+  color: currentcolor;
+}
+
+@media (hover: hover) {
+  .TagSuggestion:hover {
+    background-color: var(--accent);
+  }
+}
+
+.TagSuggestionEmoji {
+  font-size: 1rem;
+  line-height: var(--text-base--line-height);
+}
+
+.TagSuggestionName {
+  flex: 1;
+}
+
+.TagSuggestionSwatch {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: calc(infinity * 1px);
+  flex-shrink: 0;
+}
+
+/* Sections (to-dos, materials) */
+
+.Section {
+  padding-top: 2rem;
+  border-top-width: 1px;
+  border-top-style: solid;
+}
+
+.Section > :where(:not(:last-child)) {
+  margin-block-start: 0;
+  margin-block-end: 1rem;
+}
+
+.SectionTitle {
+  font-size: 1.5rem;
+  line-height: var(--text-2xl--line-height);
+  font-weight: 700;
+}
+
+.SectionDescription {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: var(--muted-foreground);
+}
+
+/* Materials */
+
+.MaterialRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-lg);
+  border-width: 1px;
+  border-style: solid;
+  background-color: color-mix(in oklab, var(--muted) 20%, transparent);
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+@media (hover: hover) {
+  .MaterialRow:hover {
+    background-color: color-mix(in oklab, var(--muted) 30%, transparent);
+  }
+}
+
+.MaterialEditInput {
+  flex: 1;
+  background-color: var(--background);
+  padding-inline: 0.5rem;
+  padding-block: 0.25rem;
+  border-radius: 0.25rem;
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--primary);
+
+  &:focus {
+    outline-style: none;
+    box-shadow: 0 0 0 2px var(--primary);
+  }
+}
+
+.MaterialText {
+  flex: 1;
+  cursor: text;
+  padding-inline: 0.5rem;
+  padding-block: 0.25rem;
+  border-radius: 0.25rem;
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.MaterialTextDone {
+  text-decoration-line: line-through;
+  color: var(--muted-foreground);
+}
+
+.MaterialControls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.MaterialToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.CheckboxBuy[data-checked] {
+  background-color: oklch(66.6% 0.179 58.318); /* amber-600 */
+  border-color: oklch(66.6% 0.179 58.318); /* amber-600 */
+}
+
+.CheckboxOwn[data-checked] {
+  background-color: oklch(62.7% 0.194 149.214); /* green-600 */
+  border-color: oklch(62.7% 0.194 149.214); /* green-600 */
+}
+
+.MaterialToggleLabel {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+
+.MaterialActions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  opacity: 0;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+@media (hover: hover) {
+  .MaterialRow:hover .MaterialActions {
+    opacity: 1;
+  }
+}
+
+.MaterialDelete {
+  height: 2rem;
+  width: 2rem;
+  padding: 0;
+}
+
+@media (hover: hover) {
+  .MaterialDelete:hover {
+    color: var(--destructive);
+  }
+}
+
+.MaterialAdd {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.MaterialAddInput {
+  flex: 1;
+  padding-inline: 0.75rem;
+  padding-block: 0.5rem;
+  border-radius: var(--radius-md);
+  border-width: 1px;
+  border-style: solid;
+  background-color: var(--background);
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  resize: none;
+}
+
+/* Droppable sections (plans, inspiration) */
+
+.SectionDroppable {
+  padding-top: 2rem;
+  border-top-width: 1px;
+  border-top-style: solid;
+  border-radius: var(--radius-lg);
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.SectionDroppable > :where(:not(:last-child)) {
+  margin-block-start: 0;
+  margin-block-end: 1rem;
+}
+
+/* p-4 with pt-8: Tailwind emits pt-8 after p-4, so the top keeps 2rem. */
+.SectionDragging {
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 50%, transparent);
+  background-color: color-mix(in oklab, var(--primary) 5%, transparent);
+  padding-right: 1rem;
+  padding-bottom: 1rem;
+  padding-left: 1rem;
+  margin: -1rem;
+}
+
+.SectionHovering {
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 30%, transparent);
+  background-color: color-mix(in oklab, var(--muted) 20%, transparent);
+  padding-right: 1rem;
+  padding-bottom: 1rem;
+  padding-left: 1rem;
+  margin: -1rem;
+}
+
+.SectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.SectionHeaderAside {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.DropHint {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.DropZone {
+  border-width: 2px;
+  border-style: dashed;
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  text-align: center;
+  color: var(--muted-foreground);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  cursor: pointer;
+}
+
+.DropZoneIcon {
+  height: 2rem;
+  width: 2rem;
+  opacity: 0.5;
+}
+
+/* Plans */
+
+.PlanGrid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1rem;
+
+  @media (min-width: 40rem) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.PlanCard {
+  position: relative;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background-color: var(--background);
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .PlanCard:hover {
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.PlanPreview {
+  aspect-ratio: 3/2;
+  position: relative;
+  background-color: color-mix(in oklab, var(--muted) 20%, transparent);
+  overflow: hidden;
+}
+
+.PlanImage {
+  object-fit: contain;
+  padding: 0.5rem;
+}
+
+.PlanPdf {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.PlanPdfFrame {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.PlanPdfBadgeWrap {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+}
+
+.PlanPdfBadge {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background-color: oklch(57.7% 0.245 27.325); /* red-600 */
+  color: white;
+  padding-inline: 0.5rem;
+  padding-block: 0.125rem;
+  border-radius: 0.25rem;
+}
+
+.PlanFile {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground);
+  padding: 1rem;
+}
+
+.PlanFileIcon {
+  height: 3rem;
+  width: 3rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.5;
+}
+
+.PlanFileType {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.PlanOverlay {
+  position: absolute;
+  inset: 0;
+  background-color: color-mix(in oklab, #000 40%, transparent);
+  opacity: 0;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+@media (hover: hover) {
+  .PlanCard:hover .PlanOverlay {
+    opacity: 1;
+  }
+}
+
+.PlanMeta {
+  padding: 0.75rem;
+  border-top-width: 1px;
+  border-top-style: solid;
+  background-color: color-mix(in oklab, var(--muted) 5%, transparent);
+}
+
+.PlanName {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.PlanSize {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  color: var(--muted-foreground);
+}
+
+.PlanAddTile {
+  border-width: 2px;
+  border-style: dashed;
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  min-height: 200px;
+}
+
+.PlanAddIcon {
+  margin-bottom: 0.5rem;
+}
+
+.PlanAddLabel {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+}
+
+/* Inspiration */
+
+.UploadStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: var(--muted-foreground);
+}
+
+.PasteHint {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  color: var(--muted-foreground);
+  display: none;
+
+  @media (min-width: 48rem) {
+    display: block;
+  }
+}
+
+.MobileOnly {
+  @media (min-width: 48rem) {
+    display: none;
+  }
+}
+
+.Carousel {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  gap: 1rem;
+  margin-inline: -1rem;
+  padding-inline: 1rem;
+}
+
+.CarouselSlide {
+  flex-shrink: 0;
+  width: 100%;
+  scroll-snap-align: center;
+}
+
+.CarouselCard {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background-color: color-mix(in oklab, var(--muted) 20%, transparent);
+  aspect-ratio: 4/3;
+}
+
+.CarouselImageButton {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.CarouselImage {
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.CarouselFile {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.FileIconLg {
+  height: 3rem;
+  width: 3rem;
+}
+
+.CarouselActions {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  opacity: 0;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  display: flex;
+  gap: 0.5rem;
+
+  &:active {
+    opacity: 1;
+  }
+
+  @media (min-width: 48rem) {
+    display: none;
+  }
+}
+
+.CarouselActionButton {
+  flex: 1;
+  height: 2.25rem;
+}
+
+.CarouselAddTile {
+  border-width: 2px;
+  border-style: dashed;
+  border-radius: var(--radius-lg);
+  aspect-ratio: 4/3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .CarouselAddTile:hover {
+    background-color: color-mix(in oklab, var(--muted) 10%, transparent);
+  }
+}
+
+.CarouselAddIcon {
+  height: 3rem;
+  width: 3rem;
+  opacity: 0.5;
+  margin-bottom: 0.5rem;
+}
+
+.CarouselAddLabel {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+}
+
+.CarouselDots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.CarouselDot {
+  height: 0.5rem;
+  border-radius: calc(infinity * 1px);
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.CarouselDotActive {
+  width: 1.5rem;
+  background-color: var(--primary);
+}
+
+.CarouselDotInactive {
+  width: 0.5rem;
+  background-color: color-mix(in oklab, var(--muted-foreground) 30%, transparent);
+}
+
+.DesktopOnly {
+  display: none;
+
+  @media (min-width: 48rem) {
+    display: block;
+  }
+}
+
+.Masonry {
+  columns: 2;
+  gap: 1rem;
+
+  @media (min-width: 40rem) {
+    columns: 3;
+  }
+}
+
+.Masonry > :where(:not(:last-child)) {
+  margin-block-start: 0;
+  margin-block-end: 1rem;
+}
+
+.MasonryCard {
+  break-inside: avoid;
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background-color: color-mix(in oklab, var(--muted) 20%, transparent);
+  margin-bottom: 1rem;
+}
+
+.MasonryImageButton {
+  position: relative;
+  cursor: pointer;
+}
+
+.MasonryImage {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.MasonryFile {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.FileIconMd {
+  height: 2rem;
+  width: 2rem;
+}
+
+.MasonryOverlay {
+  position: absolute;
+  inset: 0;
+  background-color: color-mix(in oklab, #000 40%, transparent);
+  opacity: 0;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+@media (hover: hover) {
+  .MasonryCard:hover .MasonryOverlay {
+    opacity: 1;
+  }
+}
+
+.MasonryOverlayButton {
+  height: 2rem;
+  width: 2rem;
+  padding: 0;
+  pointer-events: auto;
+}
+
+.MasonryAddTile {
+  break-inside: avoid;
+  border-width: 2px;
+  border-style: dashed;
+  border-radius: var(--radius-lg);
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.MasonryAddIcon {
+  margin-bottom: 0.25rem;
+}
+
+.MasonryAddLabel {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+}
+
+/* Drop-zone state modifiers, shared by the plans and inspiration drop zones
+   and add tiles. After every base so they win; hover comes after them (and is
+   more specific), matching the utility order. */
+
+.DropZoneActive {
+  border-color: var(--primary);
+  background-color: color-mix(in oklab, var(--primary) 10%, transparent);
+}
+
+.DropZoneIconActive {
+  color: var(--primary);
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .DropZone:hover,
+  .PlanAddTile:hover,
+  .MasonryAddTile:hover {
+    background-color: color-mix(in oklab, var(--muted) 10%, transparent);
+  }
+}
+
+/* Archive / delete links */
+
+.DangerZone {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  padding-top: 2rem;
+  padding-bottom: 0.5rem;
+}
+
+.ArchiveLink,
+.DeleteLink {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  color: color-mix(in oklab, var(--muted-foreground) 40%, transparent);
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  text-underline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .ArchiveLink:hover {
+    color: var(--foreground);
+    text-decoration-line: underline;
+  }
+
+  .DeleteLink:hover {
+    color: var(--destructive);
+    text-decoration-line: underline;
+  }
+}
+
+/* Modal footer */
+
+.Footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  position: sticky;
+  bottom: 0;
+  background-image: linear-gradient(to top in oklab, var(--background), var(--background), transparent);
+}
+
+.FooterSaving {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: var(--muted-foreground);
+  padding-inline: 1rem;
+  padding-block: 0.5rem;
+}
+
+.FooterActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.CompleteButtonDone {
+  color: oklch(62.7% 0.194 149.214); /* green-600 */
+}
+
+@media (hover: hover) {
+  .CompleteButtonDone:hover {
+    color: var(--muted-foreground);
+  }
+}
+
+.CompletedIcon {
+  height: 1rem;
+  width: 1rem;
+  margin-right: 0.5rem;
+}
+
+.IncompleteIcon {
+  height: 1rem;
+  width: 1rem;
+  margin-right: 0.5rem;
+  display: none;
+}
+
+.IncompleteLabel {
+  display: none;
+}
+
+@media (hover: hover) {
+  .CompleteButtonDone:hover .CompletedIcon,
+  .CompleteButtonDone:hover .CompletedLabel {
+    display: none;
+  }
+
+  .CompleteButtonDone:hover .IncompleteIcon,
+  .CompleteButtonDone:hover .IncompleteLabel {
+    display: inline;
+  }
+}
