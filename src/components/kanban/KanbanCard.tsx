@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Project, Column } from './KanbanBoard';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import styles from './KanbanCard.module.css';
 import { Badge } from '@/components/ui/badge';
 import { useRef, useState, useEffect, useMemo } from 'react';
 
@@ -132,9 +133,9 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
   const isSmall = size === 'small';
   const isMedium = size === 'medium';
 
-  const imageHeight = isCompact ? 'h-0 hidden' : isSmall ? 'h-32' : 'h-40';
-  const contentPadding = isCompact ? 'p-2' : 'p-4';
-  const titleSize = isCompact ? 'text-sm' : 'text-base';
+  const imageHeight = isCompact ? styles.ImageHidden : isSmall ? styles.ImageSmall : styles.ImageMedium;
+  const contentPadding = isCompact ? styles.PadCompact : styles.PadDefault;
+  const titleSize = isCompact ? styles.TitleCompact : styles.TitleDefault;
   /** Ideas (and other small cards) show AI summary; compact strip stays title-only. */
   const showDescription = !isCompact && isSmall && !!project.description?.trim();
 
@@ -216,10 +217,10 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
       <ContextMenuTrigger
         render={<Card
         className={cn(
-          "hover:shadow-md transition-all p-0 gap-0 overflow-hidden select-none relative group",
-          !isTouchDevice && "cursor-grab active:cursor-grabbing",
-          !contextMenuOpen && !isTouchDevice && "active:scale-[0.98] active:shadow-lg",
-          project.pinned && "border-l-2 border-l-primary/30",
+          styles.Card,
+          !isTouchDevice && styles.Grabbable,
+          !contextMenuOpen && !isTouchDevice && styles.Pressable,
+          project.pinned && styles.Pinned,
           className
         )}
         onClick={handleClick}
@@ -235,7 +236,7 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
         />}
       >
         {!isCompact && (
-          <div className={cn("relative w-full overflow-hidden", imageHeight)}>
+          <div className={cn(styles.ImageWrap, imageHeight)}>
             {project.imageUrl ? (
               <Image
                 src={project.imageUrl}
@@ -249,36 +250,36 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
               />
             ) : (
               <div
-                className="w-full h-full bg-muted/40"
+                className={styles.Pattern}
                 style={{ backgroundImage: patternImage }}
               />
             )}
           </div>
         )}
-        <CardHeader className={cn(contentPadding, "pb-2 space-y-0 relative")}>
+        <CardHeader className={cn(contentPadding, styles.Header)}>
           {project.pinned && (
-            <Pin className="absolute top-2 right-2 h-3 w-3 text-muted-foreground/40 fill-current" />
+            <Pin className={styles.PinIcon} />
           )}
           {project.isTask && (
             <ListTodo className={cn(
-              "absolute top-2 h-3 w-3 text-blue-500/60",
-              project.pinned ? "right-6" : "right-2"
+              styles.TaskIcon,
+              project.pinned && styles.TaskIconShifted
             )} />
           )}
           <CardTitle className={cn(
-            titleSize, 
-            "font-medium leading-tight",
-            (project.pinned || project.isTask) && "pr-6",
-            (project.pinned && project.isTask) && "pr-10",
-            columnTitle?.toLowerCase() === 'done' && "line-through text-muted-foreground"
+            styles.Title,
+            titleSize,
+            (project.pinned || project.isTask) && styles.TitleIconPad,
+            (project.pinned && project.isTask) && styles.TitleIconPadWide,
+            columnTitle?.toLowerCase() === 'done' && styles.TitleDone
           )}>
             {project.title}
           </CardTitle>
           {/* Tags */}
           {project.tags && project.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
+            <div className={styles.Tags}>
                 {project.tags.map(tag => (
-                    <Badge key={tag} variant="secondary" className="text-[10px] h-5 px-1.5 rounded-sm">
+                    <Badge key={tag} variant="secondary" className={styles.Tag}>
                         {tag}
                     </Badge>
                 ))}
@@ -286,19 +287,19 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
           )}
         </CardHeader>
         {showDescription && (
-          <CardContent className={cn(contentPadding, "pt-2")}>
-          <p className="text-xs text-muted-foreground line-clamp-3">
+          <CardContent className={cn(contentPadding, styles.Content)}>
+          <p className={styles.Description}>
             {project.description}
           </p>
         </CardContent>
         )}
         {isCompact && (
-             <div className="pb-2"></div>
+             <div className={styles.CompactSpacer}></div>
         )}
         
         {/* Mobile Move Button - Only show on touch devices when columns available */}
         {isTouchDevice && columns && columns.length > 1 && onMoveToColumn && (
-          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity md:hidden">
+          <div className={styles.MoveWrap}>
             <Sheet open={moveSheetOpen} onOpenChange={setMoveSheetOpen}>
               <SheetTrigger
                 onClick={(e) => e.stopPropagation()}
@@ -306,33 +307,33 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
                   <Button
                     size="sm"
                     variant="secondary"
-                    className="h-9 px-3 shadow-md"
+                    className={styles.MoveButton}
                     aria-label="Move card to column"
                   />
                 }
               >
-                <ArrowRightLeft className="h-4 w-4 mr-1" />
+                <ArrowRightLeft className={styles.MoveButtonIcon} />
                 Move
               </SheetTrigger>
-              <SheetContent side="bottom" className="h-auto">
+              <SheetContent side="bottom" className={styles.SheetContent}>
                 <SheetHeader>
                   <SheetTitle>Move to Column</SheetTitle>
                 </SheetHeader>
-                <div className="grid gap-2 py-4">
+                <div className={styles.MoveList}>
                   {columns
                     .filter(col => col.id !== currentColumnId)
                     .map(col => (
                       <Button
                         key={col.id}
                         variant="outline"
-                        className="w-full justify-start"
+                        className={styles.MoveOption}
                         onClick={(e) => {
                           e.stopPropagation();
                           onMoveToColumn(col.id);
                           setMoveSheetOpen(false);
                         }}
                       >
-                        <MoveRight className="mr-2 h-4 w-4" />
+                        <MoveRight className={styles.MenuIcon} />
                         {col.title}
                       </Button>
                     ))}
@@ -347,7 +348,7 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
             e.stopPropagation();
             onTogglePin?.(!project.pinned);
         }}>
-          <Pin className="mr-2 h-4 w-4" />
+          <Pin className={styles.MenuIcon} />
           {project.pinned ? 'Unpin' : 'Pin to Top'}
         </ContextMenuItem>
         
@@ -355,7 +356,7 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
         {columns && columns.length > 0 && onMoveToColumn && (
           <ContextMenuSub>
             <ContextMenuSubTrigger>
-              <MoveRight className="mr-2 h-4 w-4" />
+              <MoveRight className={styles.MenuIcon} />
               Move to...
             </ContextMenuSubTrigger>
             <ContextMenuSubContent>
@@ -376,11 +377,11 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
           </ContextMenuSub>
         )}
         
-        <ContextMenuItem className="text-destructive focus:text-destructive" onClick={(e) => {
+        <ContextMenuItem className={styles.DeleteItem} onClick={(e) => {
             e.stopPropagation();
             onDelete?.();
         }}>
-          <Trash2 className="mr-2 h-4 w-4" />
+          <Trash2 className={styles.MenuIcon} />
           Delete
         </ContextMenuItem>
       </ContextMenuContent>

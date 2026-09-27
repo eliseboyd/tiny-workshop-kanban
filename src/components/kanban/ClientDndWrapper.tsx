@@ -23,6 +23,7 @@ import { KanbanColumn } from './KanbanColumn';
 import { KanbanCard } from './KanbanCard';
 import { Project, Column, SettingsData } from './KanbanBoard';
 import { useCallback, useId } from 'react';
+import styles from './ClientDndWrapper.module.css';
 
 type ClientDndWrapperProps = {
   items: Project[];
@@ -116,7 +117,7 @@ export function ClientDndWrapper({
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
     >
-      <div className="flex flex-1 w-full gap-4 p-4 overflow-x-auto snap-x snap-mandatory md:snap-none select-none">
+      <div className={styles.Board}>
         <SortableContext items={cols.map(c => c.id)} strategy={horizontalListSortingStrategy}>
           {cols.map((col) => {
             const isHidden = hiddenColumns.includes(col.id);
@@ -133,20 +134,20 @@ export function ClientDndWrapper({
                 <button
                   key={col.id}
                   onClick={() => onToggleColumnVisibility(col.id)}
-                  className="flex-shrink-0 w-[85vw] md:w-60 h-32 bg-muted/30 hover:bg-muted/50 border-2 border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 rounded-lg transition-all cursor-pointer group relative snap-center md:snap-align-none"
+                  className={styles.HiddenColumn}
                   title={`Show ${col.title} (${itemCount} items)`}
                 >
-                  <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground/60 group-hover:text-muted-foreground/80">
-                    <span className="text-base md:text-sm font-medium text-center">
+                  <div className={styles.HiddenColumnInner}>
+                    <span className={styles.HiddenColumnTitle}>
                       {col.title}
                     </span>
-                    <div className="flex flex-col items-center gap-2">
+                    <div className={styles.HiddenColumnMeta}>
                       {itemCount > 0 && (
-                        <span className="text-sm font-bold bg-muted px-3 py-1 rounded">
+                        <span className={styles.HiddenColumnCount}>
                           {itemCount} {itemCount === 1 ? 'item' : 'items'}
                         </span>
                       )}
-                      <span className="text-xs text-muted-foreground/50">
+                      <span className={styles.HiddenColumnHint}>
                         Tap to show
                       </span>
                     </div>
