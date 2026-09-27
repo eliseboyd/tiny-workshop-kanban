@@ -17,6 +17,8 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { cn } from '@/lib/utils';
+import styles from './KanbanColumn.module.css';
 
 type KanbanColumnProps = {
   id: string;
@@ -100,9 +102,9 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="flex w-[85vw] md:w-60 md:min-w-[240px] shrink-0 snap-center md:snap-align-none flex-col rounded-lg bg-muted p-3 relative group" data-column-id={id}>
+    <div ref={setNodeRef} style={style} className={cn(styles.Column, "group")} data-column-id={id}>
       <div 
-        className="mb-3 h-6 flex items-center justify-between cursor-grab active:cursor-grabbing" 
+        className={styles.Header}
         {...attributes} 
         {...listeners}
       >
@@ -114,7 +116,7 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
                 onBlur={handleTitleBlur}
                 onKeyDown={handleKeyDown}
                 onPointerDown={(e) => e.stopPropagation()}
-                className="h-6 py-0 px-1 text-sm font-semibold bg-transparent border-none focus-visible:ring-1"
+                className={styles.TitleInput}
                 onClick={(e) => e.stopPropagation()}
              />
         ) : (
@@ -122,7 +124,7 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
                 role="button"
                 tabIndex={0}
                 aria-label={`Rename column: ${internalTitle}`}
-                className="text-sm font-semibold text-muted-foreground cursor-text hover:text-foreground transition-colors w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                className={styles.Title}
                 onClick={handleTitleClick}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -135,17 +137,17 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
             </h3>
         )}
         
-        <div className="flex items-center gap-1">
+        <div className={styles.Actions}>
           {/* Idea count badge */}
           {ideasCount !== undefined && (
-            <Badge variant="secondary" className="text-xs h-5 px-1.5">{ideasCount}</Badge>
+            <Badge variant="secondary" className={styles.CountBadge}>{ideasCount}</Badge>
           )}
           {/* Hide column button */}
           {onToggleVisibility && (
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+              className={cn(styles.ColumnAction, styles.HideAction)}
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleVisibility();
@@ -153,7 +155,7 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
               title="Hide column"
               aria-label="Hide column"
             >
-              <Eye className="h-4 w-4" />
+              <Eye className={styles.ActionIcon} />
             </Button>
           )}
           
@@ -162,12 +164,12 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
               <Button
                   variant="ghost"
                   size="icon"
-                  className="h-9 w-9 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                  className={cn(styles.ColumnAction, styles.DeleteAction)}
                   onClick={() => onDeleteColumn(id)}
                   title="Delete empty column"
                   aria-label="Delete empty column"
               >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className={styles.ActionIcon} />
               </Button>
           )}
         </div>
@@ -176,18 +178,18 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
       {ideasCount !== undefined ? (
         <button
           onClick={onSwitchToIdeas}
-          className="flex flex-1 flex-col items-start justify-start gap-2 pt-4 px-2 rounded-lg border-2 border-dashed border-muted-foreground/20 text-muted-foreground hover:text-foreground hover:border-muted-foreground/40 hover:bg-muted/30 transition-all"
+          className={styles.IdeasLink}
         >
-          <Lightbulb className="h-8 w-8 self-center mt-4" />
-          <span className="text-sm font-medium text-center w-full leading-snug">
+          <Lightbulb className={styles.IdeasIcon} />
+          <span className={styles.IdeasText}>
             {ideasCount > 0
               ? `${ideasCount} idea${ideasCount !== 1 ? 's' : ''} in the Ideas tab`
               : 'Ideas are in the Ideas tab'}
           </span>
-          <span className="text-xs opacity-60 w-full text-center">Click to open →</span>
+          <span className={styles.IdeasHint}>Click to open →</span>
         </button>
       ) : (
-      <div className="flex flex-1 flex-col gap-2 min-h-0 overflow-y-auto" data-column-scroll>
+      <div className={styles.Scroll} data-column-scroll>
         {/* Add Project Button - At Top for easy access */}
         {onAddProject && !isCreating && (
           <ContextMenu>
@@ -210,11 +212,11 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
                       }
                     }, 50);
                   }}
-                  className="flex items-center justify-center w-full h-12 rounded-lg border-2 border-dashed border-neutral-300 dark:border-neutral-700 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 hover:border-neutral-400 dark:hover:border-neutral-500 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 transition-all group/add flex-shrink-0"
+                  className={styles.AddButton}
               />}
               >
-                  <span className="flex items-center gap-2 text-sm font-medium">
-                      <Plus className="h-4 w-4 group-hover/add:scale-110 transition-transform" />
+                  <span className={styles.AddLabel}>
+                      <Plus className={styles.AddIcon} />
                       Add Project
                   </span>
             </ContextMenuTrigger>
@@ -285,13 +287,13 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
         
         {/* Inline Create Input - At Bottom */}
         {isCreating && (
-            <div className="touch-none flex-shrink-0">
-               <Card className="p-0 gap-0 overflow-hidden border-2 border-primary/20 shadow-sm">
-                  <CardHeader className="p-4 pb-2 space-y-0">
+            <div className={styles.CreateWrap}>
+               <Card className={styles.CreateCard}>
+                  <CardHeader className={styles.CreateHeader}>
                      <Input
                         autoFocus
                         placeholder={creatingAsTask ? "Enter task title..." : "Enter project title..."}
-                        className="text-base font-medium leading-tight border-none shadow-none px-4 py-3 h-auto focus-visible:ring-0 bg-transparent resize-none"
+                        className={styles.CreateInput}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                                 onConfirmCreate?.(id, e.currentTarget.value, creatingAsTask);
@@ -308,8 +310,8 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
                         }}
                      />
                   </CardHeader>
-                  <CardContent className="p-4 pt-2">
-                      <span className="text-xs text-muted-foreground">
+                  <CardContent className={styles.CreateContent}>
+                      <span className={styles.CreateHint}>
                         {creatingAsTask ? "Creating Task - " : "Creating Project - "}
                         Press Enter to save
                       </span>
