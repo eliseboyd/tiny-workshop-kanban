@@ -5,7 +5,6 @@ import { ListChecks, Check, Circle, Settings2, ExternalLink, Plus, X, Pencil } f
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { updateProject, moveProjectFromDoneIfNeeded } from '@/app/actions';
-import { useRouter } from 'next/navigation';
 import type { Project } from '@/components/kanban/KanbanBoard';
 import { ScrollFade } from './ScrollFade';
 import { useDragHandle } from './WidgetsSection';
@@ -202,7 +201,6 @@ export function ProjectTodosWidget({
   onProjectClick,
   onRefresh,
 }: ProjectTodosWidgetProps) {
-  const router = useRouter();
   const dragListeners = useDragHandle();
   const [newTodoText, setNewTodoText] = useState('');
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -251,7 +249,6 @@ export function ProjectTodosWidget({
     
     const updatedHtml = updateTodoCheckedInHtml(project.richContent, todo.index, !todo.checked);
     await updateProject(project.id, { richContent: updatedHtml });
-    router.refresh();
     onRefresh?.();
   };
 
@@ -266,7 +263,6 @@ export function ProjectTodosWidget({
     await moveProjectFromDoneIfNeeded(project.id);
     
     setNewTodoText('');
-    router.refresh();
     onRefresh?.();
   };
 
@@ -276,7 +272,6 @@ export function ProjectTodosWidget({
     
     const updatedHtml = deleteTodoFromHtml(project.richContent, todo.index);
     await updateProject(project.id, { richContent: updatedHtml });
-    router.refresh();
     onRefresh?.();
   };
 
@@ -295,7 +290,6 @@ export function ProjectTodosWidget({
     const updatedHtml = updateTodoTextInHtml(project.richContent, todo.index, editText.trim());
     await updateProject(project.id, { richContent: updatedHtml });
     setEditingIndex(null);
-    router.refresh();
     onRefresh?.();
   };
 

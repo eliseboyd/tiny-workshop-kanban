@@ -5,7 +5,6 @@ import { CheckCircle2, Circle, Settings2, ExternalLink, FolderKanban } from 'luc
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toggleProjectCompletion } from '@/app/actions';
-import { useRouter } from 'next/navigation';
 import type { Project } from '@/components/kanban/KanbanBoard';
 import { ScrollFade } from './ScrollFade';
 import { useDragHandle } from './WidgetsSection';
@@ -61,7 +60,6 @@ export function ToDoListWidget({
   onProjectClick,
   onRefresh,
 }: ToDoListWidgetProps) {
-  const router = useRouter();
   const dragListeners = useDragHandle();
 
   // Find the Done column
@@ -122,7 +120,6 @@ export function ToDoListWidget({
   const handleToggleComplete = async (project: Project, e: React.MouseEvent) => {
     e.stopPropagation();
     await toggleProjectCompletion(project.id, project.status);
-    router.refresh();
     onRefresh?.();
   };
 

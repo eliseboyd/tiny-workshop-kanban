@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { updateWidget } from '@/app/actions';
-import { useRouter } from 'next/navigation';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DragHandleContext } from './WidgetsSection';
 import { ScrollFade } from './ScrollFade';
@@ -34,7 +33,6 @@ type DayPlanWidgetProps = {
 };
 
 export function DayPlanWidget({ widget, projects, columns = [], onEdit, onProjectClick, onRefresh }: DayPlanWidgetProps) {
-  const router = useRouter();
   const confirmDialog = useConfirm();
   const dragListeners = useContext(DragHandleContext);
   
@@ -143,7 +141,6 @@ export function DayPlanWidget({ widget, projects, columns = [], onEdit, onProjec
       });
       setSearchQuery('');
       setShowSuggestions(false);
-      router.refresh();
       onRefresh?.();
     } catch (error) {
       console.error('Failed to add project to day plan:', error);
@@ -181,7 +178,6 @@ export function DayPlanWidget({ widget, projects, columns = [], onEdit, onProjec
         await updateWidget(widget.id, {
           config: { ...widget.config, projectIds: newProjectIds }
         });
-        router.refresh();
       }
     } catch (error) {
       console.error('Failed to add project to day plan:', error);
@@ -196,7 +192,6 @@ export function DayPlanWidget({ widget, projects, columns = [], onEdit, onProjec
       await updateWidget(widget.id, {
         config: { ...widget.config, projectIds: newProjectIds }
       });
-      router.refresh();
     } catch (error) {
       console.error('Failed to remove project from day plan:', error);
     }
@@ -215,7 +210,6 @@ export function DayPlanWidget({ widget, projects, columns = [], onEdit, onProjec
       await updateWidget(widget.id, {
         config: { ...widget.config, projectIds: [] }
       });
-      router.refresh();
     } catch (error) {
       console.error('Failed to clear day plan:', error);
     }
