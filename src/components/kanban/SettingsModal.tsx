@@ -22,6 +22,7 @@ import { Loader2, LogOut, Trash2, Image as ImageIcon, FileText, Plus, Edit2, Upl
 import Image from 'next/image';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DEFAULT_TAG_COLOR } from '@/lib/constants';
+import styles from './SettingsModal.module.css';
 
 type SettingsModalProps = {
   isOpen: boolean;
@@ -88,20 +89,20 @@ function TagItem({
   }, [tag.color]);
 
   return (
-    <div className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+    <div className={styles.ItemRow}>
       {tag.icon ? (
-        <div className="relative w-8 h-8 flex-shrink-0">
+        <div className={styles.IconWrap}>
           <Image
             src={tag.icon}
             alt={tag.name}
             width={32}
             height={32}
-            className="rounded object-cover"
+            className={styles.IconImage}
             unoptimized
           />
         </div>
       ) : (
-        <span className="text-xl">{tag.emoji || '🏷️'}</span>
+        <span className={styles.Emoji}>{tag.emoji || '🏷️'}</span>
       )}
       <Input
         value={localName}
@@ -112,11 +113,11 @@ function TagItem({
           if (e.key === 'Escape') { setLocalName(tag.name); e.currentTarget.blur(); }
         }}
         aria-label={`Rename tag ${tag.name}`}
-        className="flex-1 h-8 font-medium bg-transparent border-transparent hover:border-input focus-visible:border-input"
+        className={styles.TagNameInput}
       />
-      <div className="flex items-center gap-2">
+      <div className={styles.InlineRow}>
         <div 
-          className="w-8 h-8 rounded border flex-shrink-0"
+          className={styles.Swatch}
           style={{ backgroundColor: /^#[0-9A-Fa-f]{6}$/.test(localColor) ? localColor : tag.color }}
         />
         <Input
@@ -131,7 +132,7 @@ function TagItem({
             }
           }}
           placeholder="#64748b"
-          className="w-24 h-8 font-mono text-xs"
+          className={styles.ColorInput}
         />
       </div>
       <Button
@@ -149,7 +150,7 @@ function TagItem({
         }}
         title="Upload icon"
       >
-        <Upload className="h-4 w-4" />
+        <Upload className={styles.Icon} />
       </Button>
       {tag.icon && (
         <Button
@@ -158,7 +159,7 @@ function TagItem({
           onClick={() => onUpdate(tag.name, { icon: undefined })}
           title="Remove icon"
         >
-          <X className="h-4 w-4" />
+          <X className={styles.Icon} />
         </Button>
       )}
       <Button
@@ -167,7 +168,7 @@ function TagItem({
         onClick={() => onDelete(tag.name)}
         title="Delete tag"
       >
-        <Trash2 className="h-4 w-4" />
+        <Trash2 className={styles.Icon} />
       </Button>
     </div>
   );
@@ -205,26 +206,26 @@ function ProjectGroupItem({
   };
 
   return (
-    <div className="flex flex-col gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-    <div className="flex items-center gap-2">
+    <div className={styles.GroupItem}>
+    <div className={styles.InlineRow}>
       {group.icon ? (
-        <div className="relative w-8 h-8 flex-shrink-0">
+        <div className={styles.IconWrap}>
           <Image
             src={group.icon}
             alt={group.name}
             width={32}
             height={32}
-            className="rounded object-cover"
+            className={styles.IconImage}
             unoptimized
           />
         </div>
       ) : (
-        <span className="text-xl">{group.emoji || '📁'}</span>
+        <span className={styles.Emoji}>{group.emoji || '📁'}</span>
       )}
-      <span className="flex-1 font-medium">{group.name}</span>
-      <div className="flex items-center gap-2">
+      <span className={styles.GroupName}>{group.name}</span>
+      <div className={styles.InlineRow}>
         <div 
-          className="w-8 h-8 rounded border flex-shrink-0"
+          className={styles.Swatch}
           style={{ backgroundColor: /^#[0-9A-Fa-f]{6}$/.test(localColor) ? localColor : group.color }}
         />
         <Input
@@ -239,7 +240,7 @@ function ProjectGroupItem({
             }
           }}
           placeholder="#64748b"
-          className="w-24 h-8 font-mono text-xs"
+          className={styles.ColorInput}
         />
       </div>
       <Button
@@ -257,7 +258,7 @@ function ProjectGroupItem({
         }}
         title="Upload icon"
       >
-        <Upload className="h-4 w-4" />
+        <Upload className={styles.Icon} />
       </Button>
       {group.icon && (
         <Button
@@ -266,7 +267,7 @@ function ProjectGroupItem({
           onClick={() => onUpdate(group.id, { icon: undefined })}
           title="Remove icon"
         >
-          <X className="h-4 w-4" />
+          <X className={styles.Icon} />
         </Button>
       )}
       <Button
@@ -275,29 +276,29 @@ function ProjectGroupItem({
         onClick={() => onDelete(group.id, group.name)}
         title="Delete project group"
       >
-        <Trash2 className="h-4 w-4" />
+        <Trash2 className={styles.Icon} />
       </Button>
     </div>
-    <div className="flex flex-wrap items-center gap-1.5 pl-1">
-      <span className="text-xs text-muted-foreground mr-1">Cards with</span>
-      <div className="inline-flex rounded-md border text-xs overflow-hidden">
+    <div className={styles.MatchRow}>
+      <span className={styles.MatchLabel}>Cards with</span>
+      <div className={styles.ModeToggle}>
         {(['any', 'all'] as const).map((mode) => (
           <button
             key={mode}
             type="button"
             onClick={() => mode !== group.matchMode && onUpdate(group.id, { matchMode: mode })}
             className={cn(
-              'px-2 py-0.5 transition-colors',
-              group.matchMode === mode ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+              styles.ModeOption,
+              group.matchMode === mode ? styles.ModeOptionActive : styles.ModeOptionIdle
             )}
           >
             {mode}
           </button>
         ))}
       </div>
-      <span className="text-xs text-muted-foreground mr-1">of:</span>
+      <span className={styles.MatchLabel}>of:</span>
       {allTags.length === 0 ? (
-        <span className="text-xs text-muted-foreground">No tags yet</span>
+        <span className={styles.Hint}>No tags yet</span>
       ) : (
         allTags.map((tag) => {
           const on = group.tags.includes(tag.name);
@@ -305,18 +306,18 @@ function ProjectGroupItem({
             <Badge
               key={tag.name}
               variant={on ? 'default' : 'outline'}
-              className="cursor-pointer select-none"
+              className={styles.TagBadge}
               style={on ? { backgroundColor: tag.color, borderColor: tag.color } : { borderColor: tag.color }}
               onClick={() => toggleTag(tag.name)}
             >
-              {tag.emoji && <span className="mr-1">{tag.emoji}</span>}
+              {tag.emoji && <span className={styles.BadgeEmoji}>{tag.emoji}</span>}
               {tag.name}
             </Badge>
           );
         })
       )}
       {group.tags.length === 0 && allTags.length > 0 && (
-        <span className="text-xs text-muted-foreground italic ml-1">— pick at least one tag or nothing will match</span>
+        <span className={styles.MatchWarning}>— pick at least one tag or nothing will match</span>
       )}
     </div>
     </div>
@@ -679,7 +680,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className={styles.Content}>
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
         </DialogHeader>
@@ -687,21 +688,21 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         {settingsError && (
           <div
             role="alert"
-            className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive flex items-center justify-between gap-2"
+            className={styles.ErrorBanner}
           >
             <span>{settingsError}</span>
             <button
               onClick={() => setSettingsError(null)}
               aria-label="Dismiss error"
-              className="opacity-70 hover:opacity-100"
+              className={styles.ErrorDismiss}
             >
-              <X className="h-3 w-3" />
+              <X className={styles.IconSm} />
             </button>
           </div>
         )}
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="grid w-full grid-cols-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className={styles.Tabs}>
+          <TabsList className={styles.TabsList}>
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="tags">Tags</TabsTrigger>
             <TabsTrigger value="projects">Projects</TabsTrigger>
@@ -710,9 +711,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <TabsTrigger value="embed">Embed</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="general" className="flex-1 overflow-y-auto">
-            <form onSubmit={handleSubmit} className="space-y-4 py-4">
-              <div className="space-y-2">
+          <TabsContent value="general" className={styles.Panel}>
+            <form onSubmit={handleSubmit} className={styles.Section}>
+              <div className={styles.Stack2}>
                 <Label htmlFor="cardSize">Card Size</Label>
                 <Select value={cardSize} onValueChange={setCardSize}>
                   <SelectTrigger>
@@ -726,7 +727,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </Select>
               </div>
               
-              <div className="space-y-2">
+              <div className={styles.Stack2}>
                 <Label htmlFor="aiPrompt">AI Image Prompt Template</Label>
                 <Input
                   id="aiPrompt"
@@ -734,31 +735,31 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   onChange={(e) => setAiPrompt(e.target.value)}
                   placeholder="Enter a prompt template..."
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className={styles.Hint}>
                   Use <code>{'{title}'}</code> and <code>{'{description}'}</code> as placeholders.
                 </p>
               </div>
               
-              <DialogFooter className="flex justify-between sm:justify-between gap-2">
-                <Button type="button" variant="destructive" onClick={() => logout()} className="mr-auto">
-                  <LogOut className="mr-2 h-4 w-4" /> Log out
+              <DialogFooter className={styles.Footer}>
+                <Button type="button" variant="destructive" onClick={() => logout()} className={styles.LogoutButton}>
+                  <LogOut className={styles.IconLeading} /> Log out
                 </Button>
                 <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isLoading}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isLoading && <Loader2 className={styles.SpinnerLeading} />}
                   Save
                 </Button>
               </DialogFooter>
             </form>
           </TabsContent>
           
-          <TabsContent value="tags" className="flex-1 overflow-y-auto">
-            <div className="space-y-4 py-4">
-              <div className="space-y-3">
+          <TabsContent value="tags" className={styles.Panel}>
+            <div className={styles.Section}>
+              <div className={styles.Stack3}>
                 <Label>Create New Tag</Label>
-                <div className="flex gap-2">
+                <div className={styles.FieldRow}>
                   <Input
                     placeholder="Tag name"
                     value={newTagName}
@@ -770,31 +771,31 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     placeholder="🏷️"
                     value={newTagEmoji}
                     onChange={(e) => setNewTagEmoji(e.target.value)}
-                    className="w-20"
+                    className={styles.ShortInput}
                     maxLength={2}
                   />
                   <Input
                     type="color"
                     value={newTagColor}
                     onChange={(e) => setNewTagColor(e.target.value)}
-                    className="w-20"
+                    className={styles.ShortInput}
                   />
                   <Button onClick={handleCreateTag} size="sm">
-                    <Plus className="h-4 w-4" />
+                    <Plus className={styles.Icon} />
                   </Button>
                 </div>
               </div>
 
               {isLoadingTags ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <div className={styles.Loading}>
+                  <Loader2 className={styles.LoadingSpinner} />
                 </div>
               ) : tags.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className={styles.Empty}>
                   No tags yet. Create one above!
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className={styles.Stack2}>
                   {tags.map((tag) => (
                     <TagItem
                       key={tag.name}
@@ -810,11 +811,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </div>
           </TabsContent>
 
-          <TabsContent value="projects" className="flex-1 overflow-y-auto">
-            <div className="space-y-4 py-4">
-              <div className="space-y-3">
+          <TabsContent value="projects" className={styles.Panel}>
+            <div className={styles.Section}>
+              <div className={styles.Stack3}>
                 <Label>Create New Project Group</Label>
-                <div className="flex gap-2">
+                <div className={styles.FieldRow}>
                   <Input
                     placeholder="Project group name"
                     value={newGroupName}
@@ -826,31 +827,31 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     placeholder="📁"
                     value={newGroupEmoji}
                     onChange={(e) => setNewGroupEmoji(e.target.value)}
-                    className="w-20"
+                    className={styles.ShortInput}
                     maxLength={2}
                   />
                   <Input
                     type="color"
                     value={newGroupColor}
                     onChange={(e) => setNewGroupColor(e.target.value)}
-                    className="w-20"
+                    className={styles.ShortInput}
                   />
                   <Button onClick={handleCreateProjectGroup} size="sm">
-                    <Plus className="h-4 w-4" />
+                    <Plus className={styles.Icon} />
                   </Button>
                 </div>
               </div>
 
               {isLoadingGroups ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <div className={styles.Loading}>
+                  <Loader2 className={styles.LoadingSpinner} />
                 </div>
               ) : projectGroups.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className={styles.Empty}>
                   No project groups yet. Create one above!
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className={styles.Stack2}>
                   {projectGroups.map((group) => (
                     <ProjectGroupItem
                       key={group.id}
@@ -866,47 +867,47 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </div>
           </TabsContent>
           
-          <TabsContent value="media" className="flex-1 overflow-y-auto">
-            <div className="space-y-4 py-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
+          <TabsContent value="media" className={styles.Panel}>
+            <div className={styles.Section}>
+              <div className={styles.HeaderRow}>
+                <p className={styles.Description}>
                   Manage uploaded files and clean up orphaned media
                 </p>
                 <Button size="sm" variant="outline" onClick={loadMediaFiles} disabled={isLoadingMedia}>
-                  {isLoadingMedia && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isLoadingMedia && <Loader2 className={styles.SpinnerLeading} />}
                   Refresh
                 </Button>
               </div>
               
               {isLoadingMedia ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <div className={styles.Loading}>
+                  <Loader2 className={styles.LoadingSpinner} />
                 </div>
               ) : mediaFiles.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className={styles.Empty}>
                   No media files found
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className={styles.Stack3}>
                   {mediaFiles.map((file) => (
-                    <div key={file.url} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex-shrink-0 w-16 h-16 bg-muted rounded overflow-hidden flex items-center justify-center">
+                    <div key={file.url} className={styles.MediaRow}>
+                      <div className={styles.MediaThumb}>
                         {file.type.startsWith('image/') ? (
                           <Image 
                             src={file.url} 
                             alt={file.name} 
                             width={64} 
                             height={64} 
-                            className="object-cover w-full h-full"
+                            className={styles.CoverImage}
                             unoptimized
                           />
                         ) : (
-                          <FileText className="h-8 w-8 text-muted-foreground" />
+                          <FileText className={styles.FileIcon} />
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{file.name}</p>
-                        <p className="text-xs text-muted-foreground">
+                      <div className={styles.MediaInfo}>
+                        <p className={styles.TruncatedTitle}>{file.name}</p>
+                        <p className={styles.Hint}>
                           {(file.size / 1024).toFixed(1)} KB • {file.usedBy.length === 0 ? 'Unused' : `Used in ${file.usedBy.length} project${file.usedBy.length > 1 ? 's' : ''}`}
                         </p>
                       </div>
@@ -916,7 +917,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         onClick={() => handleDeleteMedia(file.url)}
                         title={file.usedBy.length > 0 ? "Delete (will remove from projects)" : "Delete"}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className={styles.Icon} />
                       </Button>
                     </div>
                   ))}
@@ -925,57 +926,57 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </div>
           </TabsContent>
           
-          <TabsContent value="styles" className="flex-1 overflow-y-auto">
-            <div className="space-y-4 py-4">
-              <div className="flex items-center justify-between">
+          <TabsContent value="styles" className={styles.Panel}>
+            <div className={styles.Section}>
+              <div className={styles.HeaderRow}>
                 <div>
-                  <p className="text-sm font-medium">AI Image Styles</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className={styles.SectionTitle}>AI Image Styles</p>
+                  <p className={styles.SubHint}>
                     Create named styles with prompts and reference images to guide AI cover generation.
                   </p>
                 </div>
                 {!isStyleFormOpen && (
                   <Button size="sm" onClick={openNewStyleForm}>
-                    <Plus className="h-4 w-4 mr-1" /> New Style
+                    <Plus className={styles.IconLeadingTight} /> New Style
                   </Button>
                 )}
               </div>
 
               {isStyleFormOpen && (
-                <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-                  <p className="text-sm font-medium">{editingStyle ? 'Edit Style' : 'New Style'}</p>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground">Name</label>
+                <div className={styles.StyleForm}>
+                  <p className={styles.SectionTitle}>{editingStyle ? 'Edit Style' : 'New Style'}</p>
+                  <div className={styles.Stack2}>
+                    <label className={styles.FieldLabel}>Name</label>
                     <input
-                      className="w-full px-3 py-1.5 text-sm border rounded-md bg-background"
+                      className={styles.TextField}
                       placeholder="e.g. Sketchy, Watercolour, Minimal…"
                       value={styleFormName}
                       onChange={(e) => setStyleFormName(e.target.value)}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground">
-                      Style prompt <span className="font-normal opacity-70">— describe the look, medium, colour palette…</span>
+                  <div className={styles.Stack2}>
+                    <label className={styles.FieldLabel}>
+                      Style prompt <span className={styles.FieldLabelNote}>— describe the look, medium, colour palette…</span>
                     </label>
                     <textarea
-                      className="w-full px-3 py-2 text-sm border rounded-md bg-background resize-none"
+                      className={styles.TextArea}
                       rows={3}
                       placeholder="Loose pencil sketch, cross-hatching, monochrome with subtle sepia tones…"
                       value={styleFormPrompt}
                       onChange={(e) => setStyleFormPrompt(e.target.value)}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground">Reference images (up to 10)</label>
-                    <div className="flex flex-wrap gap-2">
+                  <div className={styles.Stack2}>
+                    <label className={styles.FieldLabel}>Reference images (up to 10)</label>
+                    <div className={styles.RefGrid}>
                       {styleFormImages.map((url, i) => (
-                        <div key={url} className="relative w-16 h-16 rounded overflow-hidden border group">
-                          <Image src={url} alt={`ref ${i + 1}`} width={64} height={64} className="object-cover w-full h-full" unoptimized />
+                        <div key={url} className={styles.RefThumb}>
+                          <Image src={url} alt={`ref ${i + 1}`} width={64} height={64} className={styles.CoverImage} unoptimized />
                           <button
                             onClick={() => setStyleFormImages((prev) => prev.filter((_, idx) => idx !== i))}
-                            className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                            className={styles.RefRemove}
                           >
-                            <X className="h-4 w-4 text-white" />
+                            <X className={styles.IconWhite} />
                           </button>
                         </div>
                       ))}
@@ -995,21 +996,21 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             input.click();
                           }}
                           disabled={styleFormUploading}
-                          className="w-16 h-16 border-2 border-dashed rounded flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-50"
+                          className={styles.RefAdd}
                         >
                           {styleFormUploading ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <Loader2 className={styles.Spinner} />
                           ) : (
                             <>
-                              <Upload className="h-4 w-4" />
-                              <span className="text-[10px] mt-0.5">Add</span>
+                              <Upload className={styles.Icon} />
+                              <span className={styles.RefAddLabel}>Add</span>
                             </>
                           )}
                         </button>
                       )}
                     </div>
                   </div>
-                  <div className="flex justify-end gap-2 pt-1">
+                  <div className={styles.FormActions}>
                     <Button variant="outline" size="sm" onClick={() => setIsStyleFormOpen(false)}>Cancel</Button>
                     <Button size="sm" onClick={handleSaveStyle} disabled={!styleFormName.trim()}>
                       {editingStyle ? 'Save Changes' : 'Create Style'}
@@ -1019,50 +1020,50 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               )}
 
               {isLoadingStyles ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <div className={styles.Loading}>
+                  <Loader2 className={styles.LoadingSpinner} />
                 </div>
               ) : imageStyles.length === 0 && !isStyleFormOpen ? (
-                <div className="text-center py-10 text-muted-foreground">
-                  <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                  <p className="text-sm">No styles yet.</p>
-                  <p className="text-xs mt-1">Create a style to guide AI cover image generation.</p>
+                <div className={styles.EmptyTall}>
+                  <Sparkles className={styles.EmptyIcon} />
+                  <p className={styles.EmptyText}>No styles yet.</p>
+                  <p className={styles.EmptySubtext}>Create a style to guide AI cover image generation.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
+                <div className={styles.StyleGrid}>
                   {imageStyles.map((style) => (
-                    <div key={style.id} className="border rounded-lg overflow-hidden hover:border-primary/50 transition-colors">
-                      <div className="h-24 bg-muted/40 relative overflow-hidden">
+                    <div key={style.id} className={styles.StyleCard}>
+                      <div className={styles.StylePreview}>
                         {style.referenceImages.length > 0 ? (
                           <Image
                             src={style.referenceImages[0]}
                             alt={style.name}
                             fill
-                            className="object-cover"
+                            className={styles.PreviewImage}
                             unoptimized
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Wand2 className="h-8 w-8 text-muted-foreground/40" />
+                          <div className={styles.PreviewPlaceholder}>
+                            <Wand2 className={styles.PlaceholderIcon} />
                           </div>
                         )}
                         {style.referenceImages.length > 1 && (
-                          <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+                          <span className={styles.MoreCount}>
                             +{style.referenceImages.length - 1}
                           </span>
                         )}
                       </div>
-                      <div className="p-2">
-                        <p className="text-sm font-medium truncate">{style.name}</p>
+                      <div className={styles.StyleBody}>
+                        <p className={styles.TruncatedTitle}>{style.name}</p>
                         {style.promptOverride && (
-                          <p className="text-xs text-muted-foreground truncate mt-0.5">{style.promptOverride}</p>
+                          <p className={styles.StylePrompt}>{style.promptOverride}</p>
                         )}
-                        <div className="flex gap-1 mt-2">
-                          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs flex-1" onClick={() => openEditStyleForm(style)}>
-                            <Edit2 className="h-3 w-3 mr-1" /> Edit
+                        <div className={styles.StyleActions}>
+                          <Button size="sm" variant="ghost" className={styles.StyleActionEdit} onClick={() => openEditStyleForm(style)}>
+                            <Edit2 className={styles.IconSmLeading} /> Edit
                           </Button>
-                          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive hover:text-destructive" onClick={() => handleDeleteStyle(style.id, style.name)}>
-                            <Trash2 className="h-3 w-3" />
+                          <Button size="sm" variant="ghost" className={styles.StyleActionDelete} onClick={() => handleDeleteStyle(style.id, style.name)}>
+                            <Trash2 className={styles.IconSm} />
                           </Button>
                         </div>
                       </div>
@@ -1073,22 +1074,22 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </div>
           </TabsContent>
 
-          <TabsContent value="embed" className="flex-1 overflow-y-auto">
-            <div className="space-y-4 py-4">
+          <TabsContent value="embed" className={styles.Panel}>
+            <div className={styles.Section}>
               <div>
-                <h3 className="text-lg font-semibold mb-2">Embed Your Board</h3>
-                <p className="text-sm text-muted-foreground mb-4">
+                <h3 className={styles.EmbedTitle}>Embed Your Board</h3>
+                <p className={styles.EmbedIntro}>
                   Share your kanban board on external sites using an iframe. The embedded view shows a clean, read-only version of your board.
                 </p>
               </div>
               
-              <div className="space-y-2">
+              <div className={styles.Stack2}>
                 <Label>Embed URL</Label>
-                <div className="flex gap-2">
+                <div className={styles.FieldRow}>
                   <Input
                     readOnly
                     value={`${typeof window !== 'undefined' ? window.location.origin : ''}/kanban/embed`}
-                    className="font-mono text-sm"
+                    className={styles.MonoInput}
                   />
                   <Button
                     variant="outline"
@@ -1105,18 +1106,18 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </div>
               </div>
               
-              <div className="space-y-2">
+              <div className={styles.Stack2}>
                 <Label>Embed Code</Label>
-                <div className="relative">
+                <div className={styles.CodeWrap}>
                   <textarea
                     readOnly
                     value={`<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/kanban/embed" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`}
-                    className="w-full h-24 p-3 font-mono text-xs border rounded-md bg-muted/50 resize-none"
+                    className={styles.CodeArea}
                   />
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="absolute top-2 right-2"
+                    className={styles.CopyCodeButton}
                     onClick={() => {
                       if (typeof window !== 'undefined') {
                         const embedCode = `<iframe src="${window.location.origin}/kanban/embed" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`;
@@ -1126,21 +1127,21 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       }
                     }}
                   >
-                    <Code className="h-4 w-4 mr-2" />
+                    <Code className={styles.IconLeading} />
                     {embedCopied ? 'Copied!' : 'Copy Code'}
                   </Button>
                 </div>
               </div>
               
-              <div className="border-t pt-4 mt-4">
-                <h4 className="text-sm font-medium mb-2">Preview</h4>
+              <div className={styles.PreviewSection}>
+                <h4 className={styles.PreviewHeading}>Preview</h4>
                 {/* Plain <a> and copied URLs don't get Next's basePath — the
                     /kanban prefix is spelled out, as in layout.tsx. */}
                 <a
                   href="/kanban/embed"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-primary hover:underline"
+                  className={styles.PreviewLink}
                 >
                   Open embed view in new tab →
                 </a>

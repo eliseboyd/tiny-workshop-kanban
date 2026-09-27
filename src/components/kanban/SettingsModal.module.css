@@ -1,0 +1,751 @@
+/* SettingsModal — converted from Tailwind utilities. Unlayered, so these
+   classes beat the ui/ primitives (which sit in @layer components). */
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Dialog shell ---------- */
+
+.Content {
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  overflow: hidden;
+
+  @media (min-width: 40rem) {
+    max-width: 600px;
+  }
+}
+
+.ErrorBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-width: 1px;
+  border-style: solid;
+  border-color: color-mix(in oklab, var(--destructive) 40%, transparent);
+  border-radius: var(--radius-md);
+  background-color: color-mix(in oklab, var(--destructive) 10%, transparent);
+  color: var(--destructive);
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+}
+
+.ErrorDismiss {
+  opacity: 70%;
+
+  @media (hover: hover) {
+    &:hover {
+      opacity: 100%;
+    }
+  }
+}
+
+.Tabs {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.TabsList {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.Panel {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* ---------- Layout helpers ---------- */
+
+.Section {
+  padding-block: 1rem;
+}
+
+.Section > :where(:not(:last-child)) {
+  margin-block-end: 1rem;
+}
+
+.Stack2 > :where(:not(:last-child)) {
+  margin-block-end: 0.5rem;
+}
+
+.Stack3 > :where(:not(:last-child)) {
+  margin-block-end: 0.75rem;
+}
+
+.InlineRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.FieldRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.HeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.Loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: 2rem;
+}
+
+.Empty {
+  padding-block: 2rem;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.EmptyTall {
+  padding-block: 2.5rem;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.EmptyText {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+}
+
+.EmptySubtext {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+}
+
+/* ---------- Text ---------- */
+
+.Hint {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+}
+
+.SubHint {
+  margin-top: 0.125rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+}
+
+.Description {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+}
+
+.SectionTitle {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  font-weight: 500;
+}
+
+.TruncatedTitle {
+  overflow: hidden;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Icons ---------- */
+
+.Icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.IconSm {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.IconSmLeading {
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-right: 0.25rem;
+}
+
+.IconLeading {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.5rem;
+}
+
+.IconLeadingTight {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.25rem;
+}
+
+.IconWhite {
+  width: 1rem;
+  height: 1rem;
+  color: #fff;
+}
+
+.Spinner {
+  width: 1rem;
+  height: 1rem;
+  animation: spin 1s linear infinite;
+}
+
+.SpinnerLeading {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.5rem;
+  animation: spin 1s linear infinite;
+}
+
+.LoadingSpinner {
+  width: 2rem;
+  height: 2rem;
+  color: var(--muted-foreground);
+  animation: spin 1s linear infinite;
+}
+
+.FileIcon {
+  width: 2rem;
+  height: 2rem;
+  color: var(--muted-foreground);
+}
+
+.EmptyIcon {
+  width: 2rem;
+  height: 2rem;
+  margin-inline: auto;
+  margin-bottom: 0.5rem;
+  opacity: 40%;
+}
+
+.PlaceholderIcon {
+  width: 2rem;
+  height: 2rem;
+  color: color-mix(in oklab, var(--muted-foreground) 40%, transparent);
+}
+
+/* ---------- Tag / project group items ---------- */
+
+.ItemRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--radius-lg);
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+
+  @media (hover: hover) {
+    &:hover {
+      background-color: color-mix(in oklab, var(--muted) 50%, transparent);
+    }
+  }
+}
+
+.GroupItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--radius-lg);
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+
+  @media (hover: hover) {
+    &:hover {
+      background-color: color-mix(in oklab, var(--muted) 50%, transparent);
+    }
+  }
+}
+
+.IconWrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+}
+
+.IconImage {
+  border-radius: 0.25rem;
+  object-fit: cover;
+}
+
+.Emoji {
+  font-size: 1.25rem;
+  line-height: var(--text-xl--line-height);
+}
+
+.TagNameInput {
+  flex: 1;
+  height: 2rem;
+  border-color: transparent;
+  background-color: transparent;
+  font-weight: 500;
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: var(--input);
+    }
+  }
+
+  &:focus-visible {
+    border-color: var(--input);
+  }
+}
+
+.GroupName {
+  flex: 1;
+  font-weight: 500;
+}
+
+.Swatch {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 0.25rem;
+}
+
+.ColorInput {
+  width: 6rem;
+  height: 2rem;
+  font-family: var(--font-mono-stack, var(--font-geist-mono, ui-monospace, monospace));
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+}
+
+.MatchRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  padding-left: 0.25rem;
+}
+
+.MatchLabel {
+  margin-right: 0.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+}
+
+.ModeToggle {
+  display: inline-flex;
+  overflow: hidden;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+}
+
+.ModeOption {
+  padding: 0.125rem 0.5rem;
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.ModeOptionActive {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.ModeOptionIdle {
+  @media (hover: hover) {
+    &:hover {
+      background-color: var(--muted);
+    }
+  }
+}
+
+.TagBadge {
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.BadgeEmoji {
+  margin-right: 0.25rem;
+}
+
+.MatchWarning {
+  margin-left: 0.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  font-style: italic;
+}
+
+/* ---------- General tab ---------- */
+
+.Footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.LogoutButton {
+  margin-right: auto;
+}
+
+.ShortInput {
+  width: 5rem;
+}
+
+/* ---------- Media tab ---------- */
+
+.MediaRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--radius-lg);
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+
+  @media (hover: hover) {
+    &:hover {
+      background-color: color-mix(in oklab, var(--muted) 50%, transparent);
+    }
+  }
+}
+
+.MediaThumb {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 4rem;
+  overflow: hidden;
+  border-radius: 0.25rem;
+  background-color: var(--muted);
+}
+
+.CoverImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.MediaInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- AI styles tab ---------- */
+
+.StyleForm {
+  padding: 1rem;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--muted) 30%, transparent);
+}
+
+.StyleForm > :where(:not(:last-child)) {
+  margin-block-end: 0.75rem;
+}
+
+.FieldLabel {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  font-weight: 500;
+}
+
+.FieldLabelNote {
+  font-weight: 400;
+  opacity: 70%;
+}
+
+.TextField {
+  width: 100%;
+  padding: 0.375rem 0.75rem;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--radius-md);
+  background-color: var(--background);
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+}
+
+.TextArea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--radius-md);
+  background-color: var(--background);
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  resize: none;
+}
+
+.RefGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.RefThumb {
+  position: relative;
+  width: 4rem;
+  height: 4rem;
+  overflow: hidden;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 0.25rem;
+}
+
+.RefRemove {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgb(0 0 0 / 0.5);
+  opacity: 0%;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+@media (hover: hover) {
+  .RefThumb:hover .RefRemove {
+    opacity: 100%;
+  }
+}
+
+.RefAdd {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 4rem;
+  border-width: 2px;
+  border-style: dashed;
+  border-radius: 0.25rem;
+  color: var(--muted-foreground);
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+  }
+
+  &:disabled {
+    opacity: 50%;
+  }
+}
+
+.RefAddLabel {
+  margin-top: 0.125rem;
+  font-size: 10px;
+}
+
+.FormActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.StyleGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.StyleCard {
+  overflow: hidden;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--radius-lg);
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: color-mix(in oklab, var(--primary) 50%, transparent);
+    }
+  }
+}
+
+.StylePreview {
+  position: relative;
+  height: 6rem;
+  overflow: hidden;
+  background-color: color-mix(in oklab, var(--muted) 40%, transparent);
+}
+
+.PreviewImage {
+  object-fit: cover;
+}
+
+.PreviewPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.MoreCount {
+  position: absolute;
+  right: 0.25rem;
+  bottom: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  background-color: rgb(0 0 0 / 0.6);
+  color: #fff;
+  font-size: 10px;
+}
+
+.StyleBody {
+  padding: 0.5rem;
+}
+
+.StylePrompt {
+  overflow: hidden;
+  margin-top: 0.125rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.StyleActions {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.StyleActionEdit {
+  flex: 1;
+  height: 1.75rem;
+  padding-inline: 0.5rem;
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+}
+
+.StyleActionDelete {
+  height: 1.75rem;
+  padding-inline: 0.5rem;
+  color: var(--destructive);
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--destructive);
+    }
+  }
+}
+
+/* ---------- Embed tab ---------- */
+
+.EmbedTitle {
+  margin-bottom: 0.5rem;
+  font-size: 1.125rem;
+  line-height: var(--text-lg--line-height);
+  font-weight: 600;
+}
+
+.EmbedIntro {
+  margin-bottom: 1rem;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+}
+
+.MonoInput {
+  font-family: var(--font-mono-stack, var(--font-geist-mono, ui-monospace, monospace));
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+}
+
+.CodeWrap {
+  position: relative;
+}
+
+.CodeArea {
+  width: 100%;
+  height: 6rem;
+  padding: 0.75rem;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--radius-md);
+  background-color: color-mix(in oklab, var(--muted) 50%, transparent);
+  font-family: var(--font-mono-stack, var(--font-geist-mono, ui-monospace, monospace));
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  resize: none;
+}
+
+.CopyCodeButton {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+}
+
+.PreviewSection {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top-width: 1px;
+  border-top-style: solid;
+}
+
+.PreviewHeading {
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  font-weight: 500;
+}
+
+.PreviewLink {
+  color: var(--primary);
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+
+  @media (hover: hover) {
+    &:hover {
+      text-decoration-line: underline;
+    }
+  }
+}
