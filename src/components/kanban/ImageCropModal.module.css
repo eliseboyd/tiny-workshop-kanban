@@ -8,7 +8,7 @@
 
 .Title {
   font-size: 1rem;
-  line-height: calc(1.5 / 1);
+  line-height: var(--text-base--line-height);
   font-weight: 600;
 }
 
@@ -21,7 +21,7 @@
 
 .PresetsLabel {
   font-size: 0.75rem;
-  line-height: calc(1 / 0.75);
+  line-height: var(--text-xs--line-height);
   color: var(--muted-foreground);
   margin-right: 0.25rem;
 }
@@ -31,7 +31,7 @@
   padding-block: 0.25rem;
   border-radius: var(--radius-md);
   font-size: 0.75rem;
-  line-height: calc(1 / 0.75);
+  line-height: var(--text-xs--line-height);
   font-weight: 500;
   transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
