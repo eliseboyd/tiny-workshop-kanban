@@ -1,0 +1,338 @@
+.Root {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--card);
+  border-radius: var(--radius-lg);
+  border-width: 1px;
+  border-style: solid;
+  box-shadow: var(--shadow-sm);
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.RootDragOver {
+  background-color: color-mix(in oklab, var(--primary) 5%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 50%, transparent), var(--shadow-sm);
+}
+
+/* Header */
+
+.Header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: 1rem;
+  padding-block: 0.75rem;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  cursor: move;
+}
+
+.HeaderTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.HeaderIcon {
+  height: 1rem;
+  width: 1rem;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.Title {
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: calc(1.25 / 0.875);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.CountBadge {
+  font-size: 0.75rem;
+  line-height: calc(1 / 0.75);
+  flex-shrink: 0;
+}
+
+.HeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  opacity: 0;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+@media (hover: hover) {
+  .Header:hover .HeaderActions {
+    opacity: 1;
+  }
+}
+
+.HeaderButton {
+  height: 1.75rem;
+  width: 1.75rem;
+  padding: 0;
+}
+
+.ClearButton {
+  color: var(--muted-foreground);
+}
+
+@media (hover: hover) {
+  .ClearButton:hover {
+    color: var(--destructive);
+  }
+}
+
+.HeaderButtonIcon {
+  height: 0.875rem;
+  width: 0.875rem;
+}
+
+/* Subtitle */
+
+.Subtitle {
+  padding-inline: 1rem;
+  padding-top: 0.5rem;
+}
+
+.Date {
+  font-size: 0.75rem;
+  line-height: calc(1 / 0.75);
+  color: var(--muted-foreground);
+}
+
+/* Empty state */
+
+.Empty {
+  padding: 2rem;
+  text-align: center;
+}
+
+.EmptyIconWrap {
+  color: color-mix(in oklab, var(--muted-foreground) 50%, transparent);
+  margin-bottom: 0.5rem;
+}
+
+.EmptyIcon {
+  height: 3rem;
+  width: 3rem;
+  margin-inline: auto;
+  margin-bottom: 0.75rem;
+  opacity: 0.3;
+}
+
+.EmptyText {
+  font-size: 0.875rem;
+  line-height: calc(1.25 / 0.875);
+  color: var(--muted-foreground);
+}
+
+/* Items */
+
+.List > :where(:not(:last-child)) {
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+
+.Item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-inline: 1rem;
+  padding-block: 0.625rem;
+  cursor: pointer;
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+@media (hover: hover) {
+  .Item:hover {
+    background-color: color-mix(in oklab, var(--muted) 30%, transparent);
+  }
+}
+
+.ItemMain {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.ItemIndex {
+  font-size: 0.75rem;
+  line-height: calc(1 / 0.75);
+  color: var(--muted-foreground);
+  width: 1rem;
+  flex-shrink: 0;
+}
+
+.ItemTitle {
+  font-size: 0.875rem;
+  line-height: calc(1.25 / 0.875);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ItemTitleDone {
+  text-decoration-line: line-through;
+  color: var(--muted-foreground);
+}
+
+.Tags {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.TagBadge {
+  font-size: 9px;
+  height: 1rem;
+  padding-inline: 0.25rem;
+  border-radius: var(--radius-sm);
+}
+
+.RemoveButton {
+  height: 1.5rem;
+  width: 1.5rem;
+  padding: 0;
+  opacity: 0;
+  flex-shrink: 0;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+@media (hover: hover) {
+  .Item:hover .RemoveButton {
+    opacity: 1;
+  }
+}
+
+.RemoveIcon {
+  height: 0.75rem;
+  width: 0.75rem;
+}
+
+/* Search footer */
+
+.Footer {
+  border-top-width: 1px;
+  border-top-style: solid;
+  background-color: color-mix(in oklab, var(--muted) 10%, transparent);
+  padding-inline: 0.75rem;
+  padding-block: 0.5rem;
+  flex-shrink: 0;
+}
+
+.SearchField {
+  position: relative;
+}
+
+.SearchIcon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  translate: 0 -50%;
+  height: 0.875rem;
+  width: 0.875rem;
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+
+.SearchInput {
+  height: 2.25rem;
+  font-size: 0.875rem;
+  line-height: calc(1.25 / 0.875);
+  padding-left: 2.25rem;
+  padding-right: 0.75rem;
+}
+
+.Suggestions {
+  box-shadow: var(--shadow-lg);
+}
+
+.SuggestionsHeading {
+  padding-inline: 0.75rem;
+  padding-block: 0.375rem;
+  font-size: 10px;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  background-color: color-mix(in oklab, var(--muted) 30%, transparent);
+}
+
+.Suggestion {
+  width: 100%;
+  text-align: left;
+  padding-inline: 0.75rem;
+  padding-block: 0.5rem;
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  font-size: 0.875rem;
+  line-height: calc(1.25 / 0.875);
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+
+.Suggestion:last-child {
+  border-bottom-width: 0;
+}
+
+@media (hover: hover) {
+  .Suggestion:hover {
+    background-color: color-mix(in oklab, var(--muted) 50%, transparent);
+  }
+}
+
+.Suggestion[data-highlighted] {
+  background-color: color-mix(in oklab, var(--muted) 50%, transparent);
+  color: currentColor;
+}
+
+.SuggestionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.SuggestionTitle {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.More {
+  padding-inline: 0.75rem;
+  padding-block: 0.5rem;
+  font-size: 0.75rem;
+  line-height: calc(1 / 0.75);
+  color: var(--muted-foreground);
+  text-align: center;
+  border-top-width: 1px;
+  border-top-style: solid;
+}
+
+.NoResults {
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  line-height: calc(1.25 / 0.875);
+  color: var(--muted-foreground);
+  text-align: center;
+}

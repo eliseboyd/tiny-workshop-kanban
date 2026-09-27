@@ -1,0 +1,61 @@
+/* In the `components` layer so call-site classes still win; see button.module.css. */
+@layer components {
+  .Positioner {
+    z-index: 50;
+    outline: none;
+  }
+
+  .Popup {
+    width: var(--anchor-width);
+    max-width: var(--available-width);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background-color: var(--popover);
+    color: var(--popover-foreground);
+    box-shadow: var(--shadow-lg);
+    transform-origin: var(--transform-origin);
+    outline: none;
+    transition:
+      opacity 150ms cubic-bezier(0.4, 0, 0.2, 1),
+      scale 150ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    &[data-starting-style],
+    &[data-ending-style] {
+      opacity: 0;
+      scale: 0.95;
+    }
+  }
+
+  .List {
+    max-height: min(200px, var(--available-height));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    outline: none;
+
+    &[data-empty] {
+      display: none;
+    }
+  }
+
+  .Item {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: calc(1.25 / 0.875);
+    text-align: left;
+    cursor: default;
+    user-select: none;
+    outline: none;
+
+    &[data-highlighted] {
+      background-color: var(--accent);
+      color: var(--accent-foreground);
+    }
+  }
+
+  .Empty:empty {
+    display: none;
+  }
+}
