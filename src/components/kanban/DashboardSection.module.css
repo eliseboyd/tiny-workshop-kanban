@@ -1,0 +1,268 @@
+/* Sortable dashboard tile (tag or project group). */
+.Item {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  border-width: 2px;
+  border-style: solid;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.ItemInteractive {
+  @media (hover: hover) {
+    &:hover {
+      scale: 105% 105%;
+      box-shadow: var(--shadow-lg);
+    }
+  }
+  &:active {
+    scale: 95% 95%;
+  }
+}
+
+.Handle {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 10;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  background-color: color-mix(in oklab, var(--background) 80%, transparent);
+  opacity: 0;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.HandleIcon {
+  width: 1rem;
+  height: 1rem;
+  color: var(--muted-foreground);
+}
+
+.ProjectButton {
+  width: 100%;
+  text-align: left;
+}
+
+.ProjectBody {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 1rem;
+}
+
+.FullWidth {
+  width: 100%;
+}
+
+.ProjectIconWrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.ProjectIcon {
+  border-radius: var(--radius-lg);
+  object-fit: cover;
+}
+
+.ProjectEmoji {
+  font-size: 1.875rem;
+  line-height: var(--text-3xl--line-height);
+}
+
+.ProjectSwatch {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-lg);
+}
+
+.ProjectText {
+  width: 100%;
+  text-align: left;
+}
+
+.ProjectName {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  font-weight: 600;
+}
+
+.ProjectCount {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  color: var(--muted-foreground);
+}
+
+.Overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  pointer-events: none;
+}
+
+@media (hover: hover) {
+  .Item:hover .Handle {
+    opacity: 1;
+  }
+  .Item:hover .ProjectName {
+    text-decoration-line: underline;
+  }
+  .Item:hover .Overlay {
+    opacity: 0.1;
+  }
+}
+
+.TagButton {
+  width: 100%;
+  padding-inline: 1rem;
+  padding-block: 0.75rem;
+  text-align: left;
+}
+
+.TagRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.TagIconWrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.TagIcon {
+  border-radius: 0.25rem;
+  object-fit: cover;
+}
+
+.TagEmoji {
+  font-size: 1.25rem;
+  line-height: var(--text-xl--line-height);
+}
+
+.TagName {
+  flex: 1;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  font-weight: 500;
+}
+
+.TagCount {
+  height: 1.25rem;
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  font-weight: 600;
+}
+
+/* Section */
+.Root {
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  background-image: linear-gradient(
+    to bottom right in oklab,
+    var(--background) 0%,
+    var(--background) 50%,
+    color-mix(in oklab, var(--muted) 20%, transparent) 100%
+  );
+}
+
+.Inner {
+  padding-inline: 1rem;
+  padding-block: 0.75rem;
+}
+
+.Header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-inline: -0.75rem;
+  padding-inline: 0.75rem;
+  padding-block: 0.5rem;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+
+  @media (hover: hover) {
+    &:hover {
+      background-color: color-mix(in oklab, var(--muted) 30%, transparent);
+    }
+  }
+}
+
+.HeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.HeaderTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.HeaderIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--primary);
+}
+
+.HeaderTitle {
+  font-size: 1.125rem;
+  line-height: var(--text-lg--line-height);
+  font-weight: 700;
+}
+
+.Chevron {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--muted-foreground);
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+@media (hover: hover) {
+  .Header:hover .Chevron {
+    color: var(--foreground);
+  }
+}
+
+.Body > :where(:not(:last-child)) {
+  margin-block-start: 0;
+  margin-block-end: 1rem;
+}
+
+.BodyWithHeader {
+  margin-top: 1rem;
+}
+
+.WidgetsDivided {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top-width: 1px;
+  border-top-style: solid;
+}

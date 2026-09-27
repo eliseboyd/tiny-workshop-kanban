@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Archive, Lightbulb, Plus, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import styles from './IdeasView.module.css';
 
 type Tag = {
   name: string;
@@ -77,17 +78,17 @@ export function IdeasView({
   const hasActiveFilters = searchQuery || selectedTags.length > 0;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className={styles.Root}>
       {/* Toolbar */}
-      <div className="flex items-center justify-end gap-2 px-4 py-2 border-b bg-muted/20 flex-wrap">
-        <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
-          <div className="relative w-48 shrink-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+      <div className={styles.Toolbar}>
+        <div className={styles.Filters}>
+          <div className={styles.SearchWrap}>
+            <Search className={styles.SearchIcon} />
             <Input
               placeholder="Search ideas..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-8 text-sm"
+              className={styles.SearchInput}
             />
           </div>
           {hasActiveFilters && (
@@ -96,18 +97,18 @@ export function IdeasView({
               size="sm"
               onClick={() => { setSearchQuery(''); setSelectedTags([]); }}
             >
-              <X className="h-4 w-4 mr-1" /> Clear
+              <X className={styles.ClearIcon} /> Clear
             </Button>
           )}
           {tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 min-w-0 overflow-hidden">
+            <div className={styles.Tags}>
               {tags.map(tag => (
                 <Badge
                   key={tag.name}
                   variant={selectedTags.includes(tag.name) ? 'default' : 'outline'}
                   className={cn(
-                    'cursor-pointer text-xs transition-all hover:scale-105',
-                    selectedTags.includes(tag.name) && 'ring-2 ring-offset-1 ring-offset-background'
+                    styles.Tag,
+                    selectedTags.includes(tag.name) && styles.TagSelected
                   )}
                   style={
                     selectedTags.includes(tag.name)
@@ -122,9 +123,9 @@ export function IdeasView({
                     )
                   }
                 >
-                  {tag.emoji && <span className="mr-0.5">{tag.emoji}</span>}
+                  {tag.emoji && <span className={styles.TagEmoji}>{tag.emoji}</span>}
                   {tag.name}
-                  {selectedTags.includes(tag.name) && <X className="ml-1 h-3 w-3" />}
+                  {selectedTags.includes(tag.name) && <X className={styles.TagRemove} />}
                 </Badge>
               ))}
             </div>
@@ -132,26 +133,26 @@ export function IdeasView({
         </div>
         {onCreateIdea && (
           <Button size="sm" onClick={onCreateIdea}>
-            <Plus className="mr-2 h-4 w-4" /> New Idea
+            <Plus className={styles.NewIcon} /> New Idea
           </Button>
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className={styles.Scroll}>
         {/* Card grid */}
         {filteredIdeas.length === 0 ? (
-          <div className="flex items-center justify-center flex-col gap-3 py-16 text-muted-foreground">
-            <Lightbulb className="h-12 w-12 opacity-20" />
-            <p className="text-sm">
+          <div className={styles.Empty}>
+            <Lightbulb className={styles.EmptyIcon} />
+            <p className={styles.EmptyText}>
               {hasActiveFilters
                 ? 'No ideas match your filters.'
                 : 'No ideas yet. Create one to get started.'}
             </p>
           </div>
         ) : (
-          <div className="flex flex-wrap gap-3 p-4 content-start">
+          <div className={styles.Grid}>
             {filteredIdeas.map(idea => (
-              <div key={idea.id} className="w-60 shrink-0">
+              <div key={idea.id} className={styles.Cell}>
                 <KanbanCard
                   project={idea}
                   onClick={() => onIdeaClick(idea)}
@@ -159,7 +160,7 @@ export function IdeasView({
                   onMoveToColumn={(columnId) => onMoveToKanban(idea.id, columnId)}
                   columns={columns}
                   size="small"
-                  className="h-full"
+                  className={styles.Card}
                 />
               </div>
             ))}
@@ -168,19 +169,19 @@ export function IdeasView({
 
         {/* Archived — ideas and board projects archived from the project modal */}
         {filteredArchived.length > 0 && (
-          <section className="border-t px-4 pt-4 pb-6">
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Archive className="h-4 w-4" /> Archived
-              <span className="text-xs opacity-70">{filteredArchived.length}</span>
+          <section className={styles.Archived}>
+            <h2 className={styles.ArchivedTitle}>
+              <Archive className={styles.ArchivedIcon} /> Archived
+              <span className={styles.ArchivedCount}>{filteredArchived.length}</span>
             </h2>
-            <div className="flex flex-wrap gap-3 content-start opacity-70">
+            <div className={styles.ArchivedGrid}>
               {filteredArchived.map(project => (
-                <div key={project.id} className="w-60 shrink-0">
+                <div key={project.id} className={styles.Cell}>
                   <KanbanCard
                     project={project}
                     onClick={() => onArchivedClick?.(project)}
                     size="small"
-                    className="h-full"
+                    className={styles.Card}
                   />
                 </div>
               ))}

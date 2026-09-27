@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import styles from './ImageCropModal.module.css';
 
 type ImageCropModalProps = {
   imageUrl: string;
@@ -108,22 +109,17 @@ export function ImageCropModal({ imageUrl, isOpen, onClose, onSave, upload }: Im
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl flex flex-col gap-4 p-6">
-        <DialogTitle className="text-base font-semibold">Crop Cover Image</DialogTitle>
+      <DialogContent className={styles.Content}>
+        <DialogTitle className={styles.Title}>Crop Cover Image</DialogTitle>
 
         {/* Aspect ratio presets */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-muted-foreground mr-1">Ratio:</span>
+        <div className={styles.Presets}>
+          <span className={styles.PresetsLabel}>Ratio:</span>
           {ASPECT_PRESETS.map((preset) => (
             <button
               key={preset.label}
               onClick={() => handleAspectChange(preset.value)}
-              className={cn(
-                'px-3 py-1 rounded-md text-xs font-medium transition-colors border',
-                aspect === preset.value
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-background hover:bg-muted border-border text-foreground'
-              )}
+              className={cn(styles.Preset, aspect === preset.value && styles.PresetActive)}
             >
               {preset.label}
             </button>
@@ -131,7 +127,7 @@ export function ImageCropModal({ imageUrl, isOpen, onClose, onSave, upload }: Im
         </div>
 
         {/* Crop area */}
-        <div className="flex justify-center overflow-auto max-h-[55vh] rounded-lg bg-muted/30">
+        <div className={styles.CropArea}>
           <ReactCrop
             crop={crop}
             onChange={(c) => setCrop(c)}
@@ -153,7 +149,7 @@ export function ImageCropModal({ imageUrl, isOpen, onClose, onSave, upload }: Im
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-2">
+        <div className={styles.Actions}>
           <Button variant="outline" size="sm" onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>
@@ -163,7 +159,7 @@ export function ImageCropModal({ imageUrl, isOpen, onClose, onSave, upload }: Im
             disabled={isSaving || !completedCrop}
           >
             {isSaving ? (
-              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>
+              <><Loader2 className={styles.Spinner} />Saving…</>
             ) : (
               'Save Crop'
             )}
