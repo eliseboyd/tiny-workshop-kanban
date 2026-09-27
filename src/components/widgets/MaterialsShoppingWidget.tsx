@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ScrollFade } from './ScrollFade';
 import { useDragHandle } from './WidgetsSection';
 import { isInProjectGroup } from '@/lib/project-groups';
+import styles from './MaterialsShoppingWidget.module.css';
 
 // Helper to render text with clickable links
 function renderTextWithLinks(text: string) {
@@ -25,10 +26,10 @@ function renderTextWithLinks(text: string) {
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="text-primary hover:underline inline-flex items-center gap-0.5"
+          className={styles.Link}
         >
           {part.length > 40 ? part.slice(0, 40) + '...' : part}
-          <ExternalLink className="h-3 w-3 inline flex-shrink-0" />
+          <ExternalLink className={styles.LinkIcon} />
         </a>
       );
     }
@@ -336,54 +337,51 @@ export function MaterialsShoppingWidget({
   };
 
   return (
-    <div className="rounded-xl border bg-card shadow-sm overflow-hidden group flex flex-col h-full">
+    <div className={styles.Root}>
       {/* Header - draggable */}
       <div 
-        className="px-4 py-3 border-b bg-gradient-to-r from-amber-500/10 to-orange-500/10 flex-shrink-0 cursor-grab active:cursor-grabbing"
+        className={styles.Header}
         {...dragListeners}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShoppingCart className="h-4 w-4 text-amber-600" />
-            <h3 className="font-semibold text-sm">{widget.title}</h3>
+        <div className={styles.HeaderRow}>
+          <div className={styles.TitleGroup}>
+            <ShoppingCart className={styles.CartIcon} />
+            <h3 className={styles.Title}>{widget.title}</h3>
           </div>
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            className={styles.SettingsButton}
             onClick={onEdit}
             title="Widget settings"
           >
-            <Settings2 className="h-3.5 w-3.5" />
+            <Settings2 className={styles.SettingsIcon} />
           </Button>
         </div>
         {filterDescription && (
-          <p className="text-xs text-muted-foreground mt-1">{filterDescription}</p>
+          <p className={styles.Subtitle}>{filterDescription}</p>
         )}
       </div>
 
       {/* Items List */}
       <ScrollFade>
         {displayItems.length === 0 ? (
-          <div className="p-4 text-center text-muted-foreground">
-            <p className="text-sm">Nothing to get</p>
+          <div className={styles.Empty}>
+            <p className={styles.EmptyText}>Nothing to get</p>
           </div>
         ) : (
-          <ul className="divide-y">
+          <ul className={styles.List}>
             {displayItems.map(item => (
               <li
                 key={item.id}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 hover:bg-muted/30 transition-colors group/item",
-                  !item.projectTitle && "border-l-2 border-amber-500/30"
-                )}
+                className={cn(styles.Item, !item.projectTitle && styles.Standalone)}
               >
                 <button
-                  className="flex-shrink-0 focus:outline-none"
+                  className={styles.CheckButton}
                   onClick={(e) => handleCheckOff(item, e)}
                   title="Mark as owned"
                 >
-                  <Circle className="h-4 w-4 text-muted-foreground hover:text-amber-600 transition-colors" />
+                  <Circle className={styles.CheckIcon} />
                 </button>
 
                 {editingId === item.id ? (
@@ -394,12 +392,12 @@ export function MaterialsShoppingWidget({
                     onKeyDown={(e) => handleKeyDown(e, item)}
                     onBlur={() => handleSaveEdit(item)}
                     autoFocus
-                    className="flex-1 text-sm bg-transparent border-none outline-none focus:ring-0 p-0"
+                    className={styles.EditInput}
                   />
                 ) : (
-                  <div className="flex-1 min-w-0">
+                  <div className={styles.ItemBody}>
                     <span
-                      className="text-sm block break-words cursor-pointer"
+                      className={styles.ItemText}
                       onDoubleClick={(e) => handleStartEdit(item, e)}
                     >
                       {renderTextWithLinks(item.text)}
@@ -407,29 +405,29 @@ export function MaterialsShoppingWidget({
                     {item.projectTitle && (
                       <button
                         onClick={() => handleOpenProject(item)}
-                        className="text-xs text-muted-foreground hover:text-primary hover:underline truncate flex items-center gap-1 text-left"
+                        className={styles.ProjectLink}
                       >
-                        <Link2 className="h-2.5 w-2.5 flex-shrink-0" />
+                        <Link2 className={styles.ProjectLinkIcon} />
                         {item.projectTitle}
                       </button>
                     )}
                   </div>
                 )}
 
-                <div className="flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity flex-shrink-0">
+                <div className={styles.ItemActions}>
                   <button
                     onClick={(e) => handleStartEdit(item, e)}
-                    className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+                    className={styles.EditButton}
                     title="Edit"
                   >
-                    <Pencil className="h-3 w-3" />
+                    <Pencil className={styles.ActionIcon} />
                   </button>
                   <button
                     onClick={(e) => handleDeleteItem(item, e)}
-                    className="p-1 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive"
+                    className={styles.DeleteButton}
                     title="Delete"
                   >
-                    <Trash2 className="h-3 w-3" />
+                    <Trash2 className={styles.ActionIcon} />
                   </button>
                 </div>
               </li>
@@ -439,9 +437,9 @@ export function MaterialsShoppingWidget({
       </ScrollFade>
 
       {/* Add Item Input */}
-      <div className="border-t bg-muted/10 px-3 py-2 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <Plus className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+      <div className={styles.AddBar}>
+        <div className={styles.AddRow}>
+          <Plus className={styles.AddIcon} />
           <input
             ref={inputRef}
             type="text"
@@ -449,7 +447,7 @@ export function MaterialsShoppingWidget({
             onChange={(e) => setNewItemText(e.target.value)}
             onKeyDown={(e) => handleKeyDown(e)}
             placeholder="Add an item..."
-            className="flex-1 text-sm bg-transparent border-none outline-none focus:ring-0 placeholder:text-muted-foreground/50"
+            className={styles.AddInput}
           />
         </div>
       </div>

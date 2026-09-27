@@ -9,6 +9,7 @@ import type { Project } from '@/components/kanban/KanbanBoard';
 import { ScrollFade } from './ScrollFade';
 import { useDragHandle } from './WidgetsSection';
 import { isInProjectGroup } from '@/lib/project-groups';
+import styles from './ToDoListWidget.module.css';
 
 type Tag = {
   name: string;
@@ -124,41 +125,41 @@ export function ToDoListWidget({
   };
 
   return (
-    <div className="rounded-xl border bg-card shadow-sm overflow-hidden group flex flex-col h-full">
+    <div className={styles.Root}>
       {/* Header - draggable */}
       <div 
-        className="px-4 py-3 border-b bg-muted/30 flex-shrink-0 cursor-grab active:cursor-grabbing"
+        className={styles.Header}
         {...dragListeners}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className={styles.HeaderRow}>
+          <div className={styles.TitleGroup}>
             {filterMeta && (
               <>
                 {('emoji' in filterMeta && filterMeta.emoji) ? (
-                  <span className="text-lg">{filterMeta.emoji}</span>
+                  <span className={styles.Emoji}>{filterMeta.emoji}</span>
                 ) : (
                   <div 
-                    className="w-3 h-3 rounded-full" 
+                    className={styles.Swatch} 
                     style={{ backgroundColor: filterMeta.color }}
                   />
                 )}
               </>
             )}
-            <h3 className="font-semibold text-sm">{widget.title}</h3>
+            <h3 className={styles.Title}>{widget.title}</h3>
           </div>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className={styles.HeaderActions}>
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 w-7 p-0"
+              className={styles.IconButton}
               onClick={onEdit}
               title="Widget settings"
             >
-              <Settings2 className="h-3.5 w-3.5" />
+              <Settings2 className={styles.ButtonIcon} />
             </Button>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className={styles.Subtitle}>
           {widget.config.filterType === 'all' 
             ? 'All projects' 
             : filterMeta
@@ -173,40 +174,34 @@ export function ToDoListWidget({
       {/* Items */}
       <ScrollFade>
         {displayProjects.length === 0 ? (
-          <div className="p-4 text-center text-muted-foreground text-sm">
+          <div className={styles.Empty}>
             No tasks found
           </div>
         ) : (
-          <ul className="divide-y">
+          <ul className={styles.List}>
             {displayProjects.map(project => (
               <li 
                 key={project.id} 
-                className={cn(
-                  "flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors cursor-pointer group/item",
-                  isProjectDone(project) && "bg-muted/20"
-                )}
+                className={cn(styles.Item, isProjectDone(project) && styles.ItemDone)}
                 onClick={() => handleProjectClick(project)}
               >
                 <button
-                  className="flex-shrink-0 focus:outline-none"
+                  className={styles.Toggle}
                   onClick={(e) => handleToggleComplete(project, e)}
                 >
                   {isProjectDone(project) ? (
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                    <CheckCircle2 className={styles.DoneIcon} />
                   ) : (
-                    <Circle className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                    <Circle className={styles.CircleIcon} />
                   )}
                 </button>
-                <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                  <FolderKanban className="h-3 w-3 text-muted-foreground/50 flex-shrink-0" />
-                  <span className={cn(
-                    "text-sm truncate",
-                    isProjectDone(project) && "line-through text-muted-foreground"
-                  )}>
+                <div className={styles.Label}>
+                  <FolderKanban className={styles.FolderIcon} />
+                  <span className={cn(styles.ItemTitle, isProjectDone(project) && styles.ItemTitleDone)}>
                     {project.title}
                   </span>
                 </div>
-                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover/item:opacity-100 transition-opacity flex-shrink-0" />
+                <ExternalLink className={styles.OpenIcon} />
               </li>
             ))}
           </ul>

@@ -1,0 +1,75 @@
+.Root {
+  position: relative;
+  min-height: 0;
+  flex: 1;
+}
+
+.Fade {
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 10;
+  opacity: 0%;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+.TopFade {
+  top: 0;
+  height: 1.5rem;
+  background-image: linear-gradient(to bottom in oklab, var(--card) 0%, transparent 100%);
+}
+
+.BottomFade {
+  bottom: 0;
+  display: flex;
+  height: 2rem;
+  align-items: flex-end;
+  justify-content: center;
+  background-image: linear-gradient(
+    to top in oklab,
+    var(--card) 0%,
+    color-mix(in oklab, var(--card) 80%, transparent) 50%,
+    transparent 100%
+  );
+  padding-bottom: 0.25rem;
+}
+
+.Visible {
+  opacity: 100%;
+}
+
+.Scroller {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.Hint {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 10px;
+  font-weight: 500;
+  color: color-mix(in oklab, var(--muted-foreground) 60%, transparent);
+}
+
+.HintIcon {
+  height: 0.75rem;
+  width: 0.75rem;
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(-25%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+
+  50% {
+    transform: none;
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}

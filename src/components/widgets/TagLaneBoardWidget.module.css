@@ -1,0 +1,351 @@
+/* ProjectThumbCard */
+
+.Card {
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border-style: solid;
+  border-width: 1px;
+  background-color: var(--card);
+  text-align: left;
+  box-shadow: var(--shadow-sm);
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+@media (hover: hover) {
+  .Card:hover {
+    border-color: color-mix(in oklab, var(--primary) 40%, transparent);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.Card:focus-visible {
+  outline-style: none;
+  box-shadow: 0 0 0 2px var(--ring), var(--shadow-sm);
+}
+
+@media (hover: hover) {
+  .Card:hover:focus-visible {
+    box-shadow: 0 0 0 2px var(--ring), var(--shadow-md);
+  }
+}
+
+.Media {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background-color: color-mix(in oklab, var(--muted) 40%, transparent);
+  aspect-ratio: 16 / 9;
+}
+
+.MediaCompact {
+  aspect-ratio: 2 / 1;
+}
+
+.Image {
+  object-fit: cover;
+}
+
+.Pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.12;
+  background-size: 12px 12px;
+  background-image:
+    linear-gradient(45deg, transparent 45%, currentColor 45%, currentColor 55%, transparent 55%),
+    linear-gradient(-45deg, transparent 45%, currentColor 45%, currentColor 55%, transparent 55%);
+}
+
+.Body {
+  padding: 0.5rem;
+}
+
+.Body > :where(:not(:last-child)) {
+  margin-block-end: 0.25rem;
+}
+
+.BodyCompact {
+  padding: 0.375rem;
+}
+
+.TitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ThumbTitle {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.ThumbTitleCompact {
+  font-size: 11px;
+}
+
+.KindIcon {
+  margin-top: 0.125rem;
+  height: 0.75rem;
+  width: 0.75rem;
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+
+.LaneBadge {
+  height: 1.25rem;
+  padding-inline: 0.375rem;
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.LaneBadgeCompact {
+  height: 1rem;
+  font-size: 9px;
+}
+
+/* TagLaneBoardWidget */
+
+.Root {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  border-style: solid;
+  border-width: 1px;
+  background-color: var(--card);
+  box-shadow: var(--shadow-sm);
+}
+
+.AccentBar {
+  width: 3px;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+.Main {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.Header {
+  flex-shrink: 0;
+  cursor: grab;
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  background-color: color-mix(in oklab, var(--muted) 30%, transparent);
+  padding-inline: 1rem;
+  padding-block: 0.75rem;
+}
+
+.Header:active {
+  cursor: grabbing;
+}
+
+.HeaderRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.HeaderLead {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.Emoji {
+  flex-shrink: 0;
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.AccentIcon {
+  margin-top: 0.125rem;
+  height: 1.25rem;
+  width: 1.25rem;
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+
+.HeaderText {
+  min-width: 0;
+}
+
+.TitleLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.Title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  line-height: calc(1.25 / 0.875);
+  font-weight: 600;
+}
+
+.CountBadge {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  line-height: calc(1 / 0.75);
+}
+
+.Subtitle {
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  line-height: calc(1 / 0.75);
+  color: var(--muted-foreground);
+}
+
+.SubtitleTruncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.SettingsButton {
+  height: 1.75rem;
+  width: 1.75rem;
+  flex-shrink: 0;
+  padding: 0;
+  opacity: 0%;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+@media (hover: hover) {
+  .Root:hover .SettingsButton {
+    opacity: 100%;
+  }
+}
+
+.SettingsIcon {
+  height: 0.875rem;
+  width: 0.875rem;
+}
+
+.Note {
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+
+.NoteIcon {
+  height: 0.75rem;
+  width: 0.75rem;
+  flex-shrink: 0;
+}
+
+.Content {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.NoLanes {
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  line-height: calc(1.25 / 0.875);
+  color: var(--muted-foreground);
+}
+
+.Lanes {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
+}
+
+.Lanes > :where(:not(:last-child)) {
+  border-inline-style: solid;
+  border-inline-start-width: 0;
+  border-inline-end-width: 1px;
+}
+
+.Lane {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.LaneHeader {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  background-color: color-mix(in oklab, var(--muted) 20%, transparent);
+  padding-inline: 0.5rem;
+  padding-block: 0.375rem;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+
+.LaneScroll {
+  min-height: 0;
+  flex: 1;
+}
+
+.LaneList {
+  padding: 0.5rem;
+}
+
+.LaneList > :where(:not(:last-child)) {
+  margin-block-end: 0.5rem;
+}
+
+.LaneEmpty {
+  padding-block: 1rem;
+  text-align: center;
+  font-size: 0.75rem;
+  line-height: calc(1 / 0.75);
+  color: var(--muted-foreground);
+}
+
+.NoItems {
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  line-height: calc(1.25 / 0.875);
+  color: var(--muted-foreground);
+}
+
+.Grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+@media (min-width: 40rem) {
+  .Grid {
+    gap: 0.75rem;
+  }
+}

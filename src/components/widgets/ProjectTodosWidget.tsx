@@ -8,6 +8,7 @@ import { updateProject, moveProjectFromDoneIfNeeded } from '@/app/actions';
 import type { Project } from '@/components/kanban/KanbanBoard';
 import { ScrollFade } from './ScrollFade';
 import { useDragHandle } from './WidgetsSection';
+import styles from './ProjectTodosWidget.module.css';
 
 type ProjectTodosWidgetProps = {
   widget: {
@@ -308,51 +309,51 @@ export function ProjectTodosWidget({
 
   if (!project) {
     return (
-      <div className="rounded-xl border bg-card shadow-sm overflow-hidden group">
-        <div className="px-4 py-3 border-b bg-muted/30 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ListChecks className="h-4 w-4 text-violet-600" />
-            <h3 className="font-semibold text-sm">{widget.title}</h3>
+      <div className={styles.Card}>
+        <div className={styles.NotFoundHeader}>
+          <div className={styles.TitleGroup}>
+            <ListChecks className={styles.TitleIcon} />
+            <h3 className={styles.Title}>{widget.title}</h3>
           </div>
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onEdit}>
-            <Settings2 className="h-3.5 w-3.5" />
+          <Button variant="ghost" size="sm" className={styles.IconButton} onClick={onEdit}>
+            <Settings2 className={styles.ButtonIcon} />
           </Button>
         </div>
-        <div className="p-6 text-center text-muted-foreground">
-          <p className="text-sm">Project not found</p>
+        <div className={styles.NotFound}>
+          <p className={styles.Message}>Project not found</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border bg-card shadow-sm overflow-hidden group flex flex-col h-full">
+    <div className={cn(styles.Card, styles.Fill)}>
       {/* Header - draggable */}
       <div 
-        className="px-4 py-3 border-b bg-gradient-to-r from-violet-500/10 to-purple-500/10 flex-shrink-0 cursor-grab active:cursor-grabbing"
+        className={styles.Header}
         {...dragListeners}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            <ListChecks className="h-4 w-4 text-violet-600 flex-shrink-0" />
-            <h3 className="font-semibold text-sm truncate">{widget.title}</h3>
+        <div className={styles.HeaderRow}>
+          <div className={styles.HeaderTitleGroup}>
+            <ListChecks className={styles.HeaderIcon} />
+            <h3 className={styles.HeaderTitle}>{widget.title}</h3>
           </div>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className={styles.HeaderActions}>
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 w-7 p-0"
+              className={styles.IconButton}
               onClick={() => handleProjectClick(project)}
               title="Open project"
             >
-              <ExternalLink className="h-3.5 w-3.5" />
+              <ExternalLink className={styles.ButtonIcon} />
             </Button>
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onEdit} title="Widget settings">
-              <Settings2 className="h-3.5 w-3.5" />
+            <Button variant="ghost" size="sm" className={styles.IconButton} onClick={onEdit} title="Widget settings">
+              <Settings2 className={styles.ButtonIcon} />
             </Button>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-1 truncate">
+        <p className={styles.Subtitle}>
           Tasks from &quot;{project.title}&quot;
         </p>
       </div>
@@ -360,8 +361,8 @@ export function ProjectTodosWidget({
       {/* Items */}
       <ScrollFade>
         {displayTodos.length === 0 && !newTodoText ? (
-          <div className="p-4 text-center text-muted-foreground">
-            <p className="text-sm">
+          <div className={styles.Empty}>
+            <p className={styles.Message}>
               {allTodos.length === 0 
                 ? 'No tasks yet' 
                 : 'All tasks completed!'
@@ -369,23 +370,20 @@ export function ProjectTodosWidget({
             </p>
           </div>
         ) : (
-          <ul className="divide-y">
+          <ul className={styles.List}>
             {displayTodos.map((todo, idx) => (
               <li 
                 key={`${todo.index}-${idx}`}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 hover:bg-muted/30 transition-colors group/item",
-                  todo.checked && "bg-muted/20"
-                )}
+                className={cn(styles.Item, todo.checked && styles.ItemChecked)}
               >
                 <button 
-                  className="flex-shrink-0 focus:outline-none"
+                  className={styles.Toggle}
                   onClick={(e) => handleToggleTodo(todo, e)}
                 >
                   {todo.checked ? (
-                    <Check className="h-4 w-4 text-violet-600" />
+                    <Check className={styles.CheckIcon} />
                   ) : (
-                    <Circle className="h-4 w-4 text-muted-foreground hover:text-violet-600 transition-colors" />
+                    <Circle className={styles.CircleIcon} />
                   )}
                 </button>
                 
@@ -397,34 +395,31 @@ export function ProjectTodosWidget({
                     onKeyDown={(e) => handleKeyDown(e, todo)}
                     onBlur={() => handleSaveEdit(todo)}
                     autoFocus
-                    className="flex-1 text-sm bg-transparent border-none outline-none focus:ring-0 p-0"
+                    className={styles.EditInput}
                   />
                 ) : (
                   <span 
-                    className={cn(
-                      "flex-1 text-sm cursor-pointer",
-                      todo.checked && "line-through text-muted-foreground"
-                    )}
+                    className={cn(styles.ItemText, todo.checked && styles.ItemTextChecked)}
                     onDoubleClick={(e) => handleStartEdit(todo, e)}
                   >
                     {todo.text}
                   </span>
                 )}
                 
-                <div className="flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                <div className={styles.ItemActions}>
                   <button
                     onClick={(e) => handleStartEdit(todo, e)}
-                    className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+                    className={styles.EditButton}
                     title="Edit"
                   >
-                    <Pencil className="h-3 w-3" />
+                    <Pencil className={styles.ActionIcon} />
                   </button>
                   <button
                     onClick={(e) => handleDeleteTodo(todo, e)}
-                    className="p-1 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive"
+                    className={styles.DeleteButton}
                     title="Delete"
                   >
-                    <X className="h-3 w-3" />
+                    <X className={styles.ActionIcon} />
                   </button>
                 </div>
               </li>
@@ -434,9 +429,9 @@ export function ProjectTodosWidget({
       </ScrollFade>
 
       {/* Add Todo Input */}
-      <div className="border-t bg-muted/10 px-3 py-2 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <Plus className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+      <div className={styles.AddBar}>
+        <div className={styles.AddRow}>
+          <Plus className={styles.AddIcon} />
           <input
             ref={inputRef}
             type="text"
@@ -444,7 +439,7 @@ export function ProjectTodosWidget({
             onChange={(e) => setNewTodoText(e.target.value)}
             onKeyDown={(e) => handleKeyDown(e)}
             placeholder="Add a task..."
-            className="flex-1 text-sm bg-transparent border-none outline-none focus:ring-0 placeholder:text-muted-foreground/50"
+            className={styles.AddInput}
           />
         </div>
       </div>

@@ -11,6 +11,7 @@ import { useDragHandle } from './WidgetsSection';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { isInProjectGroup } from '@/lib/project-groups';
+import styles from './ActiveProjectsWidget.module.css';
 
 type Tag = {
   name: string;
@@ -142,32 +143,32 @@ export function ActiveProjectsWidget({
   };
 
   return (
-    <div className="rounded-xl border bg-card shadow-sm overflow-hidden group flex flex-col h-full">
+    <div className={styles.Root}>
       {/* Header - draggable */}
       <div 
-        className="px-4 py-3 border-b bg-muted/30 flex-shrink-0 cursor-grab active:cursor-grabbing"
+        className={styles.Header}
         {...dragListeners}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-sm">{widget.title}</h3>
-            <Badge variant="secondary" className="text-xs">
+        <div className={styles.HeaderRow}>
+          <div className={styles.TitleGroup}>
+            <h3 className={styles.Title}>{widget.title}</h3>
+            <Badge variant="secondary" className={styles.CountBadge}>
               {displayProjects.length}
             </Badge>
           </div>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className={styles.Actions}>
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 w-7 p-0"
+              className={styles.SettingsButton}
               onClick={onEdit}
               title="Widget settings"
             >
-              <Settings2 className="h-3.5 w-3.5" />
+              <Settings2 className={styles.SettingsIcon} />
             </Button>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className={styles.Subtitle}>
           {widget.config.showType === 'all' && 'All active items'}
           {widget.config.showType === 'projects' && 'Active projects only'}
           {widget.config.showType === 'tasks' && 'Active tasks only'}
@@ -175,11 +176,11 @@ export function ActiveProjectsWidget({
       </div>
 
       {/* Filters & Sort */}
-      <div className="px-4 py-2 border-b bg-muted/10 flex items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-1 flex-1 min-w-[150px]">
-          <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+      <div className={styles.Toolbar}>
+        <div className={styles.FilterGroup}>
+          <Filter className={styles.ToolbarIcon} />
           <Select value={filterType} onValueChange={handleFilterTypeChange}>
-            <SelectTrigger className="text-xs border-none shadow-none">
+            <SelectTrigger className={cn(styles.Trigger, styles.PlainTrigger)}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -190,14 +191,14 @@ export function ActiveProjectsWidget({
           </Select>
           {filterType === 'tag' && (
             <Select value={filterBy} onValueChange={setFilterBy}>
-              <SelectTrigger className="text-xs">
+              <SelectTrigger className={styles.Trigger}>
                 <SelectValue placeholder="Select tag" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Tags</SelectItem>
                 {tags.map(tag => (
                   <SelectItem key={tag.name} value={tag.name}>
-                    <div className="flex items-center gap-2">
+                    <div className={styles.OptionRow}>
                       {tag.emoji && <span>{tag.emoji}</span>}
                       <span>{tag.name}</span>
                     </div>
@@ -208,14 +209,14 @@ export function ActiveProjectsWidget({
           )}
           {filterType === 'group' && (
             <Select value={filterBy} onValueChange={setFilterBy}>
-              <SelectTrigger className="text-xs">
+              <SelectTrigger className={styles.Trigger}>
                 <SelectValue placeholder="Select group" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Groups</SelectItem>
                 {projectGroups.map(group => (
                   <SelectItem key={group.id} value={group.id}>
-                    <div className="flex items-center gap-2">
+                    <div className={styles.OptionRow}>
                       {group.emoji && <span>{group.emoji}</span>}
                       <span>{group.name}</span>
                     </div>
@@ -225,10 +226,10 @@ export function ActiveProjectsWidget({
             </Select>
           )}
         </div>
-        <div className="flex items-center gap-1">
-          <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+        <div className={styles.SortGroup}>
+          <ArrowUpDown className={styles.ToolbarIcon} />
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-            <SelectTrigger className="text-xs">
+            <SelectTrigger className={styles.Trigger}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -244,11 +245,11 @@ export function ActiveProjectsWidget({
       {/* Items */}
       <ScrollFade>
         {displayProjects.length === 0 ? (
-          <div className="p-4 text-center text-muted-foreground text-sm">
+          <div className={styles.Empty}>
             No active {widget.config.showType === 'all' ? 'items' : widget.config.showType} found
           </div>
         ) : (
-          <ul className="divide-y">
+          <ul className={styles.List}>
             {displayProjects.map(project => {
               const column = columns.find(c => c.id === project.status);
               const projectGroup = projectGroups.find(g => isInProjectGroup(project.tags, g)) ?? null;
@@ -256,32 +257,32 @@ export function ActiveProjectsWidget({
               return (
                 <li 
                   key={project.id} 
-                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors cursor-pointer group/item"
+                  className={styles.Item}
                   onClick={() => handleProjectClick(project)}
                 >
-                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                  <div className={styles.ItemMain}>
                     {project.isTask ? (
-                      <ListTodo className="h-3.5 w-3.5 text-blue-600/60 flex-shrink-0" />
+                      <ListTodo className={styles.TaskIcon} />
                     ) : (
-                      <FolderKanban className="h-3.5 w-3.5 text-muted-foreground/50 flex-shrink-0" />
+                      <FolderKanban className={styles.ProjectIcon} />
                     )}
-                    <span className="text-sm truncate font-medium">
+                    <span className={styles.ItemTitle}>
                       {project.title}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className={styles.ItemMeta}>
                     {projectGroup && (
-                      <Badge variant="outline" className="text-xs h-5 px-1.5">
-                        {projectGroup.emoji && <span className="mr-1">{projectGroup.emoji}</span>}
+                      <Badge variant="outline" className={styles.ItemBadge}>
+                        {projectGroup.emoji && <span className={styles.GroupEmoji}>{projectGroup.emoji}</span>}
                         {projectGroup.name}
                       </Badge>
                     )}
                     {column && (
-                      <Badge variant="secondary" className="text-xs h-5 px-1.5">
+                      <Badge variant="secondary" className={styles.ItemBadge}>
                         {column.title}
                       </Badge>
                     )}
-                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover/item:opacity-100 transition-opacity" />
+                    <ExternalLink className={styles.OpenIcon} />
                   </div>
                 </li>
               );
