@@ -4,6 +4,23 @@
 
 /* Theme tokens live in @eliseboyd/design (imported above). */
 
+/*
+ * Text-size line-heights as ratios, for CSS Modules (MER-52). Same values as
+ * Tailwind's theme. Keep them in custom properties: Lightning CSS would
+ * minify a literal `calc(1 / 0.75)` to 1.33333, which puts 12px text on a
+ * 15.99996px line box and drifts by up to half a pixel next to monospace.
+ */
+:root {
+  --text-xs--line-height: calc(1 / 0.75);
+  --text-sm--line-height: calc(1.25 / 0.875);
+  --text-base--line-height: calc(1.5 / 1);
+  --text-lg--line-height: calc(1.75 / 1.125);
+  --text-xl--line-height: calc(1.75 / 1.25);
+  --text-2xl--line-height: calc(2 / 1.5);
+  --text-3xl--line-height: calc(2.25 / 1.875);
+  --text-4xl--line-height: calc(2.5 / 2.25);
+}
+
 /* Dotted background utility */
 .bg-dots {
   background-image: radial-gradient(var(--muted-foreground) 1px, transparent 1px);
