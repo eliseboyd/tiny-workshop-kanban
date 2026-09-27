@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useMemo, useTransition, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   DragStartEvent,
   DragOverEvent,
@@ -34,9 +33,11 @@ const IdeasView = dynamic(() => import('./IdeasView').then(m => ({ default: m.Id
 // Modals are interaction-gated — splitting them keeps ProjectEditor (~2.7k
 // lines) and SettingsModal out of the initial board chunk. Their chunks are
 // prefetched on idle after first paint (see effect below) so first open is
-// still instant in practice.
-const ProjectModal = dynamic(() => import('./ProjectModal').then(m => ({ default: m.ProjectModal })));
-const SettingsModal = dynamic(() => import('./SettingsModal').then(m => ({ default: m.SettingsModal })));
+// still instant in practice. The `loading` option is what gives each one its
+// own Suspense boundary: without it, a first open suspends up to app/loading.tsx
+// and the whole board flashes to the skeleton.
+const ProjectModal = dynamic(() => import('./ProjectModal').then(m => ({ default: m.ProjectModal })), { loading: () => null });
+const SettingsModal = dynamic(() => import('./SettingsModal').then(m => ({ default: m.SettingsModal })), { loading: () => null });
 import { Button } from '@/components/ui/button';
 import { Plus, Settings, KanbanSquareDashed } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/use-local-storage';
@@ -155,7 +156,6 @@ const VIEWS: { id: BoardView; label: string; icon: ReactNode }[] = [
 ];
 
 export function KanbanBoard({ initialProjects, initialSettings, initialColumns, initialIdeas = [], initialTags = [], initialProjectGroups = [], initialWidgets = [], initialMaterials = [], initialPlans = [] }: KanbanBoardProps) {
-  const router = useRouter();
   const confirmDialog = useConfirm();
   
   // Hasmounted state to prevent hydration errors
@@ -649,7 +649,6 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
   const handleCreateColumn = async () => {
       // Create with a default title; user can rename via the inline-edit title.
       await createColumn('New Column');
-      router.refresh();
   };
 
   const handleDeleteColumn = async (id: string) => {
@@ -1104,7 +1103,6 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
             // Tags, groups and settings may have changed; pull the board's
             // client copies and the server-rendered projects back in line.
             loadTagsAndGroups();
-            router.refresh();
           }}
         />
       )}

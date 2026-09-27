@@ -12,7 +12,7 @@ import dynamic from 'next/dynamic';
 import { updateProjectStatus, updateColumnOrder, toggleProjectPinned } from '@/app/actions';
 
 // Interaction-gated — keep ProjectEditor out of the embed's initial chunk.
-const ProjectModal = dynamic(() => import('./ProjectModal').then(m => ({ default: m.ProjectModal })));
+const ProjectModal = dynamic(() => import('./ProjectModal').then(m => ({ default: m.ProjectModal })), { loading: () => null });
 import { ClientDndWrapper } from './ClientDndWrapper';
 import { Project, Column, SettingsData } from './KanbanBoard';
 import { v4 as uuidv4 } from 'uuid';

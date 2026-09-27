@@ -12,14 +12,13 @@ import { TagLaneBoardWidget } from './TagLaneBoardWidget';
 import dynamic from 'next/dynamic';
 
 // Interaction-gated (885 lines) — split out of the dashboard chunk.
-const AddWidgetDialog = dynamic(() => import('./AddWidgetDialog').then(m => ({ default: m.AddWidgetDialog })));
+const AddWidgetDialog = dynamic(() => import('./AddWidgetDialog').then(m => ({ default: m.AddWidgetDialog })), { loading: () => null });
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import { updateWidget, reorderWidgets } from '@/app/actions';
 import type { MerlinLocation } from '@/types/locations';
-import { useRouter } from 'next/navigation';
 import type { Project } from '@/components/kanban/KanbanBoard';
 
 // Context for passing drag listeners to widget headers
@@ -217,7 +216,6 @@ export function WidgetsSection({
   locations = [],
   currentLocationKey = null,
 }: WidgetsSectionProps) {
-  const router = useRouter();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingWidget, setEditingWidget] = useState<Widget | null>(null);
   const [localWidgets, setLocalWidgets] = useState<Widget[]>(widgets);
@@ -266,7 +264,6 @@ export function WidgetsSection({
         newWidgets.map(w => w.id),
         localWidgets.map(w => w.position).sort((a, b) => a - b)
       );
-      router.refresh();
       onRefresh?.();
     }
   };
@@ -286,7 +283,6 @@ export function WidgetsSection({
     await updateWidget(widgetId, {
       config: { ...widget.config, height: newHeight },
     });
-    router.refresh();
   };
 
   const getHeight = (widget: Widget) => (widget.config?.height as number | undefined) || DEFAULT_HEIGHT;

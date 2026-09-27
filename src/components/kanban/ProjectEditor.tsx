@@ -37,7 +37,7 @@ const PDFViewer = dynamic(() => import('@/components/ui/pdf-viewer').then(mod =>
 });
 
 // Code-split react-image-crop — only mounts when the user starts a crop.
-const ImageCropModal = dynamic(() => import('./ImageCropModal').then(mod => ({ default: mod.ImageCropModal })));
+const ImageCropModal = dynamic(() => import('./ImageCropModal').then(mod => ({ default: mod.ImageCropModal })), { loading: () => null });
 
 // Code-split tiptap (~150KB) — the editor only mounts when a project modal opens.
 const RichTextEditor = dynamic(
@@ -377,7 +377,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
             await moveProjectFromDoneIfNeeded(project.id);
           }
           
-          router.refresh();
           return true;
         } catch (error) {
           console.error('Save failed:', error);
@@ -391,7 +390,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
       saveInProgressRef.current = savePromise;
       await savePromise;
     }, 300);
-  }, [project.id, router]);
+  }, [project.id]);
   
   // Save immediately when component unmounts or page is backgrounded (critical for mobile)
   useEffect(() => {
@@ -542,14 +541,12 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
     const tagsData = await getAllTags();
     setAllTags(tagsData.map(t => ({ ...t, emoji: t.emoji ?? undefined, icon: t.icon ?? undefined })));
     
-    router.refresh();
   };
   
   const handleRemoveTag = async (tag: string) => {
     const newTags = tags.filter(t => t !== tag);
     setTags(newTags);
     await updateProject(project.id, { tags: newTags });
-    router.refresh();
   };
 
   // Get tag suggestions for autocomplete
@@ -588,7 +585,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
       status: result.status,
       position: result.position,
     });
-    router.refresh();
   };
 
   const handleMoveToIdeas = async () => {
@@ -614,11 +610,9 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
         await updateProject(project.id, { is_task: true });
       }
       setIsIdea(false);
-      router.refresh();
       onClose?.();
     } else {
       await updateProject(project.id, { is_task: type === 'task' });
-      router.refresh();
     }
   };
   
@@ -653,7 +647,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
       await updateProject(project.id, { materialsList: newList });
     }
     
-    router.refresh();
     setMaterialsInput('');
   };
   
@@ -674,7 +667,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
       const newList = [...materialsList, ...newMaterials];
       setMaterialsList(newList);
       await updateProject(project.id, { materialsList: newList });
-      router.refresh();
       setMaterialsInput('');
     }
     // If single line, let default paste behavior work
@@ -686,14 +678,12 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
     );
     setMaterialsList(newList);
     await updateProject(project.id, { materialsList: newList });
-    router.refresh();
   };
   
   const handleDeleteMaterial = async (id: string) => {
     const newList = materialsList.filter(item => item.id !== id);
     setMaterialsList(newList);
     await updateProject(project.id, { materialsList: newList });
-    router.refresh();
   };
 
   const handleStartEditMaterial = (id: string, currentText: string) => {
@@ -712,7 +702,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
     );
     setMaterialsList(newList);
     await updateProject(project.id, { materialsList: newList });
-    router.refresh();
     setEditingMaterialId(null);
   };
 
@@ -738,7 +727,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
       const newPlans = [...plans, ...newAttachments];
       setPlans(newPlans);
       await updateProject(project.id, { plans: newPlans });
-      router.refresh();
     } catch (error) {
       console.error('Failed to upload plans', error);
     }
@@ -749,7 +737,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
     const newPlans = plans.filter(item => item.id !== id);
     setPlans(newPlans);
     await updateProject(project.id, { plans: newPlans });
-    router.refresh();
   };
   
   // Inspiration handlers
@@ -787,7 +774,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
       }
       
       await updateProject(project.id, updateData);
-      router.refresh();
     } catch (error) {
       console.error('Failed to upload inspiration', error);
     } finally {
@@ -811,13 +797,11 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
       await updateProject(project.id, { inspiration: newInspiration });
     }
     
-    router.refresh();
   };
   
   const handleSetInspirationAsCover = async (url: string) => {
     setImageUrl(url);
     await updateProject(project.id, { imageUrl: url });
-    router.refresh();
   };
 
   // Handle inspiration carousel scroll
@@ -860,7 +844,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
         imageUrl: result.url,
         inspiration: newInspiration 
       });
-      router.refresh();
     } catch (error) {
       console.error('Failed to upload image', error);
     } finally {
@@ -881,7 +864,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
       await updateProject(project.id, { imageUrl: null });
     }
     
-    router.refresh();
   };
   
   // Clipboard paste handlers
@@ -914,7 +896,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               }
               
               await updateProject(project.id, updateData);
-              router.refresh();
             } catch (error) {
               console.error('Failed to upload pasted image', error);
             } finally {
@@ -1058,7 +1039,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
       if (result.success && result.imageUrl) {
         setImageUrl(result.imageUrl);
         setOgImageError(null);
-        router.refresh();
       } else {
         setOgImageError(result.error || 'Could not find an image from the links in your project');
       }
@@ -1148,7 +1128,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
         const newPlans = [...plans, ...newAttachments];
         setPlans(newPlans);
         await updateProject(project.id, { plans: newPlans });
-        router.refresh();
       }
     } catch (error) {
       console.error('Failed to upload plans via drag and drop', error);
@@ -1198,7 +1177,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
           updateData.imageUrl = newAttachments[0].url;
         }
         await updateProject(project.id, updateData);
-        router.refresh();
       }
     } catch (error) {
       console.error('Failed to upload inspiration via drag and drop', error);
@@ -1274,7 +1252,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isStylePickerOpen]);
   
-  // Sync local state when project prop changes (e.g., after router.refresh() or idea navigation)
+  // Sync local state when project prop changes (e.g., after a server action revalidates the board, or idea navigation)
   useEffect(() => {
     setLocalItemType(project.isIdea ? 'idea' : project.isTask ? 'task' : 'project');
   }, [project.isTask, project.isIdea]);
@@ -1786,7 +1764,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                         setImageUrl(item.url);
                         await updateProject(project.id, { imageUrl: item.url });
                         setShowInspirationPicker(false);
-                        router.refresh();
                       }}
                     >
                       <Image
@@ -1978,7 +1955,6 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                       const next = v === '__any' ? null : v;
                       setLocationKey(next);
                       await updateProject(project.id, { locationKey: next });
-                      router.refresh();
                     }}
                   >
                     <SelectTrigger className="w-[140px] h-8">

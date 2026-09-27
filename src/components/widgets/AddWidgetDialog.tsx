@@ -12,7 +12,6 @@ import { cn } from '@/lib/utils';
 import { TAG_LANE_ACCENT_LUCIDE_OPTIONS } from '@/lib/tag-lane-accent-icons';
 import { createWidget, updateWidget, deleteWidget } from '@/app/actions';
 import type { MerlinLocation } from '@/types/locations';
-import { useRouter } from 'next/navigation';
 
 type Tag = {
   name: string;
@@ -111,7 +110,6 @@ export function AddWidgetDialog({
   locations = [],
   currentLocationKey = null,
 }: AddWidgetDialogProps) {
-  const router = useRouter();
   const [step, setStep] = useState<'type' | 'config'>(editingWidget ? 'config' : 'type');
   const [selectedType, setSelectedType] = useState<WidgetType | null>(
     editingWidget?.type || null
@@ -315,7 +313,6 @@ export function AddWidgetDialog({
         });
       }
 
-      await router.refresh();
       await handleClose();
     } catch (error) {
       console.error('Failed to save widget:', error);
@@ -359,7 +356,6 @@ export function AddWidgetDialog({
       setIsDeleting(true);
       try {
         await deleteWidget(editingWidget.id);
-        await router.refresh();
         await handleClose();
       } catch (error) {
         console.error('Failed to delete widget:', error);

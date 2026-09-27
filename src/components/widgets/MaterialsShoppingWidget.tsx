@@ -5,7 +5,6 @@ import { ShoppingCart, Settings2, ExternalLink, Plus, Trash2, Pencil, Circle, Li
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { updateProject, updateWidget } from '@/app/actions';
-import { useRouter } from 'next/navigation';
 import type { Project } from '@/components/kanban/KanbanBoard';
 import { v4 as uuidv4 } from 'uuid';
 import { ScrollFade } from './ScrollFade';
@@ -106,7 +105,6 @@ export function MaterialsShoppingWidget({
   onRefresh,
   onProjectClick,
 }: MaterialsShoppingWidgetProps) {
-  const router = useRouter();
   const dragListeners = useDragHandle();
   const [newItemText, setNewItemText] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -203,7 +201,6 @@ export function MaterialsShoppingWidget({
       await updateProject(project.id, { materialsList: updatedList });
     }
     
-    router.refresh();
     onRefresh?.();
   };
 
@@ -222,7 +219,6 @@ export function MaterialsShoppingWidget({
     });
 
     setNewItemText('');
-    router.refresh();
     onRefresh?.();
   };
 
@@ -255,7 +251,6 @@ export function MaterialsShoppingWidget({
       await updateProject(project.id, { materialsList: updatedList });
     }
 
-    router.refresh();
     onRefresh?.();
   };
 
@@ -302,7 +297,6 @@ export function MaterialsShoppingWidget({
     }
 
     setEditingId(null);
-    router.refresh();
     onRefresh?.();
   };
 
