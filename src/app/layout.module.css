@@ -1,0 +1,4 @@
+/* Portal stacking root, per the Base UI quick start. */
+.root {
+  isolation: isolate;
+}
