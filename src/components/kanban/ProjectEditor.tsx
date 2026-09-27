@@ -7,6 +7,7 @@ import { updateProject, generateProjectImage, uploadImageBase64, uploadFile, get
 import Image from 'next/image';
 import { Loader2, Sparkles, Trash2, Upload, Image as ImageIcon, X, FileText, Maximize2, ChevronLeft, ChevronRight, Plus, Images, ExternalLink, Pencil, FolderKanban, ListTodo, CheckCircle2, Circle, Lightbulb, Crop, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import styles from './ProjectEditor.module.css';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -31,8 +32,8 @@ import type { MerlinLocation } from '@/types/locations';
 const PDFViewer = dynamic(() => import('@/components/ui/pdf-viewer').then(mod => ({ default: mod.PDFViewer })), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full flex items-center justify-center text-white">
-      <Loader2 className="h-8 w-8 animate-spin" />
+    <div className={styles.PdfLoading}>
+      <Loader2 className={styles.SpinnerLg} />
     </div>
   )
 });
@@ -46,7 +47,7 @@ const RichTextEditor = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="min-h-[200px] w-full rounded-md border bg-muted/20 p-3 text-sm text-muted-foreground">
+      <div className={styles.EditorLoading}>
         Loading editor…
       </div>
     ),
@@ -70,10 +71,10 @@ function renderTextWithLinks(text: string, className?: string) {
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="text-primary hover:underline inline-flex items-center gap-0.5 break-all"
+          className={styles.Link}
         >
           {part.length > 50 ? part.slice(0, 50) + '...' : part}
-          <ExternalLink className="h-3 w-3 inline flex-shrink-0" />
+          <ExternalLink className={styles.LinkIcon} />
         </a>
       );
     }
@@ -120,46 +121,46 @@ function StylePicker({
   className?: string;
 }) {
   return (
-    <div className={cn('bg-background border rounded-lg shadow-lg z-30 p-2 max-h-64 overflow-y-auto', className)}>
-      <p className="text-xs font-medium text-muted-foreground px-1 mb-2">Choose style</p>
-      <div className="grid grid-cols-2 gap-1.5">
+    <div className={cn(styles.StylePicker, className)}>
+      <p className={styles.StylePickerLabel}>Choose style</p>
+      <div className={styles.StyleGrid}>
         <button
-          className="flex items-center gap-2 p-2 rounded-md border hover:border-primary hover:bg-muted/50 text-left transition-colors"
+          className={styles.StyleOption}
           onClick={() => onSelect(undefined)}
         >
-          <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
-            <Sparkles className="h-4 w-4 text-muted-foreground" />
+          <div className={styles.StyleThumbDefault}>
+            <Sparkles className={styles.StyleThumbIcon} />
           </div>
-          <span className="text-xs font-medium truncate">Default</span>
+          <span className={styles.StyleName}>Default</span>
         </button>
         {imageStyles.map((style) => (
           <button
             key={style.id}
-            className="flex items-center gap-2 p-2 rounded-md border hover:border-primary hover:bg-muted/50 text-left transition-colors"
+            className={styles.StyleOption}
             onClick={() => onSelect(style.id)}
           >
-            <div className="w-8 h-8 rounded overflow-hidden bg-muted flex-shrink-0">
+            <div className={styles.StyleThumb}>
               {style.referenceImages[0] ? (
                 <Image
                   src={style.referenceImages[0]}
                   alt={style.name}
                   width={32}
                   height={32}
-                  className="w-full h-full object-cover"
+                  className={styles.StyleThumbImg}
                   unoptimized
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Wand2 className="h-3.5 w-3.5 text-muted-foreground" />
+                <div className={styles.StyleThumbFallback}>
+                  <Wand2 className={styles.StyleThumbFallbackIcon} />
                 </div>
               )}
             </div>
-            <span className="text-xs font-medium truncate">{style.name}</span>
+            <span className={styles.StyleName}>{style.name}</span>
           </button>
         ))}
       </div>
       {imageStyles.length === 0 && (
-        <p className="text-[10px] text-muted-foreground px-1 mt-2">
+        <p className={styles.StyleHint}>
           Add styles in Settings → AI Styles
         </p>
       )}
@@ -1353,19 +1354,19 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
   };
   
   return (
-    <div className={cn("flex h-full bg-background relative", className)}>
+    <div className={cn(styles.Root, className)}>
       {ogImageError && (
         <div
           role="alert"
-          className="absolute top-4 left-1/2 -translate-x-1/2 z-[60] max-w-md rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive shadow-md flex items-center gap-2"
+          className={styles.ErrorToast}
         >
           <span>{ogImageError}</span>
           <button
             onClick={() => setOgImageError(null)}
             aria-label="Dismiss error"
-            className="ml-2 opacity-70 hover:opacity-100"
+            className={styles.ErrorToastClose}
           >
-            <X className="h-3 w-3" />
+            <X className={styles.IconXs} />
           </button>
         </div>
       )}
@@ -1374,7 +1375,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
         <>
           {/* Edge Indicator */}
           <div 
-            className="fixed left-0 top-0 bottom-0 w-1 bg-primary z-50 pointer-events-none"
+            className={styles.SwipeBar}
             style={{ 
               opacity: swipeProgress,
               transform: `scaleY(${swipeProgress})`,
@@ -1383,46 +1384,46 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
           />
           {/* Text Indicator */}
           <div 
-            className="fixed left-0 top-1/2 -translate-y-1/2 z-50 pointer-events-none"
+            className={styles.SwipeIndicator}
             style={{ 
               opacity: swipeProgress,
               transform: `translateX(${swipeProgress * 20 - 20}px)`
             }}
           >
-            <div className="bg-primary/90 backdrop-blur-sm rounded-r-full p-4 pr-8 flex items-center gap-2 shadow-lg">
-              <ChevronLeft className="h-7 w-7 text-primary-foreground" />
-              <span className="text-base font-semibold text-primary-foreground">Back</span>
+            <div className={styles.SwipePill}>
+              <ChevronLeft className={styles.SwipeIcon} />
+              <span className={styles.SwipeLabel}>Back</span>
             </div>
           </div>
         </>
       )}
       
       {/* Sidebar (Desktop only) */}
-      <div className="hidden md:flex w-48 flex-col gap-1 p-6 border-r pt-24 sticky top-0 h-screen shrink-0">
-        <div className="font-semibold mb-4 px-2 text-sm text-muted-foreground uppercase tracking-wider">
+      <div className={styles.Sidebar}>
+        <div className={styles.SidebarTitle}>
           Contents
         </div>
-        <button onClick={() => scrollToSection('overview')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'overview' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>
+        <button onClick={() => scrollToSection('overview')} className={cn(styles.SidebarLink, activeSection === 'overview' ? styles.SidebarLinkActive : styles.SidebarLinkInactive)}>
           Project Overview
         </button>
         {showTodos && (
-          <button onClick={() => scrollToSection('todos')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'todos' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>
+          <button onClick={() => scrollToSection('todos')} className={cn(styles.SidebarLink, activeSection === 'todos' ? styles.SidebarLinkActive : styles.SidebarLinkInactive)}>
             To-dos
           </button>
         )}
-        <button onClick={() => scrollToSection('materials')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'materials' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>
+        <button onClick={() => scrollToSection('materials')} className={cn(styles.SidebarLink, activeSection === 'materials' ? styles.SidebarLinkActive : styles.SidebarLinkInactive)}>
           Materials List
         </button>
-        <button onClick={() => scrollToSection('plans')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'plans' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>
+        <button onClick={() => scrollToSection('plans')} className={cn(styles.SidebarLink, activeSection === 'plans' ? styles.SidebarLinkActive : styles.SidebarLinkInactive)}>
           Plans
         </button>
-        <button onClick={() => scrollToSection('inspiration')} className={cn("text-left px-2 py-1.5 rounded text-sm font-medium transition-colors", activeSection === 'inspiration' ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground")}>
+        <button onClick={() => scrollToSection('inspiration')} className={cn(styles.SidebarLink, activeSection === 'inspiration' ? styles.SidebarLinkActive : styles.SidebarLinkInactive)}>
           Inspiration
         </button>
         
         {isSaving && (
-          <div className="mt-auto pt-4 border-t text-xs text-muted-foreground flex items-center gap-2">
-            <Loader2 className="h-3 w-3 animate-spin" />
+          <div className={styles.SidebarSaving}>
+            <Loader2 className={styles.SpinnerXs} />
             Saving...
           </div>
         )}
@@ -1430,7 +1431,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
 
       {/* Main Content Wrapper */}
       <div 
-        className="flex-1 flex flex-col h-full overflow-y-auto overflow-x-hidden relative editor-scroll-container"
+        className={cn(styles.Main, "editor-scroll-container")}
         style={{
           transform: swipeProgress > 0 ? `translateX(${swipeProgress * 50}px)` : 'none',
           transition: swipeProgress === 0 ? 'transform 0.2s ease-out' : 'none'
@@ -1441,14 +1442,16 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
       >
         
         {/* Header / Cover Image */}
-        <div className="relative group">
+        <div className={styles.CoverWrap}>
           <div 
             ref={imageAreaRef}
             className={cn(
-              "relative w-full h-48 bg-dots bg-muted/30 flex items-center justify-center overflow-hidden group transition-colors border-b",
-              isDragging && "bg-muted/50 border-2 border-dashed border-primary",
-              !imageUrl && "md:hover:bg-muted/40 md:cursor-pointer",
-              isHoveringCover && "ring-2 ring-primary/50"
+              // The old markup also listed `bg-dots`, but twMerge dropped it in
+              // favour of `bg-muted/30`, so the dots never rendered. Left out.
+              styles.CoverArea,
+              isDragging && styles.CoverAreaDragging,
+              !imageUrl && styles.CoverAreaEmpty,
+              isHoveringCover && styles.CoverAreaHovering
             )}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -1465,7 +1468,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
             <input 
               type="file" 
               ref={fileInputRef}
-              className="hidden" 
+              className={styles.Hidden} 
               accept="image/*"
               onChange={async (e) => {
                 const file = e.target.files?.[0];
@@ -1493,27 +1496,27 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
             )}
 
             {isGenerating || isImagePending ? (
-              <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                <Loader2 className="h-8 w-8 animate-spin" />
-                <p className="text-sm">
+              <div className={styles.CoverStatus}>
+                <Loader2 className={styles.SpinnerLg} />
+                <p className={styles.CoverStatusText}>
                   {isGenerating ? 'Preparing your prompt…' : generateAttempt > 1 ? `Generating… (attempt ${generateAttempt}/${MAX_GENERATE_ATTEMPTS})` : 'Generating cover image…'}
                 </p>
-                {isImagePending && <p className="text-xs opacity-60">This can take 15–30 seconds</p>}
+                {isImagePending && <p className={styles.CoverStatusHint}>This can take 15–30 seconds</p>}
               </div>
             ) : generateError ? (
-              <div className="flex flex-col items-center gap-3 text-muted-foreground px-6 text-center">
-                <p className="text-sm text-destructive">{generateError}</p>
+              <div className={styles.CoverError}>
+                <p className={styles.CoverErrorText}>{generateError}</p>
                 <button
-                  className="text-xs underline opacity-70 hover:opacity-100"
+                  className={styles.CoverRetry}
                   onClick={() => setGenerateError(null)}
                 >
                   Dismiss
                 </button>
               </div>
             ) : isUploadingCover ? (
-              <div className="flex flex-col items-center gap-2 text-muted-foreground animate-pulse">
-                <Loader2 className="h-8 w-8 animate-spin" />
-                <p className="text-sm">Uploading image...</p>
+              <div className={styles.CoverUploading}>
+                <Loader2 className={styles.SpinnerLg} />
+                <p className={styles.CoverStatusText}>Uploading image...</p>
               </div>
             ) : imageUrl ? (
               <>
@@ -1521,40 +1524,40 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                   src={imageUrl}
                   alt="Project cover"
                   fill
-                  className="object-cover"
+                  className={styles.ImageCover}
                   unoptimized
                 />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <p className="text-white text-sm font-medium flex items-center gap-2">
-                    <Upload className="h-4 w-4" /> Change Cover
+                <div className={styles.CoverOverlay}>
+                  <p className={styles.CoverOverlayText}>
+                    <Upload className={styles.Icon} /> Change Cover
                   </p>
                 </div>
               </>
             ) : (
-              <div className="flex flex-col items-center gap-2 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                <ImageIcon className="h-8 w-8 opacity-50" />
-                <p className="text-sm">Click to upload or drag & drop</p>
-                <p className="text-xs opacity-75 hidden md:block">Hover and paste (Ctrl+V) to upload from clipboard</p>
+              <div className={styles.CoverEmptyPrompt}>
+                <ImageIcon className={styles.CoverEmptyIcon} />
+                <p className={styles.CoverStatusText}>Click to upload or drag & drop</p>
+                <p className={styles.CoverEmptyHint}>Hover and paste (Ctrl+V) to upload from clipboard</p>
               </div>
             )}
           </div>
           
           {/* Navigation / Actions Header */}
-          <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
+          <div className={styles.CoverTopBar}>
             {/* Back Button (Full Page) */}
             {!isModal && (
               <>
                 {isSaving ? (
-                  <span className="text-sm text-muted-foreground px-3 py-2 bg-background/80 backdrop-blur-sm rounded-md">Saving...</span>
+                  <span className={styles.SavingPill}>Saving...</span>
                 ) : (
                   <Button
                     type="button"
                     variant="secondary"
                     size="sm"
-                    className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90 gap-1"
+                    className={cn(styles.GlassButton, styles.GlassButtonTight)}
                     onClick={handleBack}
                   >
-                    <ChevronLeft className="h-4 w-4" /> Back
+                    <ChevronLeft className={styles.Icon} /> Back
                   </Button>
                 )}
               </>
@@ -1567,11 +1570,11 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90 gap-1"
+                  className={cn(styles.GlassButton, styles.GlassButtonTight)}
                   title="Open in full view"
                 >
-                  <Maximize2 className="h-4 w-4" />
-                  <span className="hidden sm:inline">Open as Page</span>
+                  <Maximize2 className={styles.Icon} />
+                  <span className={styles.OpenAsPageLabel}>Open as Page</span>
                 </Button>
               </Link>
             )}
@@ -1579,28 +1582,28 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
 
           {/* Action Buttons */}
           {/* Mobile: Buttons at bottom */}
-          <div className="md:hidden absolute bottom-4 left-4 right-4 flex gap-2 z-20">
+          <div className={styles.MobileCoverActions}>
             {imageUrl && (
               <>
                 <Button
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="h-9 bg-background/90 backdrop-blur-sm hover:bg-background"
+                  className={styles.MobileGlassButton}
                   onClick={(e) => { e.stopPropagation(); setIsCropOpen(true); }}
                   title="Crop Image"
                 >
-                  <Crop className="h-4 w-4" />
+                  <Crop className={styles.Icon} />
                 </Button>
                 <Button
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="h-9 bg-background/90 backdrop-blur-sm hover:bg-background"
+                  className={styles.MobileGlassButton}
                   onClick={(e) => { e.stopPropagation(); handleRemoveCover(); }}
                   title="Remove Cover"
                 >
-                  <X className="h-4 w-4" />
+                  <X className={styles.Icon} />
                 </Button>
               </>
             )}
@@ -1608,36 +1611,36 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               type="button"
               variant="secondary"
               size="sm"
-              className="flex-1 h-9 bg-background/90 backdrop-blur-sm hover:bg-background"
+              className={cn(styles.MobileGlassButton, styles.Grow)}
               onClick={(e) => {
                 e.stopPropagation();
                 fileInputRef.current?.click();
               }}
               disabled={isGenerating}
             >
-              <Upload className="h-4 w-4 mr-2" />
+              <Upload className={styles.IconLeading} />
               Upload
             </Button>
-            <div className="relative flex-1" data-style-picker>
+            <div className={styles.MobileStyleWrap} data-style-picker>
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
-                className="w-full h-9 bg-background/90 backdrop-blur-sm hover:bg-background"
+                className={cn(styles.MobileGlassButton, styles.FullWidth)}
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsStylePickerOpen((prev) => !prev);
                 }}
                 disabled={isGenerating || isImagePending || !title}
               >
-                {isGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                {isGenerating ? <Loader2 className={styles.IconLeadingSpin} /> : <Sparkles className={styles.IconLeading} />}
                 Create with AI
               </Button>
               {isStylePickerOpen && (
                 <StylePicker
                   imageStyles={imageStyles}
                   onSelect={handleGenerateImage}
-                  className="absolute bottom-full mb-2 left-0 right-0"
+                  className={styles.MobileStylePicker}
                 />
               )}
             </div>
@@ -1645,7 +1648,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               type="button"
               variant="secondary"
               size="sm"
-              className="flex-1 h-9 bg-background/90 backdrop-blur-sm hover:bg-background"
+              className={cn(styles.MobileGlassButton, styles.Grow)}
               onClick={(e) => {
                 e.stopPropagation();
                 handleFetchOgImage();
@@ -1653,7 +1656,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               disabled={isFetchingOgImage}
               title="Fetch image from links in project"
             >
-              {isFetchingOgImage ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ExternalLink className="h-4 w-4 mr-2" />}
+              {isFetchingOgImage ? <Loader2 className={styles.IconLeadingSpin} /> : <ExternalLink className={styles.IconLeading} />}
               From Link
             </Button>
             {inspiration.length > 0 && (
@@ -1661,21 +1664,21 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                 type="button"
                 variant="secondary"
                 size="sm"
-                className="h-9 bg-background/90 backdrop-blur-sm hover:bg-background"
+                className={styles.MobileGlassButton}
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowInspirationPicker(!showInspirationPicker);
                 }}
               >
-                <Images className="h-4 w-4" />
+                <Images className={styles.Icon} />
               </Button>
             )}
           </div>
 
           {/* Desktop: Buttons at bottom right */}
           <div className={cn(
-            "hidden md:flex absolute bottom-4 right-4 gap-2 z-20 transition-opacity",
-            imageUrl && "opacity-0 group-hover:opacity-100"
+            styles.DesktopCoverActions,
+            imageUrl && styles.DesktopCoverActionsHidden
           )}>
             {imageUrl && (
               <>
@@ -1683,32 +1686,32 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                  className={styles.GlassButton}
                   onClick={(e) => { e.stopPropagation(); setIsCropOpen(true); }}
                   title="Crop Image"
                 >
-                  <Crop className="h-3 w-3" />
-                  <span className="ml-2">Crop</span>
+                  <Crop className={styles.IconXs} />
+                  <span className={styles.ButtonLabel}>Crop</span>
                 </Button>
                 <Button
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                  className={styles.GlassButton}
                   onClick={(e) => { e.stopPropagation(); handleRemoveCover(); }}
                   title="Remove Cover"
                 >
-                  <X className="h-3 w-3" />
-                  <span className="ml-2">Remove</span>
+                  <X className={styles.IconXs} />
+                  <span className={styles.ButtonLabel}>Remove</span>
                 </Button>
               </>
             )}
-            <div className="relative" data-style-picker>
+            <div className={styles.StylePickerAnchor} data-style-picker>
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
-                className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                className={styles.GlassButton}
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsStylePickerOpen((prev) => !prev);
@@ -1716,14 +1719,14 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                 disabled={isGenerating || isImagePending || !title}
                 title="Generate AI Cover"
               >
-                {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                <span className="ml-2">Generate Cover</span>
+                {isGenerating ? <Loader2 className={styles.SpinnerXs} /> : <Sparkles className={styles.IconXs} />}
+                <span className={styles.ButtonLabel}>Generate Cover</span>
               </Button>
               {isStylePickerOpen && (
                 <StylePicker
                   imageStyles={imageStyles}
                   onSelect={handleGenerateImage}
-                  className="absolute bottom-full mb-2 right-0 w-52"
+                  className={styles.DesktopStylePicker}
                 />
               )}
             </div>
@@ -1731,7 +1734,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               type="button"
               variant="secondary"
               size="sm"
-              className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+              className={styles.GlassButton}
               onClick={(e) => {
                 e.stopPropagation();
                 handleFetchOgImage();
@@ -1739,23 +1742,23 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               disabled={isFetchingOgImage}
               title="Fetch image from links in project"
             >
-              {isFetchingOgImage ? <Loader2 className="h-3 w-3 animate-spin" /> : <ExternalLink className="h-3 w-3" />}
-              <span className="ml-2">From Link</span>
+              {isFetchingOgImage ? <Loader2 className={styles.SpinnerXs} /> : <ExternalLink className={styles.IconXs} />}
+              <span className={styles.ButtonLabel}>From Link</span>
             </Button>
             {inspiration.length > 0 && (
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
-                className="h-8 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                className={styles.GlassButton}
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowInspirationPicker(!showInspirationPicker);
                 }}
                 title="Choose from Inspiration"
               >
-                <Images className="h-3 w-3" />
-                <span className="ml-2">From Inspiration</span>
+                <Images className={styles.IconXs} />
+                <span className={styles.ButtonLabel}>From Inspiration</span>
               </Button>
             )}
           </div>
@@ -1763,34 +1766,34 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
           {/* Inspiration Picker */}
           {showInspirationPicker && inspiration.length > 0 && (
             <div 
-              className="absolute inset-0 z-30 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+              className={styles.PickerBackdrop}
               onClick={(e) => {
                 e.stopPropagation();
                 setShowInspirationPicker(false);
               }}
             >
               <div 
-                className="bg-background rounded-lg p-4 max-w-md w-full max-h-[80%] overflow-auto shadow-xl"
+                className={styles.PickerDialog}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-sm">Choose from Inspiration</h3>
+                <div className={styles.PickerHeader}>
+                  <h3 className={styles.PickerTitle}>Choose from Inspiration</h3>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 w-7 p-0"
+                    className={styles.PickerClose}
                     onClick={() => setShowInspirationPicker(false)}
                   >
-                    <X className="h-4 w-4" />
+                    <X className={styles.Icon} />
                   </Button>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className={styles.PickerGrid}>
                   {inspiration.filter(item => item.type.startsWith('image/')).map(item => (
                     <button
                       key={item.id}
                       className={cn(
-                        "relative aspect-square rounded-md overflow-hidden border-2 transition-all hover:border-primary",
-                        imageUrl === item.url ? "border-primary ring-2 ring-primary/30" : "border-transparent"
+                        styles.PickerItem,
+                        imageUrl === item.url ? styles.PickerItemSelected : styles.PickerItemUnselected
                       )}
                       onClick={async () => {
                         setImageUrl(item.url);
@@ -1802,13 +1805,13 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                         src={item.url}
                         alt={item.name}
                         fill
-                        className="object-cover"
+                        className={styles.ImageCover}
                         unoptimized
                       />
                       {imageUrl === item.url && (
-                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                          <div className="bg-primary text-primary-foreground rounded-full p-1">
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <div className={styles.PickerCheckOverlay}>
+                          <div className={styles.PickerCheck}>
+                            <svg className={styles.Icon} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
                           </div>
@@ -1818,7 +1821,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                   ))}
                 </div>
                 {inspiration.filter(item => item.type.startsWith('image/')).length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
+                  <p className={styles.PickerEmpty}>
                     No images in inspiration yet
                   </p>
                 )}
@@ -1827,32 +1830,32 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
           )}
         </div>
 
-        <div className="p-8 sm:p-10">
+        <div className={styles.Content}>
           {viewingAttachment ? (
             /* Attachment Viewer */
-            <div className="max-w-7xl mx-auto h-full flex flex-col">
+            <div className={styles.AttachmentView}>
               {/* Viewer Header */}
-              <div className="flex items-center justify-between mb-4 pb-4 border-b">
+              <div className={styles.AttachmentHeader}>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={closeAttachment}
-                  className="gap-2"
+                  className={styles.AttachmentBack}
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className={styles.Icon} />
                   Back to Project
                 </Button>
                 
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className={styles.AttachmentNav}>
                   {allViewableItems.length > 1 && (
                     <>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => navigateAttachment('prev')}
-                        className="h-8 w-8 p-0"
+                        className={styles.IconButton}
                       >
-                        <ChevronLeft className="h-4 w-4" />
+                        <ChevronLeft className={styles.Icon} />
                       </Button>
                       <span>
                         {allViewableItems.findIndex(item => item.url === viewingAttachment.url) + 1} / {allViewableItems.length}
@@ -1861,42 +1864,42 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                         variant="outline"
                         size="sm"
                         onClick={() => navigateAttachment('next')}
-                        className="h-8 w-8 p-0"
+                        className={styles.IconButton}
                       >
-                        <ChevronRight className="h-4 w-4" />
+                        <ChevronRight className={styles.Icon} />
                       </Button>
                     </>
                   )}
                 </div>
                 
-                <h2 className="font-medium truncate max-w-md">{viewingAttachment.name}</h2>
+                <h2 className={styles.AttachmentTitle}>{viewingAttachment.name}</h2>
               </div>
               
               {/* Viewer Content */}
-              <div className="flex-1 min-h-0">
+              <div className={styles.AttachmentBody}>
                 {viewingAttachment.type.startsWith('image/') ? (
-                  <div className="w-full h-full flex items-center justify-center bg-muted/10 rounded-lg">
+                  <div className={styles.AttachmentImageFrame}>
                     <Image
                       src={viewingAttachment.url}
                       alt={viewingAttachment.name}
                       width={1920}
                       height={1080}
-                      className="max-w-full max-h-full object-contain"
+                      className={styles.AttachmentImage}
                       unoptimized
                     />
                   </div>
                 ) : viewingAttachment.type === 'application/pdf' ? (
-                  <div className="w-full h-full">
+                  <div className={styles.AttachmentPdf}>
                     <PDFViewer url={viewingAttachment.url} fileName={viewingAttachment.name} />
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4">
-                    <FileText className="h-16 w-16 opacity-50" />
-                    <p className="text-lg">{viewingAttachment.name}</p>
+                  <div className={styles.AttachmentFallback}>
+                    <FileText className={styles.AttachmentFallbackIcon} />
+                    <p className={styles.AttachmentFallbackName}>{viewingAttachment.name}</p>
                     <a 
                       href={viewingAttachment.url} 
                       download 
-                      className="text-primary hover:underline"
+                      className={styles.AttachmentDownload}
                     >
                       Download file
                     </a>
@@ -1905,20 +1908,20 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               </div>
             </div>
           ) : (
-            <div className="max-w-2xl mx-auto space-y-8 w-full px-4 sm:px-0">
+            <div className={styles.Sections}>
             {/* Idea prev/next navigation */}
             {ideaNavigation && (
-              <div className="flex items-center justify-between -mb-4 pt-2">
+              <div className={styles.IdeaNav}>
                 <Button
                   variant="ghost"
                   size="sm"
                   disabled={!ideaNavigation.onPrev}
                   onClick={ideaNavigation.onPrev}
-                  className="gap-1"
+                  className={styles.IdeaNavButton}
                 >
-                  <ChevronLeft className="h-4 w-4" /> Prev
+                  <ChevronLeft className={styles.Icon} /> Prev
                 </Button>
-                <span className="text-sm text-muted-foreground">
+                <span className={styles.IdeaNavCount}>
                   {ideaNavigation.current} / {ideaNavigation.total}
                 </span>
                 <Button
@@ -1926,14 +1929,14 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                   size="sm"
                   disabled={!ideaNavigation.onNext}
                   onClick={ideaNavigation.onNext}
-                  className="gap-1"
+                  className={styles.IdeaNavButton}
                 >
-                  Next <ChevronRight className="h-4 w-4" />
+                  Next <ChevronRight className={styles.Icon} />
                 </Button>
               </div>
             )}
             {/* Title Section */}
-            <div id="section-overview" className="space-y-2">
+            <div id="section-overview" className={styles.Stack2}>
               <textarea
                 value={title}
                 onChange={(e) => {
@@ -1941,35 +1944,35 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                   e.target.style.height = 'auto';
                   e.target.style.height = e.target.scrollHeight + 'px';
                 }}
-                className="w-full text-xl md:text-2xl font-bold font-sans tracking-tight bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 overflow-hidden leading-tight"
+                className={styles.TitleInput}
                 placeholder="Untitled"
                 rows={1}
                 style={{ height: 'auto' }}
               />
               
               {/* Type selector */}
-              <div className="flex items-center gap-3 pb-2">
-                <label className="text-sm text-muted-foreground min-w-[80px]">Type:</label>
+              <div className={styles.FieldRow}>
+                <label className={styles.FieldLabel}>Type:</label>
                 <Select value={localItemType} onValueChange={handleTypeChange}>
-                  <SelectTrigger className="w-[140px]">
+                  <SelectTrigger className={styles.FieldSelect}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="project">
-                      <div className="flex items-center gap-2">
-                        <FolderKanban className="h-4 w-4 text-violet-600" />
+                      <div className={styles.TypeOption}>
+                        <FolderKanban className={styles.TypeIconProject} />
                         <span>Project</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="task">
-                      <div className="flex items-center gap-2">
-                        <ListTodo className="h-4 w-4 text-blue-600" />
+                      <div className={styles.TypeOption}>
+                        <ListTodo className={styles.TypeIconTask} />
                         <span>Task</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="idea">
-                      <div className="flex items-center gap-2">
-                        <Lightbulb className="h-4 w-4 text-amber-500" />
+                      <div className={styles.TypeOption}>
+                        <Lightbulb className={styles.TypeIconIdea} />
                         <span>Idea</span>
                       </div>
                     </SelectItem>
@@ -1979,8 +1982,8 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
 
               {/* Location — hidden until Merlin has locations */}
               {locations.length > 0 && (
-                <div className="flex items-center gap-3 pb-2">
-                  <label className="text-sm text-muted-foreground min-w-[80px]">Location:</label>
+                <div className={styles.FieldRow}>
+                  <label className={styles.FieldLabel}>Location:</label>
                   <Select
                     value={locationKey ?? '__any'}
                     onValueChange={async (v) => {
@@ -1989,7 +1992,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                       await updateProject(project.id, { locationKey: next });
                     }}
                   >
-                    <SelectTrigger className="w-[140px]">
+                    <SelectTrigger className={styles.FieldSelect}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -2005,14 +2008,14 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               )}
 
               {/* Tags Row */}
-              <div className="flex flex-wrap gap-2 items-center min-h-[32px]">
+              <div className={styles.Tags}>
                 {tags.map(tag => {
                   const tagMeta = allTags.find(t => t.name === tag);
                   return (
                     <Badge 
                       key={tag} 
                       variant="outline" 
-                      className="gap-1 pr-1 text-sm font-normal transition-all"
+                      className={styles.Tag}
                       style={{
                         backgroundColor: tagMeta?.color ? `${tagMeta.color}20` : undefined,
                         borderColor: tagMeta?.color || undefined,
@@ -2020,13 +2023,13 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                       }}
                     >
                       {tagMeta?.icon ? (
-                        <div className="relative w-4 h-4 flex-shrink-0">
+                        <div className={styles.TagIcon}>
                           <Image
                             src={tagMeta.icon}
                             alt={tag}
                             width={16}
                             height={16}
-                            className="rounded object-cover"
+                            className={styles.TagIconImage}
                             unoptimized
                           />
                         </div>
@@ -2034,8 +2037,8 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                         <span>{tagMeta.emoji}</span>
                       ) : null}
                       #{tag}
-                      <button onClick={() => handleRemoveTag(tag)} className="hover:opacity-70 rounded-full p-0.5 ml-1 transition-opacity">
-                        <X className="h-3 w-3" />
+                      <button onClick={() => handleRemoveTag(tag)} className={styles.TagRemove}>
+                        <X className={styles.IconXs} />
                       </button>
                     </Badge>
                   );
@@ -2057,7 +2060,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                     highlightedTagRef.current = tag ?? null;
                   }}
                 >
-                  <div className="relative min-w-[120px]">
+                  <div className={styles.TagInputWrap}>
                     <AutocompleteInput
                       ref={tagInputRef}
                       onFocus={() => setShowTagSuggestions(true)}
@@ -2069,23 +2072,23 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                           handleAddTag(tagInput);
                         }
                       }}
-                      className="w-full text-sm bg-transparent border-none outline-none text-muted-foreground placeholder:text-muted-foreground/30"
+                      className={styles.TagInput}
                       placeholder="Add tag..."
                     />
                   </div>
-                  <AutocompleteContent className="w-auto min-w-[200px] max-w-[300px] shadow-md">
-                    <AutocompleteList className="max-h-[var(--available-height)]">
+                  <AutocompleteContent className={styles.TagPopup}>
+                    <AutocompleteList className={styles.TagList}>
                       {(tag: TagMetadata) => (
                         <AutocompleteItem
                           key={tag.name}
                           value={tag}
                           onClick={() => handleAddTag(tag.name)}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent data-[highlighted]:bg-accent data-[highlighted]:text-current transition-colors flex items-center gap-2"
+                          className={styles.TagSuggestion}
                         >
-                          {tag.emoji && <span className="text-base">{tag.emoji}</span>}
-                          <span className="flex-1">#{tag.name}</span>
+                          {tag.emoji && <span className={styles.TagSuggestionEmoji}>{tag.emoji}</span>}
+                          <span className={styles.TagSuggestionName}>#{tag.name}</span>
                           <div
-                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            className={styles.TagSuggestionSwatch}
                             style={{ backgroundColor: tag.color }}
                           />
                         </AutocompleteItem>
@@ -2097,7 +2100,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
             </div>
 
             {/* Rich Content Editor */}
-            <div className="space-y-2">
+            <div className={styles.Stack2}>
               <RichTextEditor
                 content={richContent}
                 onChange={handleContentChange}
@@ -2109,9 +2112,9 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                 board projects: an idea has nothing to do yet, and a task card
                 IS the to-do. Mirrors Merlin's picker, which offers neither. */}
             {showTodos && (
-              <div id="section-todos" className="space-y-4 pt-8 border-t">
-                <h2 className="text-2xl font-bold">To-dos</h2>
-                <p className="text-sm text-muted-foreground">
+              <div id="section-todos" className={styles.Section}>
+                <h2 className={styles.SectionTitle}>To-dos</h2>
+                <p className={styles.SectionDescription}>
                   Steps Merlin reminds you about day to day, before the project itself is in progress.
                 </p>
                 <ProjectTodos cardId={project.id} cardTitle={title} />
@@ -2119,11 +2122,11 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
             )}
 
             {/* Materials List Section */}
-            <div id="section-materials" className="space-y-4 pt-8 border-t">
-              <h2 className="text-2xl font-bold">Materials List</h2>
-              <div className="space-y-2">
+            <div id="section-materials" className={styles.Section}>
+              <h2 className={styles.SectionTitle}>Materials List</h2>
+              <div className={styles.Stack2}>
                 {materialsList.map(item => (
-                  <div key={item.id} className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20 hover:bg-muted/30 transition-colors group">
+                  <div key={item.id} className={styles.MaterialRow}>
                     {editingMaterialId === item.id ? (
                       <input
                         ref={editingMaterialRef}
@@ -2139,13 +2142,13 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                           }
                         }}
                         onBlur={handleSaveEditMaterial}
-                        className="flex-1 bg-background px-2 py-1 rounded border border-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                        className={styles.MaterialEditInput}
                       />
                     ) : (
                       <span 
                         className={cn(
-                          "flex-1 cursor-text px-2 py-1 rounded transition-colors",
-                          item.toBuild && "line-through text-muted-foreground"
+                          styles.MaterialText,
+                          item.toBuild && styles.MaterialTextDone
                         )}
                         onDoubleClick={() => handleStartEditMaterial(item.id, item.text)}
                         title="Double-click to edit"
@@ -2153,47 +2156,47 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                         {renderTextWithLinks(item.text)}
                       </span>
                     )}
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
+                    <div className={styles.MaterialControls}>
+                      <div className={styles.MaterialToggle}>
                         <Checkbox
                           checked={item.toBuy}
                           onCheckedChange={() => handleUpdateMaterial(item.id, 'toBuy')}
-                          className="data-checked:bg-amber-600 data-checked:border-amber-600"
+                          className={styles.CheckboxBuy}
                         />
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">Need to buy</span>
+                        <span className={styles.MaterialToggleLabel}>Need to buy</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className={styles.MaterialToggle}>
                         <Checkbox
                           checked={item.toBuild}
                           onCheckedChange={() => handleUpdateMaterial(item.id, 'toBuild')}
-                          className="data-checked:bg-green-600 data-checked:border-green-600"
+                          className={styles.CheckboxOwn}
                         />
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">Already own</span>
+                        <span className={styles.MaterialToggleLabel}>Already own</span>
                       </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className={styles.MaterialActions}>
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-8 w-8 p-0"
+                          className={styles.IconButton}
                           onClick={() => handleStartEditMaterial(item.id, item.text)}
                           title="Edit"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className={styles.Icon} />
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-8 w-8 p-0 hover:text-destructive"
+                          className={styles.MaterialDelete}
                           onClick={() => handleDeleteMaterial(item.id)}
                           title="Delete"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className={styles.Icon} />
                         </Button>
                       </div>
                     </div>
                   </div>
                 ))}
-                <div className="flex gap-2">
+                <div className={styles.MaterialAdd}>
                   <textarea
                     value={materialsInput}
                     onChange={(e) => setMaterialsInput(e.target.value)}
@@ -2204,7 +2207,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                         handleAddMaterial();
                       }
                     }}
-                    className="flex-1 px-3 py-2 rounded-md border bg-background text-sm resize-none"
+                    className={styles.MaterialAddInput}
                     placeholder="Add material(s)... (paste list or press Shift+Enter for multiple lines)"
                     rows={1}
                     style={{ minHeight: '40px', maxHeight: '120px' }}
@@ -2216,7 +2219,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                     }}
                   />
                   <Button onClick={handleAddMaterial} size="sm">
-                    <Plus className="h-4 w-4" />
+                    <Plus className={styles.Icon} />
                   </Button>
                 </div>
               </div>
@@ -2226,17 +2229,17 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
             <div 
               id="section-plans" 
               className={cn(
-                "space-y-4 pt-8 border-t rounded-lg transition-all",
-                isDraggingPlans && "ring-2 ring-primary/50 bg-primary/5 p-4 -m-4"
+                styles.SectionDroppable,
+                isDraggingPlans && styles.SectionDragging
               )}
               onDragOver={handlePlansDragOver}
               onDragLeave={handlePlansDragLeave}
               onDrop={handlePlansDrop}
             >
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold">Plans & Sketches</h2>
+              <div className={styles.SectionHeader}>
+                <h2 className={styles.SectionTitle}>Plans & Sketches</h2>
                 {isDraggingPlans && (
-                  <p className="text-xs text-primary font-medium">
+                  <p className={styles.DropHint}>
                     Drop files here
                   </p>
                 )}
@@ -2244,7 +2247,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               <input
                 type="file"
                 id="plans-upload"
-                className="hidden"
+                className={styles.Hidden}
                 multiple
                 accept="image/*,.pdf"
                 onChange={handlePlansUpload}
@@ -2252,70 +2255,70 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               {plans.length === 0 ? (
                 <div 
                   className={cn(
-                    "border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground flex flex-col items-center gap-2 hover:bg-muted/10 transition-colors cursor-pointer",
-                    isDraggingPlans && "border-primary bg-primary/10"
+                    styles.DropZone,
+                    isDraggingPlans && styles.DropZoneActive
                   )}
                   onClick={() => document.getElementById('plans-upload')?.click()}
                 >
-                  <Upload className={cn("h-8 w-8 opacity-50", isDraggingPlans && "text-primary opacity-100")} />
+                  <Upload className={cn(styles.DropZoneIcon, isDraggingPlans && styles.DropZoneIconActive)} />
                   <p>{isDraggingPlans ? "Drop to upload" : "Upload or drag & drop plans, sketches, or PDFs"}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className={styles.PlanGrid}>
                   {plans.map(item => (
-                    <div key={item.id} className="group relative border rounded-lg overflow-hidden bg-background hover:shadow-md transition-all cursor-pointer" onClick={() => openAttachment(item.url, item.type, item.name)}>
-                      <div className="aspect-[3/2] relative bg-muted/20 overflow-hidden">
+                    <div key={item.id} className={styles.PlanCard} onClick={() => openAttachment(item.url, item.type, item.name)}>
+                      <div className={styles.PlanPreview}>
                         {item.type.startsWith('image/') ? (
                           <Image 
                             src={item.url} 
                             alt={item.name} 
                             fill 
-                            className="object-contain p-2" 
+                            className={styles.PlanImage} 
                             unoptimized 
                           />
                         ) : item.type === 'application/pdf' ? (
-                          <div className="w-full h-full relative">
+                          <div className={styles.PlanPdf}>
                             <embed
                               src={`${item.url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
                               type="application/pdf"
-                              className="w-full h-full pointer-events-none"
+                              className={styles.PlanPdfFrame}
                             />
-                            <div className="absolute bottom-2 right-2">
-                              <span className="text-[10px] uppercase font-bold tracking-wider bg-red-600 text-white px-2 py-0.5 rounded">
+                            <div className={styles.PlanPdfBadgeWrap}>
+                              <span className={styles.PlanPdfBadge}>
                                 PDF
                               </span>
                             </div>
                           </div>
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground p-4">
-                            <FileText className="h-12 w-12 mb-2 opacity-50" />
-                            <span className="text-xs uppercase font-bold tracking-wider">{item.type.split('/')[1] || 'FILE'}</span>
+                          <div className={styles.PlanFile}>
+                            <FileText className={styles.PlanFileIcon} />
+                            <span className={styles.PlanFileType}>{item.type.split('/')[1] || 'FILE'}</span>
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
-                          <Button size="sm" variant="secondary" className="h-8 w-8 p-0" onClick={() => openAttachment(item.url, item.type, item.name)}>
-                            <Maximize2 className="h-4 w-4" />
+                        <div className={styles.PlanOverlay} onClick={(e) => e.stopPropagation()}>
+                          <Button size="sm" variant="secondary" className={styles.IconButton} onClick={() => openAttachment(item.url, item.type, item.name)}>
+                            <Maximize2 className={styles.Icon} />
                           </Button>
-                          <Button size="sm" variant="destructive" className="h-8 w-8 p-0" onClick={() => handleRemovePlan(item.id)}>
-                            <Trash2 className="h-4 w-4" />
+                          <Button size="sm" variant="destructive" className={styles.IconButton} onClick={() => handleRemovePlan(item.id)}>
+                            <Trash2 className={styles.Icon} />
                           </Button>
                         </div>
                       </div>
-                      <div className="p-3 border-t bg-muted/5">
-                        <p className="text-sm font-medium truncate" title={item.name}>{item.name}</p>
-                        <p className="text-xs text-muted-foreground">{(item.size / 1024 / 1024).toFixed(2)} MB</p>
+                      <div className={styles.PlanMeta}>
+                        <p className={styles.PlanName} title={item.name}>{item.name}</p>
+                        <p className={styles.PlanSize}>{(item.size / 1024 / 1024).toFixed(2)} MB</p>
                       </div>
                     </div>
                   ))}
                   <div 
                     className={cn(
-                      "border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/10 cursor-pointer min-h-[200px]",
-                      isDraggingPlans && "border-primary bg-primary/10"
+                      styles.PlanAddTile,
+                      isDraggingPlans && styles.DropZoneActive
                     )}
                     onClick={() => document.getElementById('plans-upload')?.click()}
                   >
-                    <Plus className={cn("h-8 w-8 opacity-50 mb-2", isDraggingPlans && "text-primary opacity-100")} />
-                    <span className="text-sm">{isDraggingPlans ? "Drop here" : "Add more"}</span>
+                    <Plus className={cn(styles.DropZoneIcon, styles.PlanAddIcon, isDraggingPlans && styles.DropZoneIconActive)} />
+                    <span className={styles.PlanAddLabel}>{isDraggingPlans ? "Drop here" : "Add more"}</span>
                   </div>
                 </div>
               )}
@@ -2326,9 +2329,9 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               ref={inspirationSectionRef}
               id="section-inspiration" 
               className={cn(
-                "space-y-4 pt-8 border-t rounded-lg transition-all",
-                isDraggingInspiration && "ring-2 ring-primary/50 bg-primary/5 p-4 -m-4",
-                !isDraggingInspiration && isHoveringInspiration && "ring-2 ring-primary/30 bg-muted/20 p-4 -m-4"
+                styles.SectionDroppable,
+                isDraggingInspiration && styles.SectionDragging,
+                !isDraggingInspiration && isHoveringInspiration && styles.SectionHovering
               )}
               onMouseEnter={() => setIsHoveringInspiration(true)}
               onMouseLeave={() => setIsHoveringInspiration(false)}
@@ -2336,22 +2339,22 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               onDragLeave={handleInspirationDragLeave}
               onDrop={handleInspirationDrop}
             >
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold">Inspiration</h2>
-                <div className="flex items-center gap-3">
+              <div className={styles.SectionHeader}>
+                <h2 className={styles.SectionTitle}>Inspiration</h2>
+                <div className={styles.SectionHeaderAside}>
                   {isUploadingInspiration && uploadingInspirationCount > 0 && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                    <div className={styles.UploadStatus}>
+                      <Loader2 className={styles.IconSpin} />
                       <span>Uploading {uploadingInspirationCount} image{uploadingInspirationCount > 1 ? 's' : ''}...</span>
                     </div>
                   )}
                   {isDraggingInspiration && (
-                    <p className="text-xs text-primary font-medium">
+                    <p className={styles.DropHint}>
                       Drop files here
                     </p>
                   )}
                   {!isDraggingInspiration && isHoveringInspiration && !isUploadingInspiration && (
-                    <p className="text-xs text-muted-foreground hidden md:block">
+                    <p className={styles.PasteHint}>
                       Paste from clipboard (Ctrl+V)
                     </p>
                   )}
@@ -2360,7 +2363,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               <input
                 type="file"
                 id="inspiration-upload"
-                className="hidden"
+                className={styles.Hidden}
                 multiple
                 accept="image/*"
                 onChange={handleInspirationUpload}
@@ -2368,35 +2371,35 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
               {inspiration.length === 0 ? (
                 <div
                   className={cn(
-                    "border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground flex flex-col items-center gap-2 hover:bg-muted/10 transition-colors cursor-pointer",
-                    isDraggingInspiration && "border-primary bg-primary/10"
+                    styles.DropZone,
+                    isDraggingInspiration && styles.DropZoneActive
                   )}
                   onClick={() => document.getElementById('inspiration-upload')?.click()}
                 >
-                  <Sparkles className={cn("h-8 w-8 opacity-50", isDraggingInspiration && "text-primary opacity-100")} />
+                  <Sparkles className={cn(styles.DropZoneIcon, isDraggingInspiration && styles.DropZoneIconActive)} />
                   <p>{isDraggingInspiration ? "Drop to upload" : "Upload or drag & drop inspiration images"}</p>
                 </div>
               ) : (
                 <>
                   {/* Mobile: Swipeable Carousel */}
-                  <div className="md:hidden">
+                  <div className={styles.MobileOnly}>
                     <div 
                       ref={inspirationScrollRef}
                       onScroll={handleInspirationScroll}
-                      className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 -mx-4 px-4"
+                      className={cn(styles.Carousel, "scrollbar-hide")}
                       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                     >
                       {inspiration.map(item => (
                         <div 
                           key={item.id} 
-                          className="flex-shrink-0 w-full snap-center"
+                          className={styles.CarouselSlide}
                         >
                           <div 
-                            className="group relative rounded-lg overflow-hidden bg-muted/20 aspect-[4/3]" 
+                            className={styles.CarouselCard} 
                           >
                             {item.type.startsWith('image/') ? (
                               <div
-                                className="relative w-full h-full cursor-pointer"
+                                className={styles.CarouselImageButton}
                                 onClick={() => {
                                   console.log('Mobile carousel IMAGE WRAPPER clicked!', item);
                                   openInspirationLightbox(item);
@@ -2406,70 +2409,70 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                                   src={item.url} 
                                   alt={item.name} 
                                   fill
-                                  className="object-contain pointer-events-none" 
+                                  className={styles.CarouselImage} 
                                   unoptimized
                                 />
                               </div>
                             ) : (
                               <div 
-                                className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground cursor-pointer"
+                                className={styles.CarouselFile}
                                 onClick={() => {
                                   console.log('Mobile carousel FILE clicked!', item);
                                   openInspirationLightbox(item);
                                 }}
                               >
-                                <FileText className="h-12 w-12" />
+                                <FileText className={styles.FileIconLg} />
                               </div>
                             )}
                             {/* Quick action buttons on long press - Mobile */}
-                            <div className="absolute bottom-2 left-2 right-2 opacity-0 active:opacity-100 transition-opacity flex gap-2 md:hidden" onClick={(e) => e.stopPropagation()}>
+                            <div className={styles.CarouselActions} onClick={(e) => e.stopPropagation()}>
                               <Button 
                                 size="sm" 
                                 variant="secondary" 
-                                className="flex-1 h-9" 
+                                className={styles.CarouselActionButton} 
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleSetInspirationAsCover(item.url);
                                 }}
                               >
-                                <ImageIcon className="h-4 w-4 mr-1" />
+                                <ImageIcon className={styles.IconLeadingSm} />
                                 Cover
                               </Button>
                               <Button 
                                 size="sm" 
                                 variant="destructive" 
-                                className="flex-1 h-9" 
+                                className={styles.CarouselActionButton} 
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleRemoveInspiration(item.id);
                                 }}
                               >
-                                <Trash2 className="h-4 w-4 mr-1" />
+                                <Trash2 className={styles.IconLeadingSm} />
                                 Delete
                               </Button>
                             </div>
                           </div>
                         </div>
                       ))}
-                      <div className="flex-shrink-0 w-full snap-center">
-                        <div className="border-2 border-dashed rounded-lg aspect-[4/3] flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/10 cursor-pointer" onClick={() => document.getElementById('inspiration-upload')?.click()}>
-                          <Plus className="h-12 w-12 opacity-50 mb-2" />
-                          <span className="text-sm">Add more</span>
+                      <div className={styles.CarouselSlide}>
+                        <div className={styles.CarouselAddTile} onClick={() => document.getElementById('inspiration-upload')?.click()}>
+                          <Plus className={styles.CarouselAddIcon} />
+                          <span className={styles.CarouselAddLabel}>Add more</span>
                         </div>
                       </div>
                     </div>
                     
                     {/* Pagination Dots */}
-                    <div className="flex items-center justify-center gap-2 mt-4">
+                    <div className={styles.CarouselDots}>
                       {[...inspiration, { id: 'add-more' }].map((item, index) => (
                         <button
                           key={item.id}
                           onClick={() => scrollToInspirationIndex(index)}
                           className={cn(
-                            "h-2 rounded-full transition-all",
+                            styles.CarouselDot,
                             currentInspirationIndex === index 
-                              ? "w-6 bg-primary" 
-                              : "w-2 bg-muted-foreground/30"
+                              ? styles.CarouselDotActive 
+                              : styles.CarouselDotInactive
                           )}
                           aria-label={`Go to image ${index + 1}`}
                         />
@@ -2478,16 +2481,16 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                   </div>
 
                   {/* Desktop: Masonry Grid */}
-                  <div className="hidden md:block">
-                    <div className="columns-2 sm:columns-3 gap-4 space-y-4">
+                  <div className={styles.DesktopOnly}>
+                    <div className={styles.Masonry}>
                       {inspiration.map(item => (
                         <div 
                           key={item.id} 
-                          className="break-inside-avoid group relative rounded-lg overflow-hidden bg-muted/20 mb-4" 
+                          className={styles.MasonryCard} 
                         >
                           {item.type.startsWith('image/') ? (
                             <div
-                              className="relative cursor-pointer"
+                              className={styles.MasonryImageButton}
                               onClick={() => {
                                 console.log('Desktop grid IMAGE clicked!', item);
                                 openInspirationLightbox(item);
@@ -2498,85 +2501,85 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                                 alt={item.name} 
                                 width={400}
                                 height={400}
-                                className="w-full h-auto object-cover pointer-events-none" 
+                                className={styles.MasonryImage} 
                                 unoptimized
                               />
                             </div>
                           ) : (
                             <div 
-                              className="aspect-square flex items-center justify-center bg-muted text-muted-foreground cursor-pointer"
+                              className={styles.MasonryFile}
                               onClick={() => {
                                 console.log('Desktop grid FILE clicked!', item);
                                 openInspirationLightbox(item);
                               }}
                             >
-                              <FileText className="h-8 w-8" />
+                              <FileText className={styles.FileIconMd} />
                             </div>
                           )}
                           {/* Hover overlay - pointer-events-none when hidden, only buttons are clickable */}
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
+                          <div className={styles.MasonryOverlay}>
                             <Button 
                               size="sm" 
                               variant="secondary" 
-                              className="h-8 w-8 p-0 pointer-events-auto" 
+                              className={styles.MasonryOverlayButton} 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleSetInspirationAsCover(item.url);
                               }}
                               title="Set as cover"
                             >
-                              <Images className="h-4 w-4" />
+                              <Images className={styles.Icon} />
                             </Button>
                             {item.type.startsWith('image/') && (
                               <Button
                                 size="sm"
                                 variant="secondary"
-                                className="h-8 w-8 p-0 pointer-events-auto"
+                                className={styles.MasonryOverlayButton}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setCropInspirationItem({ id: item.id, url: item.url });
                                 }}
                                 title="Crop image"
                               >
-                                <Crop className="h-4 w-4" />
+                                <Crop className={styles.Icon} />
                               </Button>
                             )}
                             <Button 
                               size="sm" 
                               variant="secondary" 
-                              className="h-8 w-8 p-0 pointer-events-auto" 
+                              className={styles.MasonryOverlayButton} 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 openInspirationLightbox(item);
                               }}
                               title="View full size"
                             >
-                              <Maximize2 className="h-4 w-4" />
+                              <Maximize2 className={styles.Icon} />
                             </Button>
                             <Button 
                               size="sm" 
                               variant="destructive" 
-                              className="h-8 w-8 p-0 pointer-events-auto" 
+                              className={styles.MasonryOverlayButton} 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleRemoveInspiration(item.id);
                               }}
                               title="Delete"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className={styles.Icon} />
                             </Button>
                           </div>
                         </div>
                       ))}
                       <div
                         className={cn(
-                          "break-inside-avoid border-2 border-dashed rounded-lg aspect-square flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/10 cursor-pointer",
-                          isDraggingInspiration && "border-primary bg-primary/10"
+                          styles.MasonryAddTile,
+                          isDraggingInspiration && styles.DropZoneActive
                         )}
                         onClick={() => document.getElementById('inspiration-upload')?.click()}
                       >
-                        <Plus className={cn("h-8 w-8 opacity-50 mb-1", isDraggingInspiration && "text-primary opacity-100")} />
-                        <span className="text-xs">{isDraggingInspiration ? "Drop here" : "Add"}</span>
+                        <Plus className={cn(styles.DropZoneIcon, styles.MasonryAddIcon, isDraggingInspiration && styles.DropZoneIconActive)} />
+                        <span className={styles.MasonryAddLabel}>{isDraggingInspiration ? "Drop here" : "Add"}</span>
                       </div>
                     </div>
                   </div>
@@ -2586,16 +2589,16 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
 
             {/* Delete link — inside the scroll area, below all content */}
             {isModal && (
-              <div className="flex justify-center gap-6 pt-8 pb-2">
+              <div className={styles.DangerZone}>
                 <button
                   onClick={handleToggleArchived}
-                  className="text-xs text-muted-foreground/40 hover:text-foreground transition-colors underline-offset-2 hover:underline"
+                  className={styles.ArchiveLink}
                 >
                   {isArchived ? 'Unarchive Project' : 'Archive Project'}
                 </button>
                 <button
                   onClick={handleDeleteProject}
-                  className="text-xs text-muted-foreground/40 hover:text-destructive transition-colors underline-offset-2 hover:underline"
+                  className={styles.DeleteLink}
                 >
                   Delete Project
                 </button>
@@ -2604,30 +2607,29 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
 
             {/* Footer (Modal only) */}
             {isModal && onClose && (
-              <div className="flex justify-end pt-4 pb-4 sticky bottom-0 bg-gradient-to-t from-background via-background to-transparent">
+              <div className={styles.Footer}>
                 {isSaving ? (
-                  <p className="text-sm text-muted-foreground px-4 py-2">Saving...</p>
+                  <p className={styles.FooterSaving}>Saving...</p>
                 ) : (
-                  <div className="flex items-center gap-2">
+                  <div className={styles.FooterActions}>
                     <Button
                       variant="secondary"
                       size="lg"
                       onClick={handleToggleCompleted}
                       className={cn(
-                        "group",
-                        isCompleted && "text-green-600 hover:text-muted-foreground"
+                        isCompleted && styles.CompleteButtonDone
                       )}
                       title={isCompleted ? "Click to mark as incomplete" : "Mark as complete"}
                     >
                       {isCompleted ? (
                         <>
-                          <CheckCircle2 className="h-4 w-4 mr-2 group-hover:hidden" />
-                          <Circle className="h-4 w-4 mr-2 hidden group-hover:inline" />
-                          <span className="group-hover:hidden">Completed</span>
-                          <span className="hidden group-hover:inline">Mark Incomplete</span>
+                          <CheckCircle2 className={styles.CompletedIcon} />
+                          <Circle className={styles.IncompleteIcon} />
+                          <span className={styles.CompletedLabel}>Completed</span>
+                          <span className={styles.IncompleteLabel}>Mark Incomplete</span>
                         </>
                       ) : (
-                        <><Circle className="h-4 w-4 mr-2" />Mark Complete</>
+                        <><Circle className={styles.IconLeading} />Mark Complete</>
                       )}
                     </Button>
                     <Button onClick={handleClose} size="lg">
