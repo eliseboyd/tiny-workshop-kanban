@@ -155,7 +155,7 @@ export function ActiveProjectsWidget({
               {displayProjects.length}
             </Badge>
           </div>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
             <Button
               variant="ghost"
               size="sm"
@@ -281,7 +281,7 @@ export function ActiveProjectsWidget({
                         {column.title}
                       </Badge>
                     )}
-                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover/item:opacity-100 transition-opacity" />
+                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover/item:opacity-100 group-focus-within/item:opacity-100 transition-opacity" />
                   </div>
                 </li>
               );
