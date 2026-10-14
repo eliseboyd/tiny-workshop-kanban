@@ -146,7 +146,7 @@ export function ToDoListWidget({
             )}
             <h3 className="font-semibold text-sm">{widget.title}</h3>
           </div>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
             <Button
               variant="ghost"
               size="sm"
@@ -206,7 +206,7 @@ export function ToDoListWidget({
                     {project.title}
                   </span>
                 </div>
-                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover/item:opacity-100 transition-opacity flex-shrink-0" />
+                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover/item:opacity-100 group-focus-within/item:opacity-100 transition-opacity flex-shrink-0" />
               </li>
             ))}
           </ul>

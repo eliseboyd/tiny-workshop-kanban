@@ -32,15 +32,23 @@ function Badge({
   ...props
 }: React.ComponentProps<"span"> &
   VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
-  const Comp = asChild ? Slot : "span"
+  const classes = cn(badgeVariants({ variant }), className)
 
-  return (
-    <Comp
-      data-slot="badge"
-      className={cn(badgeVariants({ variant }), className)}
-      {...props}
-    />
-  )
+  if (asChild) {
+    return <Slot data-slot="badge" className={classes} {...props} />
+  }
+
+  // A badge with a click handler is a control: render a real <button> so it
+  // is focusable, keyboard-operable and announced correctly. Callers that
+  // toggle something should also pass `aria-pressed`. The props are typed
+  // for a span (the common case); the cast only widens the ref/handler
+  // element type, which React resolves at runtime.
+  if (typeof props.onClick === "function") {
+    const buttonProps = props as unknown as React.ComponentProps<"button">
+    return <button type="button" data-slot="badge" className={classes} {...buttonProps} />
+  }
+
+  return <span data-slot="badge" className={classes} {...props} />
 }
 
 export { Badge, badgeVariants }

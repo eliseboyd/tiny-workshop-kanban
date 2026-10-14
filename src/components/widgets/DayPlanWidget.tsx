@@ -245,7 +245,7 @@ export function DayPlanWidget({ widget, projects, columns = [], onEdit, onProjec
             {dayProjects.length}
           </Badge>
         </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
           {dayProjects.length > 0 && (
             <Button
               variant="ghost"
@@ -326,7 +326,7 @@ export function DayPlanWidget({ widget, projects, columns = [], onEdit, onProjec
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 opacity-0 group-hover/item:opacity-100 transition-opacity flex-shrink-0"
+                  className="h-6 w-6 p-0 opacity-0 group-hover/item:opacity-100 group-focus-within/item:opacity-100 transition-opacity flex-shrink-0"
                   onClick={(e) => handleRemoveProject(project.id, e)}
                   title="Remove from plan"
                 >

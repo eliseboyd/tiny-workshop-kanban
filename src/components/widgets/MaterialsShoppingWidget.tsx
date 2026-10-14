@@ -350,7 +350,7 @@ export function MaterialsShoppingWidget({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity"
             onClick={onEdit}
             title="Widget settings"
           >
@@ -416,7 +416,7 @@ export function MaterialsShoppingWidget({
                   </div>
                 )}
 
-                <div className="flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity flex-shrink-0">
+                <div className="flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 group-focus-within/item:opacity-100 transition-opacity flex-shrink-0">
                   <button
                     onClick={(e) => handleStartEdit(item, e)}
                     className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"

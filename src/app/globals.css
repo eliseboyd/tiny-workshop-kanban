@@ -4,6 +4,20 @@
 
 /* Theme tokens live in @eliseboyd/design (imported above). */
 
+/* Reduced motion: collapse every transition and animation to effectively
+   zero. Near-zero rather than `none` so animationend/transitionend still
+   fire, which Base UI / Radix exit animations wait on. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Dotted background utility */
 .bg-dots {
   background-image: radial-gradient(var(--muted-foreground) 1px, transparent 1px);
