@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { ChevronDown } from 'lucide-react';
+import styles from './ScrollFade.module.css';
 
 type ScrollFadeProps = {
   children: ReactNode;
@@ -41,19 +42,16 @@ export function ScrollFade({ children, className }: ScrollFadeProps) {
   }, [children]);
 
   return (
-    <div className={cn("relative flex-1 min-h-0", className)}>
+    <div className={cn(styles.Root, className)}>
       {/* Top fade */}
       <div 
-        className={cn(
-          "absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-card to-transparent z-10 pointer-events-none transition-opacity duration-200",
-          showTopFade ? "opacity-100" : "opacity-0"
-        )}
+        className={cn(styles.Fade, styles.TopFade, showTopFade && styles.Visible)}
       />
       
       {/* Scrollable content */}
       <div 
         ref={scrollRef}
-        className="h-full overflow-y-auto"
+        className={styles.Scroller}
         onScroll={checkScroll}
       >
         {children}
@@ -61,13 +59,10 @@ export function ScrollFade({ children, className }: ScrollFadeProps) {
       
       {/* Bottom fade with indicator */}
       <div 
-        className={cn(
-          "absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-card via-card/80 to-transparent z-10 pointer-events-none transition-opacity duration-200 flex items-end justify-center pb-1",
-          showBottomFade ? "opacity-100" : "opacity-0"
-        )}
+        className={cn(styles.Fade, styles.BottomFade, showBottomFade && styles.Visible)}
       >
-        <div className="flex items-center gap-1 text-muted-foreground/60 text-[10px] font-medium">
-          <ChevronDown className="h-3 w-3 animate-bounce" />
+        <div className={styles.Hint}>
+          <ChevronDown className={styles.HintIcon} />
           <span>scroll</span>
         </div>
       </div>

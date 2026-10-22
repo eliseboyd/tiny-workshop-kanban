@@ -5,6 +5,7 @@ import { Loader2, Plus, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
+import styles from './ProjectTodos.module.css';
 import { addCardTodo, completeCardTodo, getCardTodos, reopenCardTodo } from '@/app/merlin-actions';
 import type { CardTodos, Todo } from '@/types/todos';
 
@@ -95,8 +96,8 @@ export function ProjectTodos({ cardId, cardTitle }: { cardId: string; cardTitle:
 
   if (!data && !error) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading to-dos…
+      <div className={styles.Loading}>
+        <Loader2 className={styles.Spinner} /> Loading to-dos…
       </div>
     );
   }
@@ -106,9 +107,9 @@ export function ProjectTodos({ cardId, cardTitle }: { cardId: string; cardTitle:
   const filing = data?.filing ?? [];
 
   return (
-    <div className="space-y-2">
+    <div className={styles.Root}>
       {open.length === 0 && filing.length === 0 && (
-        <p className="text-sm text-muted-foreground">
+        <p className={styles.Note}>
           Nothing to do yet. Add a step below and Merlin will remind you about it day to day.
         </p>
       )}
@@ -120,8 +121,8 @@ export function ProjectTodos({ cardId, cardTitle }: { cardId: string; cardTitle:
           <div
             key={t.id}
             className={cn(
-              'flex items-center gap-3 p-3 rounded-lg border bg-muted/20 hover:bg-muted/30 transition-colors',
-              isBusy && 'opacity-60'
+              styles.Row,
+              isBusy && styles.RowBusy
             )}
           >
             <Checkbox
@@ -129,11 +130,11 @@ export function ProjectTodos({ cardId, cardTitle }: { cardId: string; cardTitle:
               disabled={isBusy}
               onCheckedChange={() => withBusy(t.id, () => completeCardTodo(t.id))}
               aria-label={`Mark "${t.title}" done`}
-              className="data-checked:bg-green-600 data-checked:border-green-600"
+              className={styles.Check}
             />
-            <div className="flex-1 min-w-0">
-              <div className="truncate">{t.title}</div>
-              {meta && <div className="text-xs text-muted-foreground">{meta}</div>}
+            <div className={styles.Text}>
+              <div className={styles.Title}>{t.title}</div>
+              {meta && <div className={styles.Meta}>{meta}</div>}
             </div>
           </div>
         );
@@ -142,12 +143,12 @@ export function ProjectTodos({ cardId, cardTitle }: { cardId: string; cardTitle:
       {filing.map((f) => (
         <div
           key={f.captureId}
-          className="flex items-center gap-3 p-3 rounded-lg border border-dashed bg-muted/10 text-muted-foreground"
+          className={styles.FilingRow}
         >
-          <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-          <div className="flex-1 min-w-0">
-            <div className="truncate">{f.text}</div>
-            <div className="text-xs">Merlin is filing it…</div>
+          <Loader2 className={cn(styles.Spinner, styles.SpinnerFixed)} />
+          <div className={styles.Text}>
+            <div className={styles.Title}>{f.text}</div>
+            <div className={styles.FilingMeta}>Merlin is filing it…</div>
           </div>
         </div>
       ))}
@@ -155,11 +156,11 @@ export function ProjectTodos({ cardId, cardTitle }: { cardId: string; cardTitle:
       {/* Reading works off the shared database alone; only ADDING needs
           Merlin's ingest endpoint. Unconfigured: say so, don't hide it. */}
       {data && !data.configured ? (
-        <p className="text-sm text-muted-foreground">
+        <p className={styles.Note}>
           Merlin isn&apos;t connected. Set <code>MERLIN_INGEST_URL</code> and <code>MERLIN_INGEST_TOKEN</code> to add to-dos from here.
         </p>
       ) : (
-      <div className="flex gap-2">
+      <div className={styles.AddRow}>
         <input
           type="text"
           value={input}
@@ -171,39 +172,39 @@ export function ProjectTodos({ cardId, cardTitle }: { cardId: string; cardTitle:
             }
           }}
           disabled={adding}
-          className="flex-1 px-3 py-2 rounded-md border bg-background text-sm"
+          className={styles.AddInput}
           placeholder="Add a to-do… (Merlin will remind you)"
         />
         <Button onClick={handleAdd} size="sm" disabled={adding || !input.trim()}>
-          {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          {adding ? <Loader2 className={styles.Spinner} /> : <Plus className={styles.AddIcon} />}
         </Button>
       </div>
       )}
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && <p className={styles.Error}>{error}</p>}
 
       {done.length > 0 && (
-        <div className="pt-2">
+        <div className={styles.Done}>
           <button
             type="button"
             onClick={() => setShowDone((v) => !v)}
-            className="text-xs text-muted-foreground hover:text-foreground"
+            className={styles.DoneToggle}
           >
             {showDone ? 'Hide' : 'Show'} done recently ({done.length})
           </button>
           {showDone && (
-            <div className="mt-2 space-y-1">
+            <div className={styles.DoneList}>
               {done.map((t) => (
-                <div key={t.id} className="flex items-center gap-3 px-3 py-1 text-sm text-muted-foreground">
-                  <span className="flex-1 min-w-0 truncate line-through">{t.title}</span>
+                <div key={t.id} className={styles.DoneRow}>
+                  <span className={styles.DoneTitle}>{t.title}</span>
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 px-2 text-xs"
+                    className={styles.Reopen}
                     disabled={busy.has(t.id)}
                     onClick={() => withBusy(t.id, () => reopenCardTodo(t.id))}
                     title="Reopen"
                   >
-                    <RotateCcw className="h-3 w-3 mr-1" /> reopen
+                    <RotateCcw className={styles.ReopenIcon} /> reopen
                   </Button>
                 </div>
               ))}

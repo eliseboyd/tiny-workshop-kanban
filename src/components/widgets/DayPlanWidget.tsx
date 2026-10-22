@@ -1,15 +1,24 @@
 'use client';
 
-import { useState, useContext, useRef, useEffect } from 'react';
+import { useState, useContext } from 'react';
 import { Calendar, Settings2, X, GripVertical, Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import {
+  Autocomplete,
+  AutocompleteContent,
+  AutocompleteEmpty,
+  AutocompleteInput,
+  AutocompleteItem,
+  AutocompleteList,
+} from '@/components/ui/autocomplete';
 import { cn } from '@/lib/utils';
 import { updateWidget } from '@/app/actions';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DragHandleContext } from './WidgetsSection';
 import { ScrollFade } from './ScrollFade';
+import styles from "./DayPlanWidget.module.css";
 import type { Project } from '@/components/kanban/KanbanBoard';
 
 type Column = {
@@ -53,7 +62,6 @@ export function DayPlanWidget({ widget, projects, columns = [], onEdit, onProjec
   const [isDragOver, setIsDragOver] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const searchRef = useRef<HTMLDivElement>(null);
   
   // Get projects not already in the day plan and not completed
   const availableProjects = projects.filter(p => 
@@ -100,18 +108,7 @@ export function DayPlanWidget({ widget, projects, columns = [], onEdit, onProjec
   };
   
   const filteredProjects = getSuggestedProjects();
-  
-  // Close suggestions when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const suggestedProjects = filteredProjects.slice(0, 5);
   
   // Track project as recently opened
   const trackRecentProject = (projectId: string) => {
@@ -224,10 +221,7 @@ export function DayPlanWidget({ widget, projects, columns = [], onEdit, onProjec
 
   return (
     <div 
-      className={cn(
-        "flex flex-col bg-card rounded-lg border shadow-sm transition-all",
-        isDragOver && "ring-2 ring-primary/50 bg-primary/5"
-      )}
+      className={cn(styles.Root, isDragOver && styles.RootDragOver)}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -235,53 +229,53 @@ export function DayPlanWidget({ widget, projects, columns = [], onEdit, onProjec
     >
       {/* Header */}
       <div 
-        className="flex items-center justify-between px-4 py-3 border-b cursor-move group"
+        className={styles.Header}
         {...dragListeners}
       >
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <Calendar className="h-4 w-4 text-primary flex-shrink-0" />
-          <h3 className="font-semibold text-sm truncate">{widget.title}</h3>
-          <Badge variant="secondary" className="text-xs flex-shrink-0">
+        <div className={styles.HeaderTitleGroup}>
+          <Calendar className={styles.HeaderIcon} />
+          <h3 className={styles.Title}>{widget.title}</h3>
+          <Badge variant="secondary" className={styles.CountBadge}>
             {dayProjects.length}
           </Badge>
         </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className={styles.HeaderActions}>
           {dayProjects.length > 0 && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+              className={cn(styles.HeaderButton, styles.ClearButton)}
               onClick={handleClearAll}
               title="Clear all"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className={styles.HeaderButtonIcon} />
             </Button>
           )}
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 w-7 p-0"
+            className={styles.HeaderButton}
             onClick={onEdit}
             title="Widget settings"
           >
-            <Settings2 className="h-3.5 w-3.5" />
+            <Settings2 className={styles.HeaderButtonIcon} />
           </Button>
         </div>
       </div>
 
       {/* Subtitle */}
-      <div className="px-4 pt-2">
-        <p className="text-xs text-muted-foreground">{todayFormatted}</p>
+      <div className={styles.Subtitle}>
+        <p className={styles.Date}>{todayFormatted}</p>
       </div>
 
       {/* Items */}
       <ScrollFade>
         {dayProjects.length === 0 ? (
-          <div className="p-8 text-center">
-            <div className="text-muted-foreground/50 mb-2">
-              <Calendar className="h-12 w-12 mx-auto mb-3 opacity-30" />
+          <div className={styles.Empty}>
+            <div className={styles.EmptyIconWrap}>
+              <Calendar className={styles.EmptyIcon} />
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className={styles.EmptyText}>
               {isDragOver 
                 ? "Drop here to add to plan" 
                 : availableProjects.length > 0
@@ -291,33 +285,33 @@ export function DayPlanWidget({ widget, projects, columns = [], onEdit, onProjec
             </p>
           </div>
         ) : (
-          <ul className="divide-y">
+          <ul className={styles.List}>
             {dayProjects.map((project, index) => (
               <li
                 key={project.id}
-                className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors cursor-pointer group/item"
+                className={styles.Item}
                 onClick={() => handleProjectClick(project)}
               >
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <span className="text-xs text-muted-foreground w-4 flex-shrink-0">
+                <div className={styles.ItemMain}>
+                  <span className={styles.ItemIndex}>
                     {index + 1}
                   </span>
                   <span className={cn(
-                    "text-sm truncate",
-                    isProjectDone(project) && "line-through text-muted-foreground"
+                    styles.ItemTitle,
+                    isProjectDone(project) && styles.ItemTitleDone
                   )}>
                     {project.title}
                   </span>
                 </div>
                 {project.tags && project.tags.length > 0 && (
-                  <div className="flex gap-1 flex-shrink-0">
+                  <div className={styles.Tags}>
                     {project.tags.slice(0, 2).map(tag => (
-                      <Badge key={tag} variant="secondary" className="text-[9px] h-4 px-1 rounded-sm">
+                      <Badge key={tag} variant="secondary" className={styles.TagBadge}>
                         {tag}
                       </Badge>
                     ))}
                     {project.tags.length > 2 && (
-                      <Badge variant="secondary" className="text-[9px] h-4 px-1 rounded-sm">
+                      <Badge variant="secondary" className={styles.TagBadge}>
                         +{project.tags.length - 2}
                       </Badge>
                     )}
@@ -326,11 +320,11 @@ export function DayPlanWidget({ widget, projects, columns = [], onEdit, onProjec
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 opacity-0 group-hover/item:opacity-100 transition-opacity flex-shrink-0"
+                  className={styles.RemoveButton}
                   onClick={(e) => handleRemoveProject(project.id, e)}
                   title="Remove from plan"
                 >
-                  <X className="h-3 w-3" />
+                  <X className={styles.RemoveIcon} />
                 </Button>
               </li>
             ))}
@@ -340,73 +334,79 @@ export function DayPlanWidget({ widget, projects, columns = [], onEdit, onProjec
 
       {/* Add Project Footer with Search */}
       {availableProjects.length > 0 && (
-        <div className="border-t bg-muted/10 px-3 py-2 flex-shrink-0" ref={searchRef}>
-          <div className="relative">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-              <Input
-                type="text"
+        <div className={styles.Footer}>
+          <Autocomplete
+            mode="none"
+            items={suggestedProjects}
+            itemToStringValue={(project: Project) => project.title}
+            value={searchQuery}
+            onValueChange={(value, details) => {
+              // Picking an item would fill the input with its title; the pick
+              // itself is handled in the item's onClick.
+              if (details.reason === 'item-press') return;
+              setSearchQuery(value);
+              setShowSuggestions(true);
+            }}
+            open={showSuggestions && (suggestedProjects.length > 0 || !!searchQuery)}
+            onOpenChange={setShowSuggestions}
+          >
+            <div className={styles.SearchField}>
+              <Search className={styles.SearchIcon} />
+              <AutocompleteInput
                 placeholder="Search projects..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setShowSuggestions(true);
-                }}
                 onFocus={() => setShowSuggestions(true)}
-                className="h-9 text-sm pl-9 pr-3"
+                render={<Input className={styles.SearchInput} />}
               />
             </div>
-            
-            {/* Autocomplete Suggestions */}
-            {showSuggestions && filteredProjects.length > 0 && (
-              <div className="absolute bottom-full left-0 right-0 mb-1 bg-popover border rounded-md shadow-lg max-h-[200px] overflow-auto z-50">
-                {!searchQuery && getRecentProjects().length > 0 && (
-                  <div className="px-3 py-1.5 text-[10px] text-muted-foreground uppercase tracking-wider font-semibold border-b bg-muted/30">
-                    Recent
-                  </div>
-                )}
-                {filteredProjects.slice(0, 5).map(project => (
-                  <button
+
+            <AutocompleteContent side="top" className={styles.Suggestions}>
+              {!searchQuery && suggestedProjects.length > 0 && getRecentProjects().length > 0 && (
+                <div className={styles.SuggestionsHeading}>
+                  Recent
+                </div>
+              )}
+              <AutocompleteList>
+                {(project: Project) => (
+                  <AutocompleteItem
                     key={project.id}
+                    value={project}
                     onClick={() => handleAddProject(project.id)}
-                    className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors text-sm border-b last:border-b-0"
+                    className={styles.Suggestion}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium truncate">{project.title}</span>
+                    <div className={styles.SuggestionRow}>
+                      <span className={styles.SuggestionTitle}>{project.title}</span>
                       {project.tags && project.tags.length > 0 && (
-                        <div className="flex gap-1 flex-shrink-0">
+                        <div className={styles.Tags}>
                           {project.tags.slice(0, 2).map((tag: string) => (
-                            <Badge key={tag} variant="secondary" className="text-[9px] h-4 px-1 rounded-sm">
+                            <Badge key={tag} variant="secondary" className={styles.TagBadge}>
                               {tag}
                             </Badge>
                           ))}
                           {project.tags.length > 2 && (
-                            <Badge variant="secondary" className="text-[9px] h-4 px-1 rounded-sm">
+                            <Badge variant="secondary" className={styles.TagBadge}>
                               +{project.tags.length - 2}
                             </Badge>
                           )}
                         </div>
                       )}
                     </div>
-                  </button>
-                ))}
-                {filteredProjects.length > 5 && (
-                  <div className="px-3 py-2 text-xs text-muted-foreground text-center border-t">
-                    +{filteredProjects.length - 5} more...
-                  </div>
+                  </AutocompleteItem>
                 )}
-              </div>
-            )}
-            
-            {/* No results message */}
-            {showSuggestions && searchQuery && filteredProjects.length === 0 && (
-              <div className="absolute bottom-full left-0 right-0 mb-1 bg-popover border rounded-md shadow-lg p-3 z-50">
-                <p className="text-sm text-muted-foreground text-center">
-                  No projects found
-                </p>
-              </div>
-            )}
-          </div>
+              </AutocompleteList>
+              {filteredProjects.length > 5 && (
+                <div className={styles.More}>
+                  +{filteredProjects.length - 5} more...
+                </div>
+              )}
+              <AutocompleteEmpty>
+                {searchQuery ? (
+                  <p className={styles.NoResults}>
+                    No projects found
+                  </p>
+                ) : null}
+              </AutocompleteEmpty>
+            </AutocompleteContent>
+          </Autocomplete>
         </div>
       )}
     </div>

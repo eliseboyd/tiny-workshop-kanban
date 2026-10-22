@@ -160,32 +160,16 @@
   padding-bottom: 0.5rem;
 }
 
+/* Touch-only Move button: always visible. It could never be hovered into
+   view on a touch device, so it no longer hides behind hover/focus. */
 .MoveWrap {
   position: absolute;
   right: 0.5rem;
   bottom: 0.5rem;
-  opacity: 0;
-  transition-property: opacity;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
 
   @media (min-width: 48rem) {
     display: none;
   }
-}
-
-/* Was group-hover / group-focus-within: the card itself, or any `.group`
-   ancestor (the column keeps its literal `group` class). */
-@media (hover: hover) {
-  .Card:hover .MoveWrap,
-  :global(.group):hover .MoveWrap {
-    opacity: 1;
-  }
-}
-
-.Card:focus-within .MoveWrap,
-:global(.group):focus-within .MoveWrap {
-  opacity: 1;
 }
 
 .MoveButton {
