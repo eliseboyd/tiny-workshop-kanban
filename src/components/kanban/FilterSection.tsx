@@ -73,6 +73,7 @@ export function FilterSection({
             <Badge
               key={group.id}
               variant={activeGroups.includes(group.id) ? "default" : "outline"}
+              aria-pressed={activeGroups.includes(group.id)}
               className={cn(
                 "cursor-pointer transition-all hover:scale-105",
                 activeGroups.includes(group.id) && "ring-2 ring-offset-1 ring-offset-background"
@@ -102,6 +103,7 @@ export function FilterSection({
             <Badge
               key={tag.name}
               variant={activeTags.includes(tag.name) ? "default" : "outline"}
+              aria-pressed={activeTags.includes(tag.name)}
               className={cn(
                 "cursor-pointer transition-all hover:scale-105",
                 activeTags.includes(tag.name) && "ring-2 ring-offset-1 ring-offset-background"
@@ -125,6 +127,7 @@ export function FilterSection({
           {tags.length > 0 && (
             <Badge
               variant={showUntagged ? "default" : "outline"}
+              aria-pressed={showUntagged}
               className={cn(
                 "cursor-pointer transition-all hover:scale-105",
                 showUntagged && "ring-2 ring-offset-1 ring-offset-background"

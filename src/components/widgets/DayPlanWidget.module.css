@@ -75,6 +75,11 @@
   }
 }
 
+/* Keyboard users reach the same controls: reveal on focus too. */
+.Header:focus-within .HeaderActions {
+  opacity: 100%;
+}
+
 .HeaderButton {
   height: 1.75rem;
   width: 1.75rem;
@@ -217,6 +222,11 @@
   .Item:hover .RemoveButton {
     opacity: 1;
   }
+}
+
+/* Keyboard users reach the same controls: reveal on focus too. */
+.Item:focus-within .RemoveButton {
+  opacity: 100%;
 }
 
 .RemoveIcon {

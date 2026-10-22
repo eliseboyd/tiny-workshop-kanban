@@ -105,6 +105,7 @@ export function IdeasView({
                 <Badge
                   key={tag.name}
                   variant={selectedTags.includes(tag.name) ? 'default' : 'outline'}
+                  aria-pressed={selectedTags.includes(tag.name)}
                   className={cn(
                     'cursor-pointer text-xs transition-all hover:scale-105',
                     selectedTags.includes(tag.name) && 'ring-2 ring-offset-1 ring-offset-background'
