@@ -12,6 +12,7 @@ import { useDragHandle } from './WidgetsSection';
 import { resolveWorkflowLanes, findDoneColumn } from '@/lib/board-columns';
 import { renderTagLaneAccentIcon } from '@/lib/tag-lane-accent-icons';
 import { isInProjectGroup } from '@/lib/project-groups';
+import styles from './TagLaneBoardWidget.module.css';
 
 type Tag = { name: string; color: string; emoji?: string };
 type ProjectGroup = { id: string; name: string; color: string; emoji?: string; tags?: string[]; matchMode?: 'any' | 'all' };
@@ -106,50 +107,40 @@ function ProjectThumbCard({
     <button
       type="button"
       onClick={onClick}
-      className={cn(
-        'group text-left rounded-lg border bg-card overflow-hidden shadow-sm transition-all',
-        'hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        compact ? 'w-full' : 'w-full'
-      )}
+      className={styles.Card}
     >
       <div
-        className={cn(
-          'relative w-full bg-muted/40 overflow-hidden',
-          compact ? 'aspect-[2/1]' : 'aspect-video'
-        )}
+        className={cn(styles.Media, compact && styles.MediaCompact)}
       >
         {img ? (
           <Image
             src={img}
             alt=""
             fill
-            className="object-cover"
+            className={styles.Image}
             sizes={compact ? '120px' : '(max-width:768px) 50vw, 200px'}
           />
         ) : (
           <div
-            className="absolute inset-0 opacity-[0.12] bg-[length:12px_12px] bg-[linear-gradient(45deg,transparent_45%,currentColor_45%,currentColor_55%,transparent_55%),linear-gradient(-45deg,transparent_45%,currentColor_45%,currentColor_55%,transparent_55%)]"
+            className={styles.Pattern}
             aria-hidden
           />
         )}
       </div>
-      <div className={cn('p-2 space-y-1', compact && 'p-1.5')}>
-        <div className="flex items-start gap-1.5 justify-between gap-2">
+      <div className={cn(styles.Body, compact && styles.BodyCompact)}>
+        <div className={styles.TitleRow}>
           <span
-            className={cn(
-              'font-medium text-foreground line-clamp-2 leading-tight',
-              compact ? 'text-[11px]' : 'text-xs'
-            )}
+            className={cn(styles.ThumbTitle, compact && styles.ThumbTitleCompact)}
           >
             {project.title}
           </span>
           {project.isTask ? (
-            <ListTodo className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
+            <ListTodo className={styles.KindIcon} />
           ) : (
-            <FolderKanban className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
+            <FolderKanban className={styles.KindIcon} />
           )}
         </div>
-        <Badge variant="secondary" className={cn('text-[10px] h-5 px-1.5 font-normal', compact && 'h-4 text-[9px]')}>
+        <Badge variant="secondary" className={cn(styles.LaneBadge, compact && styles.LaneBadgeCompact)}>
           {label}
         </Badge>
       </div>
@@ -191,43 +182,43 @@ export function TagLaneBoardWidget({
   );
 
   return (
-    <div className="flex rounded-xl border bg-card shadow-sm overflow-hidden group h-full">
+    <div className={styles.Root}>
       {accentColor ? (
         <div
-          className="w-[3px] shrink-0 self-stretch"
+          className={styles.AccentBar}
           style={{ backgroundColor: accentColor }}
           aria-hidden
         />
       ) : null}
-      <div className="flex flex-col flex-1 min-w-0 min-h-0">
+      <div className={styles.Main}>
       <div
-        className="px-4 py-3 border-b bg-muted/30 flex-shrink-0 cursor-grab active:cursor-grabbing"
+        className={styles.Header}
         {...dragListeners}
       >
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-start gap-2 min-w-0">
+        <div className={styles.HeaderRow}>
+          <div className={styles.HeaderLead}>
             {accentEmoji ? (
-              <span className="text-lg leading-none shrink-0" aria-hidden>
+              <span className={styles.Emoji} aria-hidden>
                 {accentEmoji}
               </span>
             ) : (
-              renderTagLaneAccentIcon(accentLucide, 'h-5 w-5 shrink-0 text-muted-foreground mt-0.5')
+              renderTagLaneAccentIcon(accentLucide, styles.AccentIcon)
             )}
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-semibold text-sm truncate">{widget.title}</h3>
-                <Badge variant="secondary" className="text-xs shrink-0">
+            <div className={styles.HeaderText}>
+              <div className={styles.TitleLine}>
+                <h3 className={styles.Title}>{widget.title}</h3>
+                <Badge variant="secondary" className={styles.CountBadge}>
                   {items.length}
                 </Badge>
               </div>
               {config.accentHeadline ? (
-                <p className="text-xs text-muted-foreground mt-0.5 truncate">{config.accentHeadline}</p>
+                <p className={cn(styles.Subtitle, styles.SubtitleTruncate)}>{config.accentHeadline}</p>
               ) : filterMeta ? (
-                <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                <p className={cn(styles.Subtitle, styles.SubtitleTruncate)}>
                   {config.filterType === 'tag' ? `#${config.filterId}` : filterMeta.name}
                 </p>
               ) : (
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className={styles.Subtitle}>
                   {viewMode === 'mini-kanban' ? 'Mini board' : 'Card view'}
                 </p>
               )}
@@ -236,38 +227,38 @@ export function TagLaneBoardWidget({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 w-7 p-0 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            className={styles.SettingsButton}
             onClick={onEdit}
             title="Widget settings"
           >
-            <Settings2 className="h-3.5 w-3.5" />
+            <Settings2 className={styles.SettingsIcon} />
           </Button>
         </div>
-        <p className="text-[11px] text-muted-foreground mt-2 flex items-center gap-1.5">
+        <p className={styles.Note}>
           {viewMode === 'mini-kanban' ? (
-            <Columns2 className="h-3 w-3 shrink-0" />
+            <Columns2 className={styles.NoteIcon} />
           ) : (
-            <LayoutGrid className="h-3 w-3 shrink-0" />
+            <LayoutGrid className={styles.NoteIcon} />
           )}
           To do and in progress only. Column titles like &ldquo;To do&rdquo; and &ldquo;In progress&rdquo; improve detection.
         </p>
       </div>
 
-      <div className="flex-1 min-h-0 min-w-0 flex flex-col">
+      <div className={styles.Content}>
       {!lanes ? (
-        <div className="p-4 text-center text-sm text-muted-foreground">
+        <div className={styles.NoLanes}>
           Add board columns to use this widget.
         </div>
       ) : viewMode === 'mini-kanban' ? (
-        <div className="flex flex-1 min-h-0 divide-x min-w-0">
-          <div className="flex-1 flex flex-col min-w-0 min-h-0">
-            <div className="px-2 py-1.5 text-[11px] font-medium text-muted-foreground border-b bg-muted/20 truncate">
+        <div className={styles.Lanes}>
+          <div className={styles.Lane}>
+            <div className={styles.LaneHeader}>
               {lanes.todoColumn.title}
             </div>
-            <ScrollFade className="flex-1 min-h-0">
-              <div className="p-2 space-y-2">
+            <ScrollFade className={styles.LaneScroll}>
+              <div className={styles.LaneList}>
                 {todoList.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">Empty</p>
+                  <p className={styles.LaneEmpty}>Empty</p>
                 ) : (
                   todoList.map((p) => (
                     <ProjectThumbCard
@@ -282,14 +273,14 @@ export function TagLaneBoardWidget({
               </div>
             </ScrollFade>
           </div>
-          <div className="flex-1 flex flex-col min-w-0 min-h-0">
-            <div className="px-2 py-1.5 text-[11px] font-medium text-muted-foreground border-b bg-muted/20 truncate">
+          <div className={styles.Lane}>
+            <div className={styles.LaneHeader}>
               {lanes.inProgressColumn.title}
             </div>
-            <ScrollFade className="flex-1 min-h-0">
-              <div className="p-2 space-y-2">
+            <ScrollFade className={styles.LaneScroll}>
+              <div className={styles.LaneList}>
                 {inProgressList.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">Empty</p>
+                  <p className={styles.LaneEmpty}>Empty</p>
                 ) : (
                   inProgressList.map((p) => (
                     <ProjectThumbCard
@@ -308,11 +299,11 @@ export function TagLaneBoardWidget({
       ) : (
         <ScrollFade>
           {items.length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">
+            <div className={styles.NoItems}>
               No projects in To do or In progress for this filter.
             </div>
           ) : (
-            <div className="p-3 grid grid-cols-2 gap-2 sm:gap-3">
+            <div className={styles.Grid}>
               {items.map((p) => (
                 <ProjectThumbCard
                   key={p.id}

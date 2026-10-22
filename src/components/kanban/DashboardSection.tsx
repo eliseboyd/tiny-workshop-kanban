@@ -13,6 +13,7 @@ import { WidgetsSection } from '@/components/widgets';
 import type { Project } from './KanbanBoard';
 import type { MerlinLocation } from '@/types/locations';
 import { LocationSwitcher } from './LocationSwitcher';
+import styles from './DashboardSection.module.css';
 
 type Tag = {
   name: string;
@@ -116,100 +117,100 @@ function SortableDashboardItem({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group relative overflow-hidden rounded-xl border-2 transition-all",
-        !isDragging && "hover:scale-105 hover:shadow-lg active:scale-95"
+        styles.Item,
+        !isDragging && styles.ItemInteractive
       )}
       {...attributes}
     >
       {/* Drag handle */}
       <div 
         {...listeners}
-        className="absolute top-2 right-2 z-10 p-1 rounded bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+        className={styles.Handle}
       >
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
+        <GripVertical className={styles.HandleIcon} />
       </div>
 
       {item.type === 'project' ? (
         <button
           onClick={onClick}
-          className="w-full text-left"
+          className={styles.ProjectButton}
           style={{
             borderColor: item.color,
             backgroundColor: `${item.color}08`,
           }}
         >
-          <div className="p-4 flex flex-col items-start gap-2">
-            <div className="w-full">
+          <div className={styles.ProjectBody}>
+            <div className={styles.FullWidth}>
               {item.icon ? (
-                <div className="relative w-10 h-10 flex-shrink-0">
+                <div className={styles.ProjectIconWrap}>
                   <Image
                     src={item.icon}
                     alt={item.name}
                     width={40}
                     height={40}
-                    className="rounded-lg object-cover"
+                    className={styles.ProjectIcon}
                     unoptimized
                   />
                 </div>
               ) : item.emoji ? (
-                <span className="text-3xl">{item.emoji}</span>
+                <span className={styles.ProjectEmoji}>{item.emoji}</span>
               ) : (
                 <div 
-                  className="w-10 h-10 rounded-lg"
+                  className={styles.ProjectSwatch}
                   style={{ backgroundColor: item.color }}
                 />
               )}
             </div>
-            <div className="w-full text-left">
+            <div className={styles.ProjectText}>
               <p 
-                className="font-semibold text-sm line-clamp-2 group-hover:underline"
+                className={styles.ProjectName}
                 style={{ color: item.color }}
               >
                 {item.name}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className={styles.ProjectCount}>
                 {item.count} {item.count === 1 ? 'card' : 'cards'}
               </p>
             </div>
           </div>
           <div 
-            className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity pointer-events-none"
+            className={styles.Overlay}
             style={{ backgroundColor: item.color }}
           />
         </button>
       ) : (
         <button
           onClick={onClick}
-          className="w-full px-4 py-3 text-left"
+          className={styles.TagButton}
           style={{
             borderColor: item.color,
             backgroundColor: `${item.color}10`,
           }}
         >
-          <div className="flex items-center gap-2">
+          <div className={styles.TagRow}>
             {item.icon ? (
-              <div className="relative w-6 h-6 flex-shrink-0">
+              <div className={styles.TagIconWrap}>
                 <Image
                   src={item.icon}
                   alt={item.name}
                   width={24}
                   height={24}
-                  className="rounded object-cover"
+                  className={styles.TagIcon}
                   unoptimized
                 />
               </div>
             ) : item.emoji ? (
-              <span className="text-xl">{item.emoji}</span>
+              <span className={styles.TagEmoji}>{item.emoji}</span>
             ) : null}
             <span 
-              className="font-medium text-sm flex-1"
+              className={styles.TagName}
               style={{ color: item.color }}
             >
               #{item.name}
             </span>
             <Badge 
               variant="secondary" 
-              className="h-5 text-xs font-semibold"
+              className={styles.TagCount}
               style={{
                 backgroundColor: item.color,
                 color: 'white',
@@ -303,30 +304,30 @@ export function DashboardSection({
 
   // Always render the container to prevent layout shift
   return (
-    <div className="border-b bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="px-4 py-3">
+    <div className={styles.Root}>
+      <div className={styles.Inner}>
         {/* Only show header in overview mode */}
         {!isDashboardOnly && (
           <div 
-            className="flex items-center justify-between cursor-pointer hover:bg-muted/30 rounded-lg px-3 py-2 -mx-3 transition-colors group"
+            className={styles.Header}
             onClick={() => setIsExpanded(!isExpanded)}
           >
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-bold">Dashboard</h2>
+            <div className={styles.HeaderLeft}>
+              <div className={styles.HeaderTitleRow}>
+                <Package className={styles.HeaderIcon} />
+                <h2 className={styles.HeaderTitle}>Dashboard</h2>
               </div>
             </div>
             {isExpanded ? (
-              <ChevronUp className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+              <ChevronUp className={styles.Chevron} />
             ) : (
-              <ChevronDown className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+              <ChevronDown className={styles.Chevron} />
             )}
           </div>
         )}
 
         {(isDashboardOnly || isExpanded) && (
-          <div className={cn("space-y-4", !isDashboardOnly && "mt-4")}>
+          <div className={cn(styles.Body, !isDashboardOnly && styles.BodyWithHeader)}>
 
             {/* Tags/Projects Grid - Hidden for now */}
             {/* {isLoading ? (
@@ -375,7 +376,7 @@ export function DashboardSection({
             <LocationSwitcher locations={locations} currentKey={currentLocationKey} onChange={(k) => onLocationChange?.(k)} />
 
             {/* Widgets Section */}
-            <div className={cn(!isDashboardOnly && displayItems.length > 0 && "pt-4 border-t mt-4")}>
+            <div className={cn(!isDashboardOnly && displayItems.length > 0 && styles.WidgetsDivided)}>
               <WidgetsSection
                 widgets={visibleWidgets}
                 locations={locations}

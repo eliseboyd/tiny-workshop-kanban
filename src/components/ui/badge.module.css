@@ -79,4 +79,13 @@
     background-color: var(--accent);
     color: var(--accent-foreground);
   }
+
+  /* Clickable badges render as <button>: drop the UA button chrome. The
+     variant rules (higher specificity) still set background and colour. */
+  button.Badge {
+    font-family: inherit;
+    background-color: transparent;
+    color: inherit;
+    cursor: pointer;
+  }
 }

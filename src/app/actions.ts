@@ -32,6 +32,17 @@ function revalidateBoard() {
   revalidateTag(BOARD_TAG, 'max');
 }
 
+// Board reads throw on a database error instead of returning an empty list.
+// An empty list renders as a blank board (indistinguishable from "all your
+// cards are gone"), unstable_cache would keep serving it for up to 5 minutes
+// after the database recovers, and a client refresh would wipe the cards
+// already on screen. A throw is never cached: the page shows its "Unable to
+// load the board" state, and client callers keep what they have.
+function boardReadFailed(what: string, error: unknown): never {
+  console.error(`Error fetching ${what}:`, JSON.stringify(error, null, 2));
+  throw new Error(`Could not load ${what}`);
+}
+
 function getSupabaseHost(): string | null {
   const url = getSupabaseUrl();
   if (!url) return null;
@@ -342,10 +353,7 @@ const getProjectsCached = unstable_cache(async () => {
     .is('archived_at', null)
     .order('position', { ascending: true });
 
-  if (error) {
-    console.error('Error fetching projects:', JSON.stringify(error, null, 2));
-    return [];
-  }
+  if (error) boardReadFailed('projects', error);
 
   return truncateCardDescriptions(data ?? []);
 }, ['board:projects'], BOARD_CACHE_OPTS);
@@ -363,10 +371,7 @@ const getIdeasCached = unstable_cache(async () => {
     .is('archived_at', null)
     .order('created_at', { ascending: false });
 
-  if (error) {
-    console.error('Error fetching ideas:', JSON.stringify(error, null, 2));
-    return [];
-  }
+  if (error) boardReadFailed('ideas', error);
 
   return truncateCardDescriptions(data ?? []);
 }, ['board:ideas'], BOARD_CACHE_OPTS);
@@ -385,10 +390,7 @@ const getArchivedCached = unstable_cache(async () => {
     .not('archived_at', 'is', null)
     .order('archived_at', { ascending: false });
 
-  if (error) {
-    console.error('Error fetching archived projects:', JSON.stringify(error, null, 2));
-    return [];
-  }
+  if (error) boardReadFailed('archived projects', error);
 
   return truncateCardDescriptions(data ?? []);
 }, ['board:archived'], BOARD_CACHE_OPTS);
@@ -1065,10 +1067,7 @@ const getColumnsCached = unstable_cache(async () => {
     .select('*')
     .order('order', { ascending: true });
 
-  if (error) {
-     console.error('Error fetching columns:', error);
-     return [];
-  }
+  if (error) boardReadFailed('columns', error);
 
   const rows = data ?? [];
   if (rows.length === 0) {
@@ -1131,7 +1130,11 @@ const getSettingsCached = unstable_cache(async () => {
   const supabase = createServiceRoleClient();
 
   const { data, error } = await supabase.from('settings').select('*').limit(1).single();
-  
+
+  // PGRST116 = no row yet, which falls through to creating the defaults.
+  // Anything else is a real failure: don't try to insert over it.
+  if (error && error.code !== 'PGRST116') boardReadFailed('settings', error);
+
   if (data) {
     // Map snake_case to camelCase for frontend
     return {
@@ -1732,18 +1735,14 @@ const getAllTagsCached = unstable_cache(async () => {
     .select('*')
     .order('name');
   
-  if (tagsError) {
-    console.error('Error fetching tags:', tagsError);
-  }
+  if (tagsError) boardReadFailed('tags', tagsError);
   
   // Get all unique tags from projects
   const { data: projects, error: projectsError } = await supabase
     .from('projects')
     .select('tags');
   
-  if (projectsError) {
-    console.error('Error fetching project tags:', projectsError);
-  }
+  if (projectsError) boardReadFailed('project tags', projectsError);
   
   // Collect all unique tags from projects
   const projectTagsSet = new Set<string>();
@@ -1933,10 +1932,7 @@ const getAllProjectGroupsCached = unstable_cache(async () => {
     .select('*')
     .order('created_at', { ascending: false });
 
-  if (error) {
-    console.error('Error fetching project groups:', error);
-    return [];
-  }
+  if (error) boardReadFailed('project groups', error);
 
   // Map snake_case to camelCase for the client
   return (data ?? []).map(({ match_mode, ...g }) => ({

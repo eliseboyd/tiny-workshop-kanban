@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Project } from './KanbanBoard';
 import { ProjectEditor } from './ProjectEditor';
 import type { MerlinLocation } from '@/types/locations';
+import styles from './ProjectModal.module.css';
 
 type IdeaNavigation = {
   current: number;
@@ -29,8 +30,8 @@ export function ProjectModal({ project, isOpen, onClose, ideaNavigation, onMoveT
   
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[900px] h-[85vh] overflow-hidden flex flex-col p-0 gap-0" showCloseButton={false}>
-        <DialogTitle className="sr-only">Edit Project</DialogTitle>
+      <DialogContent className={styles.Content} showCloseButton={false}>
+        <DialogTitle className={styles.Title}>Edit Project</DialogTitle>
         <ProjectEditor
             project={project}
             onClose={onClose}
