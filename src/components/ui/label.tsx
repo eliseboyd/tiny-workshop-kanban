@@ -1,21 +1,20 @@
 "use client"
 
 import * as React from "react"
-import * as LabelPrimitive from "@radix-ui/react-label"
 
 import { cn } from "@/lib/utils"
+import styles from "./label.module.css"
 
-function Label({
-  className,
-  ...props
-}: React.ComponentProps<typeof LabelPrimitive.Root>) {
+function Label({ className, onMouseDown, ...props }: React.ComponentProps<"label">) {
   return (
-    <LabelPrimitive.Root
+    <label
       data-slot="label"
-      className={cn(
-        "flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
-        className
-      )}
+      className={cn(styles.Label, className)}
+      onMouseDown={(event) => {
+        onMouseDown?.(event)
+        // Like Radix Label: a double-click on the label shouldn't select text.
+        if (!event.defaultPrevented && event.detail > 1) event.preventDefault()
+      }}
       {...props}
     />
   )

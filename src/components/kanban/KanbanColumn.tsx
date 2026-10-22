@@ -191,8 +191,8 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
         {/* Add Project Button - At Top for easy access */}
         {onAddProject && !isCreating && (
           <ContextMenu>
-            <ContextMenuTrigger asChild>
-              <button
+            <ContextMenuTrigger
+              render={<button
                   onClick={() => {
                     setCreatingAsTask(false);
                     onAddProject(id, false);
@@ -211,12 +211,12 @@ export function KanbanColumn({ id, title, items, columns, isHidden, onToggleVisi
                     }, 50);
                   }}
                   className="flex items-center justify-center w-full h-12 rounded-lg border-2 border-dashed border-neutral-300 dark:border-neutral-700 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 hover:border-neutral-400 dark:hover:border-neutral-500 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 transition-all group/add flex-shrink-0"
+              />}
               >
                   <span className="flex items-center gap-2 text-sm font-medium">
                       <Plus className="h-4 w-4 group-hover/add:scale-110 transition-transform" />
                       Add Project
                   </span>
-              </button>
             </ContextMenuTrigger>
             <ContextMenuContent>
               <ContextMenuItem 

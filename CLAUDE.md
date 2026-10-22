@@ -113,7 +113,12 @@ converted. Plan: `~/repos/orchestrator/plans/base-ui-css-modules.md`.
   wrapped in `src/components/ui/`. Check there before building from scratch.
   Compose with `render={<El />}`, not `asChild`.
 - Only theme tokens from `@eliseboyd/design`: `var(--primary)`,
-  `var(--radius-lg)`, `var(--shadow-md)`, `var(--font-sans)`. No raw colours.
+  `var(--radius-lg)`, `var(--shadow-md)`, `var(--font-sans)`. No raw colours,
+  with one migration exception: a Tailwind palette colour the old markup used
+  (`text-green-600`) is carried over as its oklch literal with a comment
+  naming the swatch (`oklch(62.7% 0.194 149.214); /* green-600 */`), so
+  conversions stay pixel-identical. Replace those with tokens deliberately,
+  not during a conversion.
 - Style state with Base UI's data attributes (`[data-checked]`,
   `[data-popup-open]`); animate with `[data-starting-style]` /
   `[data-ending-style]`.
@@ -122,6 +127,9 @@ converted. Plan: `~/repos/orchestrator/plans/base-ui-css-modules.md`.
 - `cn()` from `@/lib/utils` merges classes: `cn(styles.Card, isCompact && styles.Compact)`.
 - Module CSS is unlayered, so it beats Tailwind utilities. When converting an
   element, remove all its utilities in the same edit.
+- Exception: `src/components/ui/*.module.css` wrap their rules in
+  `@layer components`, so a call site's `className` (utility or module class)
+  still overrides the primitive's defaults, as twMerge used to.
 
 ### Database
 - Schema lives in `src/db/`. Run migrations with `drizzle-kit`.

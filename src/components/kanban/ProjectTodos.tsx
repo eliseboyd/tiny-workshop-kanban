@@ -129,7 +129,7 @@ export function ProjectTodos({ cardId, cardTitle }: { cardId: string; cardTitle:
               disabled={isBusy}
               onCheckedChange={() => withBusy(t.id, () => completeCardTodo(t.id))}
               aria-label={`Mark "${t.title}" done`}
-              className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+              className="data-checked:bg-green-600 data-checked:border-green-600"
             />
             <div className="flex-1 min-w-0">
               <div className="truncate">{t.title}</div>
