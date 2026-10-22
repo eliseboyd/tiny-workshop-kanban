@@ -32,10 +32,10 @@ export default async function Home() {
         <div className="max-w-md space-y-3 text-center">
           <h1 className="text-xl font-semibold tracking-tight">Unable to load the board</h1>
           <p className="text-sm text-muted-foreground">
-            The server could not finish loading data. Check your deployment logs for the full error.
-            Common causes: missing{' '}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs">SUPABASE_SERVICE_ROLE_KEY</code>{' '}
-            or other Supabase env vars on the host.
+            The database didn&rsquo;t answer, so nothing is shown rather than an empty board. Your
+            cards are not lost &mdash; reload in a minute. If it keeps happening, check the Vercel
+            runtime logs (a Supabase timeout, or a missing{' '}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">SUPABASE_SERVICE_ROLE_KEY</code>).
           </p>
         </div>
       </main>

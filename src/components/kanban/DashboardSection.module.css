@@ -131,6 +131,11 @@
   }
 }
 
+/* Keyboard users reach the drag handle too. */
+.Item:focus-within .Handle {
+  opacity: 1;
+}
+
 .TagButton {
   width: 100%;
   padding-inline: 1rem;

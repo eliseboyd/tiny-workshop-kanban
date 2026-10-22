@@ -305,6 +305,7 @@ function ProjectGroupItem({
             <Badge
               key={tag.name}
               variant={on ? 'default' : 'outline'}
+              aria-pressed={on}
               className="cursor-pointer select-none"
               style={on ? { backgroundColor: tag.color, borderColor: tag.color } : { borderColor: tag.color }}
               onClick={() => toggleTag(tag.name)}
@@ -973,7 +974,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           <Image src={url} alt={`ref ${i + 1}`} width={64} height={64} className="object-cover w-full h-full" unoptimized />
                           <button
                             onClick={() => setStyleFormImages((prev) => prev.filter((_, idx) => idx !== i))}
-                            className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                            className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 flex items-center justify-center transition-opacity"
                           >
                             <X className="h-4 w-4 text-white" />
                           </button>

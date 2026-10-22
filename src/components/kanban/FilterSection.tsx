@@ -74,6 +74,7 @@ export function FilterSection({
             <Badge
               key={group.id}
               variant={activeGroups.includes(group.id) ? "default" : "outline"}
+              aria-pressed={activeGroups.includes(group.id)}
               className={cn(styles.Chip, activeGroups.includes(group.id) && styles.ChipActive)}
               style={{
                 backgroundColor: activeGroups.includes(group.id) ? group.color : undefined,
@@ -100,6 +101,7 @@ export function FilterSection({
             <Badge
               key={tag.name}
               variant={activeTags.includes(tag.name) ? "default" : "outline"}
+              aria-pressed={activeTags.includes(tag.name)}
               className={cn(styles.Chip, activeTags.includes(tag.name) && styles.ChipActive)}
               style={{
                 backgroundColor: activeTags.includes(tag.name) ? tag.color : undefined,
@@ -120,6 +122,7 @@ export function FilterSection({
           {tags.length > 0 && (
             <Badge
               variant={showUntagged ? "default" : "outline"}
+              aria-pressed={showUntagged}
               className={cn(styles.Chip, showUntagged && styles.ChipActive)}
               onClick={() => onToggleUntagged()}
             >

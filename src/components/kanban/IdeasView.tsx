@@ -106,6 +106,7 @@ export function IdeasView({
                 <Badge
                   key={tag.name}
                   variant={selectedTags.includes(tag.name) ? 'default' : 'outline'}
+                  aria-pressed={selectedTags.includes(tag.name)}
                   className={cn(
                     styles.Tag,
                     selectedTags.includes(tag.name) && styles.TagSelected

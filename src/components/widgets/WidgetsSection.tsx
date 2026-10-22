@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { updateWidget, reorderWidgets } from '@/app/actions';
 import type { MerlinLocation } from '@/types/locations';
 import type { Project } from '@/components/kanban/KanbanBoard';
+import styles from './WidgetsSection.module.css';
 
 // Context for passing drag listeners to widget headers
 type DragListeners = {
@@ -69,10 +70,10 @@ function ResizeHandle({
 }) {
   return (
     <div
-      className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize group/resize flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+      className={styles.ResizeHandle}
       onPointerDown={onResizeStart}
     >
-      <div className="h-1 w-10 rounded-full bg-muted-foreground/40 group-hover/resize:bg-primary/60 transition-colors" />
+      <div className={styles.ResizeGrip} />
     </div>
   );
 }
@@ -159,9 +160,8 @@ function SortableWidget({
         ref={setNodeRef}
         style={style}
         className={cn(
-          "relative group/widget break-inside-avoid mb-4",
-          "[&>*:first-child]:h-full [&>*:first-child]:overflow-auto",
-          isResizing && "ring-2 ring-primary/30 rounded-xl",
+          styles.Widget,
+          isResizing && styles.WidgetResizing,
           colSpan >= 2 && "md:column-span-all"
         )}
         {...attributes}
@@ -290,14 +290,14 @@ export function WidgetsSection({
   if (widgets.length === 0) {
     return (
       <>
-        <div className="flex items-center justify-center py-6">
+        <div className={styles.EmptyState}>
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 text-muted-foreground hover:text-foreground"
+            className={styles.AddFirstButton}
             onClick={() => setIsAddDialogOpen(true)}
           >
-            <Plus className="h-4 w-4" />
+            <Plus className={styles.PlusIcon} />
             Add your first widget
           </Button>
         </div>
@@ -409,24 +409,24 @@ export function WidgetsSection({
 
   return (
     <>
-      <div className="space-y-4">
+      <div className={styles.Section}>
         {isLoading ? (
           // Loading skeletons
-          <div className="columns-1 md:columns-2 lg:columns-3 gap-4">
+          <div className={styles.Columns}>
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="rounded-xl border bg-card shadow-sm overflow-hidden break-inside-avoid mb-4 animate-pulse"
+                className={styles.Skeleton}
                 style={{ height: `${200 + (i * 50)}px` }}
               >
-                <div className="px-4 py-3 border-b bg-muted/30">
-                  <div className="h-5 bg-muted rounded w-2/3"></div>
-                  <div className="h-3 bg-muted rounded w-1/2 mt-2"></div>
+                <div className={styles.SkeletonHeader}>
+                  <div className={styles.SkeletonTitle}></div>
+                  <div className={styles.SkeletonSubtitle}></div>
                 </div>
-                <div className="p-4 space-y-3">
-                  <div className="h-4 bg-muted rounded"></div>
-                  <div className="h-4 bg-muted rounded"></div>
-                  <div className="h-4 bg-muted rounded w-5/6"></div>
+                <div className={styles.SkeletonBody}>
+                  <div className={styles.SkeletonLine}></div>
+                  <div className={styles.SkeletonLine}></div>
+                  <div className={cn(styles.SkeletonLine, styles.SkeletonLineShort)}></div>
                 </div>
               </div>
             ))}
@@ -443,7 +443,7 @@ export function WidgetsSection({
               strategy={rectSortingStrategy}
             >
               <div 
-                className="columns-1 md:columns-2 lg:columns-3 gap-4"
+                className={styles.Columns}
               >
                 {localWidgets.map((widget) => (
                   <SortableWidget
@@ -459,10 +459,10 @@ export function WidgetsSection({
                 {/* Add Widget Button */}
                 <button
                   onClick={() => setIsAddDialogOpen(true)}
-                  className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/30 text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-colors min-h-[120px] w-full break-inside-avoid mb-4"
+                  className={styles.AddWidgetButton}
                 >
-                  <Plus className="h-4 w-4" />
-                  <span className="text-sm font-medium">Add Widget</span>
+                  <Plus className={styles.PlusIcon} />
+                  <span className={styles.AddWidgetLabel}>Add Widget</span>
                 </button>
               </div>
             </SortableContext>
