@@ -298,7 +298,7 @@ export function KanbanCard({ project, onClick, onDelete, onTogglePin, onMoveToCo
         
         {/* Mobile Move Button - Only show on touch devices when columns available */}
         {isTouchDevice && columns && columns.length > 1 && onMoveToColumn && (
-          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity md:hidden">
+          <div className="absolute bottom-2 right-2 md:hidden">
             <Sheet open={moveSheetOpen} onOpenChange={setMoveSheetOpen}>
               <SheetTrigger
                 onClick={(e) => e.stopPropagation()}

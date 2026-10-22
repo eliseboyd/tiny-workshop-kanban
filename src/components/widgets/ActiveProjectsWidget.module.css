@@ -63,6 +63,11 @@
   }
 }
 
+/* Keyboard users reach the same controls: reveal on focus too. */
+.Root:focus-within .Actions {
+  opacity: 100%;
+}
+
 .SettingsButton {
   height: 1.75rem;
   width: 1.75rem;
@@ -231,4 +236,9 @@
   .Item:hover .OpenIcon {
     opacity: 100%;
   }
+}
+
+/* Keyboard users reach the same controls: reveal on focus too. */
+.Item:focus-within .OpenIcon {
+  opacity: 100%;
 }
