@@ -306,6 +306,7 @@ function ProjectGroupItem({
             <Badge
               key={tag.name}
               variant={on ? 'default' : 'outline'}
+              aria-pressed={on}
               className={styles.TagBadge}
               style={on ? { backgroundColor: tag.color, borderColor: tag.color } : { borderColor: tag.color }}
               onClick={() => toggleTag(tag.name)}

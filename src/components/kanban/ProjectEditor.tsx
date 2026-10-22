@@ -1522,14 +1522,14 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                   className="object-cover"
                   unoptimized
                 />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity flex items-center justify-center">
                   <p className="text-white text-sm font-medium flex items-center gap-2">
                     <Upload className="h-4 w-4" /> Change Cover
                   </p>
                 </div>
               </>
             ) : (
-              <div className="flex flex-col items-center gap-2 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex flex-col items-center gap-2 text-muted-foreground opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                 <ImageIcon className="h-8 w-8 opacity-50" />
                 <p className="text-sm">Click to upload or drag & drop</p>
                 <p className="text-xs opacity-75 hidden md:block">Hover and paste (Ctrl+V) to upload from clipboard</p>
@@ -1673,7 +1673,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
           {/* Desktop: Buttons at bottom right */}
           <div className={cn(
             "hidden md:flex absolute bottom-4 right-4 gap-2 z-20 transition-opacity",
-            imageUrl && "opacity-0 group-hover:opacity-100"
+            imageUrl && "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
           )}>
             {imageUrl && (
               <>
@@ -2153,7 +2153,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                         />
                         <span className="text-xs text-muted-foreground whitespace-nowrap">Already own</span>
                       </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                         <Button
                           size="sm"
                           variant="ghost"
@@ -2275,7 +2275,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                             <span className="text-xs uppercase font-bold tracking-wider">{item.type.split('/')[1] || 'FILE'}</span>
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
                           <Button size="sm" variant="secondary" className="h-8 w-8 p-0" onClick={() => openAttachment(item.url, item.type, item.name)}>
                             <Maximize2 className="h-4 w-4" />
                           </Button>
@@ -2497,7 +2497,7 @@ export function ProjectEditor({ project, onClose, isModal = false, className, id
                             </div>
                           )}
                           {/* Hover overlay - pointer-events-none when hidden, only buttons are clickable */}
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
                             <Button 
                               size="sm" 
                               variant="secondary" 
