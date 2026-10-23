@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { ListTodo, ShoppingCart, Tags, FolderKanban, ListChecks, Trash2, Calendar, Layers, LayoutGrid, Columns2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import styles from './AddWidgetDialog.module.css';
 import { TAG_LANE_ACCENT_LUCIDE_OPTIONS } from '@/lib/tag-lane-accent-icons';
 import { createWidget, updateWidget, deleteWidget } from '@/app/actions';
 import type { MerlinLocation } from '@/types/locations';
@@ -61,42 +62,42 @@ const WIDGET_TYPES = [
     name: 'Group of Projects',
     description: 'Filter by tags, project groups, or all projects',
     icon: ListTodo,
-    color: 'bg-blue-500/10 text-blue-600 border-blue-500/30',
+    color: styles.TypeBlue,
   },
   {
     id: 'tag-lane-board' as WidgetType,
     name: 'Tag lane',
     description: 'Visual cards for To do and In progress, filtered by tag or group',
     icon: LayoutGrid,
-    color: 'bg-cyan-500/10 text-cyan-700 border-cyan-500/30',
+    color: styles.TypeCyan,
   },
   {
     id: 'active-projects' as WidgetType,
     name: 'Active Projects List',
     description: 'All active projects/tasks with advanced filtering',
     icon: Layers,
-    color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/30',
+    color: styles.TypeIndigo,
   },
   {
     id: 'materials-shopping' as WidgetType,
     name: 'Shopping List',
     description: 'Show materials marked "To Buy"',
     icon: ShoppingCart,
-    color: 'bg-amber-500/10 text-amber-600 border-amber-500/30',
+    color: styles.TypeAmber,
   },
   {
     id: 'project-todos' as WidgetType,
     name: 'Single Project',
     description: 'Show all tasks from a project',
     icon: ListChecks,
-    color: 'bg-violet-500/10 text-violet-600 border-violet-500/30',
+    color: styles.TypeViolet,
   },
   {
     id: 'day-plan' as WidgetType,
     name: 'Day Plan',
     description: 'Drag projects here to plan your day',
     icon: Calendar,
-    color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30',
+    color: styles.TypeEmerald,
   },
 ];
 
@@ -377,9 +378,9 @@ export function AddWidgetDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && void handleClose()}>
-      <DialogContent className="flex !max-w-none max-h-[min(92vh,860px)] w-[calc(100%-2rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:w-full">
-        <div className="shrink-0 border-b px-6 py-4">
-          <DialogHeader className="space-y-1.5 text-left">
+      <DialogContent className={styles.Content}>
+        <div className={styles.HeaderBar}>
+          <DialogHeader className={styles.Header}>
             <DialogTitle>
               {editingWidget ? 'Edit Widget' : step === 'type' ? 'Add Widget' : 'Configure Widget'}
             </DialogTitle>
@@ -393,33 +394,29 @@ export function AddWidgetDialog({
 
         {step === 'type' ? (
           /* Type Selection */
-          <div className="grid max-h-[min(60vh,480px)] gap-3 overflow-y-auto px-6 py-4">
+          <div className={styles.TypeList}>
             {WIDGET_TYPES.map((type) => (
               <button
                 key={type.id}
                 onClick={() => handleSelectType(type.id)}
-                className={cn(
-                  "flex items-center gap-4 p-4 rounded-lg border-2 text-left transition-all hover:scale-[1.02]",
-                  type.color,
-                  "hover:border-current"
-                )}
+                className={cn(styles.TypeOption, type.color)}
               >
-                <div className="p-2 rounded-lg bg-background/50">
-                  <type.icon className="h-6 w-6" />
+                <div className={styles.TypeIconWrap}>
+                  <type.icon className={styles.TypeIcon} />
                 </div>
                 <div>
-                  <h4 className="font-semibold">{type.name}</h4>
-                  <p className="text-sm opacity-80">{type.description}</p>
+                  <h4 className={styles.TypeName}>{type.name}</h4>
+                  <p className={styles.TypeDescription}>{type.description}</p>
                 </div>
               </button>
             ))}
           </div>
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col">
-            <div className="grid min-h-0 flex-1 grid-cols-1 gap-x-8 gap-y-5 overflow-y-auto px-6 py-4 md:grid-cols-2">
-              <div className="min-w-0 space-y-5">
+          <div className={styles.ConfigBody}>
+            <div className={styles.ConfigGrid}>
+              <div className={styles.Column}>
             {/* Title */}
-            <div className="space-y-2">
+            <div className={styles.Field}>
               <Label htmlFor="widget-title">Widget Title</Label>
               <Input
                 id="widget-title"
@@ -431,8 +428,8 @@ export function AddWidgetDialog({
 
             {/* Day Plan Description */}
             {selectedType === 'day-plan' && (
-              <div className="p-4 bg-muted/30 rounded-lg border border-dashed">
-                <p className="text-sm text-muted-foreground text-center">
+              <div className={styles.DayPlanNote}>
+                <p className={styles.DayPlanText}>
                   Drag project cards from the Kanban board onto this widget to plan your day
                 </p>
               </div>
@@ -440,10 +437,10 @@ export function AddWidgetDialog({
 
             {/* Tag lane: filter + layout (accents in right column) */}
             {selectedType === 'tag-lane-board' && (
-              <div className="space-y-5">
-                <div className="space-y-2">
+              <div className={styles.Stack}>
+                <div className={styles.Field}>
                   <Label>Filter by</Label>
-                  <div className="flex gap-2">
+                  <div className={styles.ButtonRow}>
                     <Button
                       type="button"
                       variant={filterType === 'tag' ? 'default' : 'outline'}
@@ -452,9 +449,9 @@ export function AddWidgetDialog({
                         setFilterType('tag');
                         setFilterId('');
                       }}
-                      className="flex-1 gap-2"
+                      className={styles.ToggleWithIcon}
                     >
-                      <Tags className="h-4 w-4" />
+                      <Tags className={styles.ButtonIcon} />
                       Tag
                     </Button>
                     <Button
@@ -465,14 +462,14 @@ export function AddWidgetDialog({
                         setFilterType('project-group');
                         setFilterId('');
                       }}
-                      className="flex-1 gap-2"
+                      className={styles.ToggleWithIcon}
                     >
-                      <FolderKanban className="h-4 w-4" />
+                      <FolderKanban className={styles.ButtonIcon} />
                       Group
                     </Button>
                   </div>
                 </div>
-                <div className="space-y-2">
+                <div className={styles.Field}>
                   <Label>{filterType === 'tag' ? 'Tag' : 'Project group'}</Label>
                   <Select value={filterId || undefined} onValueChange={setFilterId}>
                     <SelectTrigger>
@@ -481,15 +478,15 @@ export function AddWidgetDialog({
                     <SelectContent>
                       {filterType === 'tag' ? (
                         tags.length === 0 ? (
-                          <div className="p-2 text-sm text-muted-foreground text-center">No tags</div>
+                          <div className={styles.Empty}>No tags</div>
                         ) : (
                           tags.map((tag) => (
                             <SelectItem key={tag.name} value={tag.name}>
-                              <div className="flex items-center gap-2">
+                              <div className={styles.OptionRow}>
                                 {tag.emoji && <span>{tag.emoji}</span>}
                                 <span>#{tag.name}</span>
                                 <div
-                                  className="w-2.5 h-2.5 rounded-full ml-auto"
+                                  className={styles.Dot}
                                   style={{ backgroundColor: tag.color }}
                                 />
                               </div>
@@ -497,15 +494,15 @@ export function AddWidgetDialog({
                           ))
                         )
                       ) : projectGroups.length === 0 ? (
-                        <div className="p-2 text-sm text-muted-foreground text-center">No groups</div>
+                        <div className={styles.Empty}>No groups</div>
                       ) : (
                         projectGroups.map((group) => (
                           <SelectItem key={group.id} value={group.id}>
-                            <div className="flex items-center gap-2">
+                            <div className={styles.OptionRow}>
                               {group.emoji && <span>{group.emoji}</span>}
                               <span>{group.name}</span>
                               <div
-                                className="w-2.5 h-2.5 rounded-full ml-auto"
+                                className={styles.Dot}
                                 style={{ backgroundColor: group.color }}
                               />
                             </div>
@@ -515,9 +512,9 @@ export function AddWidgetDialog({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
+                <div className={styles.Field}>
                   <Label>Layout</Label>
-                  <div className="flex gap-2">
+                  <div className={styles.ButtonRow}>
                     <Button
                       type="button"
                       variant={boardViewMode === 'cards' ? 'default' : 'outline'}
@@ -526,9 +523,9 @@ export function AddWidgetDialog({
                         setBoardViewMode('cards');
                         setColSpan(1);
                       }}
-                      className="flex-1 gap-2"
+                      className={styles.ToggleWithIcon}
                     >
-                      <LayoutGrid className="h-4 w-4" />
+                      <LayoutGrid className={styles.ButtonIcon} />
                       Cards
                     </Button>
                     <Button
@@ -539,13 +536,13 @@ export function AddWidgetDialog({
                         setBoardViewMode('mini-kanban');
                         setColSpan(2);
                       }}
-                      className="flex-1 gap-2"
+                      className={styles.ToggleWithIcon}
                     >
-                      <Columns2 className="h-4 w-4" />
+                      <Columns2 className={styles.ButtonIcon} />
                       Mini board
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className={styles.Hint}>
                     Mini board sets widget width to 2 columns. Shows To do and In progress only.
                   </p>
                 </div>
@@ -554,15 +551,15 @@ export function AddWidgetDialog({
 
             {/* Active Projects Type Selection */}
             {selectedType === 'active-projects' && (
-              <div className="space-y-2">
+              <div className={styles.Field}>
                 <Label>Show</Label>
-                <div className="flex gap-2">
+                <div className={styles.ButtonRow}>
                   <Button
                     type="button"
                     variant={showType === 'all' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setShowType('all')}
-                    className="flex-1"
+                    className={styles.Toggle}
                   >
                     All
                   </Button>
@@ -571,9 +568,9 @@ export function AddWidgetDialog({
                     variant={showType === 'projects' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setShowType('projects')}
-                    className="flex-1 gap-2"
+                    className={styles.ToggleWithIcon}
                   >
-                    <FolderKanban className="h-4 w-4" />
+                    <FolderKanban className={styles.ButtonIcon} />
                     Projects
                   </Button>
                   <Button
@@ -581,9 +578,9 @@ export function AddWidgetDialog({
                     variant={showType === 'tasks' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setShowType('tasks')}
-                    className="flex-1 gap-2"
+                    className={styles.ToggleWithIcon}
                   >
-                    <ListTodo className="h-4 w-4" />
+                    <ListTodo className={styles.ButtonIcon} />
                     Tasks
                   </Button>
                 </div>
@@ -592,7 +589,7 @@ export function AddWidgetDialog({
 
             {/* Project Selection (for project-todos) */}
             {selectedType === 'project-todos' && (
-              <div className="space-y-2">
+              <div className={styles.Field}>
                 <Label>Select Project</Label>
                 <Select value={projectId || undefined} onValueChange={setProjectId}>
                   <SelectTrigger>
@@ -600,7 +597,7 @@ export function AddWidgetDialog({
                   </SelectTrigger>
                   <SelectContent>
                     {projects.length === 0 ? (
-                      <div className="p-2 text-sm text-muted-foreground text-center">
+                      <div className={styles.Empty}>
                         No projects available
                       </div>
                     ) : (
@@ -617,15 +614,15 @@ export function AddWidgetDialog({
 
             {/* Filter Type (for todo-list and materials-shopping; not tag-lane-board) */}
             {(selectedType === 'todo-list' || selectedType === 'materials-shopping') && (
-              <div className="space-y-2">
+              <div className={styles.Field}>
                 <Label>Filter By</Label>
-                <div className="flex gap-2">
+                <div className={styles.ButtonRow}>
                   <Button
                     type="button"
                     variant={filterType === 'all' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setFilterType('all')}
-                    className="flex-1"
+                    className={styles.Toggle}
                   >
                     All Projects
                   </Button>
@@ -634,9 +631,9 @@ export function AddWidgetDialog({
                     variant={filterType === 'tag' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setFilterType('tag')}
-                    className="flex-1 gap-2"
+                    className={styles.ToggleWithIcon}
                   >
-                    <Tags className="h-4 w-4" />
+                    <Tags className={styles.ButtonIcon} />
                     Tag
                   </Button>
                   <Button
@@ -644,9 +641,9 @@ export function AddWidgetDialog({
                     variant={filterType === 'project-group' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setFilterType('project-group')}
-                    className="flex-1 gap-2"
+                    className={styles.ToggleWithIcon}
                   >
-                    <FolderKanban className="h-4 w-4" />
+                    <FolderKanban className={styles.ButtonIcon} />
                     Project Group
                   </Button>
                 </div>
@@ -655,7 +652,7 @@ export function AddWidgetDialog({
 
             {/* Filter Selection (for todo-list and materials-shopping) */}
             {(selectedType === 'todo-list' || selectedType === 'materials-shopping') && filterType !== 'all' && (
-              <div className="space-y-2">
+              <div className={styles.Field}>
                 <Label>
                   {filterType === 'tag' ? 'Select Tag' : 'Select Project Group'}
                 </Label>
@@ -666,17 +663,17 @@ export function AddWidgetDialog({
                   <SelectContent>
                     {filterType === 'tag' ? (
                       tags.length === 0 ? (
-                        <div className="p-2 text-sm text-muted-foreground text-center">
+                        <div className={styles.Empty}>
                           No tags available
                         </div>
                       ) : (
                         tags.map((tag) => (
                           <SelectItem key={tag.name} value={tag.name}>
-                            <div className="flex items-center gap-2">
+                            <div className={styles.OptionRow}>
                               {tag.emoji && <span>{tag.emoji}</span>}
                               <span>#{tag.name}</span>
                               <div 
-                                className="w-2.5 h-2.5 rounded-full ml-auto" 
+                                className={styles.Dot} 
                                 style={{ backgroundColor: tag.color }}
                               />
                             </div>
@@ -685,17 +682,17 @@ export function AddWidgetDialog({
                       )
                     ) : (
                       projectGroups.length === 0 ? (
-                        <div className="p-2 text-sm text-muted-foreground text-center">
+                        <div className={styles.Empty}>
                           No project groups available
                         </div>
                       ) : (
                         projectGroups.map((group) => (
                           <SelectItem key={group.id} value={group.id}>
-                            <div className="flex items-center gap-2">
+                            <div className={styles.OptionRow}>
                               {group.emoji && <span>{group.emoji}</span>}
                               <span>{group.name}</span>
                               <div 
-                                className="w-2.5 h-2.5 rounded-full ml-auto" 
+                                className={styles.Dot} 
                                 style={{ backgroundColor: group.color }}
                               />
                             </div>
@@ -709,10 +706,10 @@ export function AddWidgetDialog({
             )}
 
             </div>
-            <div className="min-w-0 space-y-5">
+            <div className={styles.Column}>
             {selectedType === 'tag-lane-board' && (
-              <div className="space-y-5">
-                <div className="space-y-2">
+              <div className={styles.Stack}>
+                <div className={styles.Field}>
                   <Label htmlFor="accent-headline">Headline (optional)</Label>
                   <Input
                     id="accent-headline"
@@ -721,19 +718,16 @@ export function AddWidgetDialog({
                     placeholder="e.g. 3D print queue"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className={styles.Field}>
                   <Label>Accent color (optional)</Label>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className={styles.SwatchRow}>
                     {['#64748b', '#0ea5e9', '#8b5cf6', '#f59e0b', '#f43f5e', '#22c55e'].map((hex) => (
                       <button
                         key={hex}
                         type="button"
                         title={hex}
                         onClick={() => setAccentColor(hex)}
-                        className={cn(
-                          'h-7 w-7 rounded-full border-2 transition-transform hover:scale-110',
-                          accentColor === hex ? 'border-foreground ring-2 ring-offset-1 ring-foreground/20' : 'border-transparent'
-                        )}
+                        className={cn(styles.Swatch, accentColor === hex ? styles.SwatchSelected : styles.SwatchIdle)}
                         style={{ backgroundColor: hex }}
                       />
                     ))}
@@ -741,17 +735,17 @@ export function AddWidgetDialog({
                       type="color"
                       value={accentColor || '#64748b'}
                       onChange={(e) => setAccentColor(e.target.value)}
-                      className="h-8 w-12 cursor-pointer border p-0"
+                      className={styles.ColorInput}
                       aria-label="Pick accent color"
                     />
                     {accentColor ? (
-                      <Button type="button" variant="ghost" size="sm" className="text-xs" onClick={() => setAccentColor('')}>
+                      <Button type="button" variant="ghost" size="sm" className={styles.ClearButton} onClick={() => setAccentColor('')}>
                         Clear
                       </Button>
                     ) : null}
                   </div>
                 </div>
-                <div className="space-y-2">
+                <div className={styles.Field}>
                   <Label htmlFor="accent-emoji">Emoji (optional)</Label>
                   <Input
                     id="accent-emoji"
@@ -760,9 +754,9 @@ export function AddWidgetDialog({
                     placeholder="e.g. 🖨️"
                     maxLength={4}
                   />
-                  <p className="text-xs text-muted-foreground">If set, emoji is shown instead of the icon below.</p>
+                  <p className={styles.Hint}>If set, emoji is shown instead of the icon below.</p>
                 </div>
-                <div className="space-y-2">
+                <div className={styles.Field}>
                   <Label>Icon (optional)</Label>
                   <Select value={accentLucide || '__none__'} onValueChange={(v) => setAccentLucide(v === '__none__' ? '' : v)}>
                     <SelectTrigger>
@@ -785,7 +779,7 @@ export function AddWidgetDialog({
             {(selectedType === 'todo-list' ||
               selectedType === 'materials-shopping' ||
               selectedType === 'project-todos') && (
-              <div className="flex items-center gap-3 pt-2">
+              <div className={styles.CheckboxRow}>
                 <Checkbox
                   id="show-completed"
                   checked={selectedType === 'materials-shopping' ? showPurchased : showCompleted}
@@ -797,7 +791,7 @@ export function AddWidgetDialog({
                     }
                   }}
                 />
-                <Label htmlFor="show-completed" className="cursor-pointer">
+                <Label htmlFor="show-completed" className={styles.ClickableLabel}>
                   {selectedType === 'materials-shopping'
                     ? 'Show items already owned'
                     : 'Show completed tasks'}
@@ -807,20 +801,15 @@ export function AddWidgetDialog({
 
             {/* Location — which dashboard layout this widget belongs to */}
             {locations.length > 0 && (
-              <div className="space-y-2 pt-2 border-t">
+              <div className={styles.Section}>
                 <Label>Show at</Label>
-                <div className="flex gap-2">
+                <div className={styles.ButtonRow}>
                   {[{ key: null as string | null, label: 'Everywhere', emoji: null as string | null }, ...locations].map((loc) => (
                     <button
                       key={loc.key ?? '__all'}
                       type="button"
                       onClick={() => setLocationKey(loc.key)}
-                      className={cn(
-                        "flex-1 p-2.5 rounded-lg border-2 transition-all text-sm",
-                        locationKey === loc.key
-                          ? "border-primary bg-primary/5"
-                          : "border-muted hover:border-muted-foreground/30"
-                      )}
+                      className={cn(styles.Choice, locationKey === loc.key ? styles.ChoiceActive : styles.ChoiceIdle)}
                     >
                       {loc.emoji ? `${loc.emoji} ` : ''}{loc.label}
                     </button>
@@ -830,50 +819,35 @@ export function AddWidgetDialog({
             )}
 
             {/* Widget Width */}
-            <div className="space-y-2 pt-2 border-t">
+            <div className={styles.Section}>
               <Label>Width</Label>
-              <div className="flex gap-2">
+              <div className={styles.ButtonRow}>
                 <button
                   type="button"
                   onClick={() => setColSpan(1)}
-                  className={cn(
-                    "flex-1 p-2.5 rounded-lg border-2 transition-all flex flex-col items-center gap-1",
-                    colSpan === 1 
-                      ? "border-primary bg-primary/5" 
-                      : "border-muted hover:border-muted-foreground/30"
-                  )}
+                  className={cn(styles.WidthChoice, colSpan === 1 ? styles.ChoiceActive : styles.ChoiceIdle)}
                 >
-                  <div className="w-5 h-4 border-2 rounded" />
-                  <span className="text-xs text-muted-foreground">1 col</span>
+                  <div className={cn(styles.WidthPreview, styles.WidthPreview1)} />
+                  <span className={styles.Hint}>1 col</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setColSpan(2)}
-                  className={cn(
-                    "flex-1 p-2.5 rounded-lg border-2 transition-all flex flex-col items-center gap-1",
-                    colSpan === 2 
-                      ? "border-primary bg-primary/5" 
-                      : "border-muted hover:border-muted-foreground/30"
-                  )}
+                  className={cn(styles.WidthChoice, colSpan === 2 ? styles.ChoiceActive : styles.ChoiceIdle)}
                 >
-                  <div className="w-8 h-4 border-2 rounded" />
-                  <span className="text-xs text-muted-foreground">2 cols</span>
+                  <div className={cn(styles.WidthPreview, styles.WidthPreview2)} />
+                  <span className={styles.Hint}>2 cols</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setColSpan(3)}
-                  className={cn(
-                    "flex-1 p-2.5 rounded-lg border-2 transition-all flex flex-col items-center gap-1",
-                    colSpan === 3 
-                      ? "border-primary bg-primary/5" 
-                      : "border-muted hover:border-muted-foreground/30"
-                  )}
+                  className={cn(styles.WidthChoice, colSpan === 3 ? styles.ChoiceActive : styles.ChoiceIdle)}
                 >
-                  <div className="w-12 h-4 border-2 rounded" />
-                  <span className="text-xs text-muted-foreground">3 cols</span>
+                  <div className={cn(styles.WidthPreview, styles.WidthPreview3)} />
+                  <span className={styles.Hint}>3 cols</span>
                 </button>
               </div>
-              <p className="text-xs text-muted-foreground">Drag the bottom edge of a widget to adjust height</p>
+              <p className={styles.Hint}>Drag the bottom edge of a widget to adjust height</p>
             </div>
             </div>
             </div>
@@ -881,26 +855,26 @@ export function AddWidgetDialog({
         )}
 
         {step === 'config' && saveError ? (
-          <div className="shrink-0 border-t border-destructive/30 bg-destructive/10 px-6 py-2 text-sm text-destructive">
+          <div className={styles.ErrorBar}>
             {saveError}
           </div>
         ) : null}
 
-        <DialogFooter className="shrink-0 border-t bg-muted/20 px-6 py-4 sm:justify-between">
+        <DialogFooter className={styles.Footer}>
           {/* Delete button - only when editing */}
           {step === 'config' && editingWidget && (
             <Button 
               variant="ghost" 
               onClick={handleDelete}
               disabled={isDeleting}
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              className={styles.DeleteButton}
             >
-              <Trash2 className="h-4 w-4 mr-2" />
+              <Trash2 className={styles.DeleteIcon} />
               {isDeleting ? 'Deleting...' : 'Delete Widget'}
             </Button>
           )}
           
-          <div className="flex gap-2 ml-auto">
+          <div className={styles.FooterActions}>
             {step === 'config' && (
               <Button variant="outline" onClick={handleBack}>
                 {editingWidget ? 'Cancel' : 'Back'}

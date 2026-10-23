@@ -28,6 +28,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/api/capture') ||
     pathname.startsWith('/api/mcp') ||
     pathname.startsWith('/api/linear-webhook') ||
+    // Public uptime check — a monitor must reach it signed out.
+    pathname === '/api/health' ||
     pathname.endsWith('.shortcut')
   ) {
     return NextResponse.next();

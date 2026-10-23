@@ -16,6 +16,7 @@ const ProjectModal = dynamic(() => import('./ProjectModal').then(m => ({ default
 import { ClientDndWrapper } from './ClientDndWrapper';
 import { Project, Column, SettingsData } from './KanbanBoard';
 import { v4 as uuidv4 } from 'uuid';
+import styles from './KanbanBoardEmbed.module.css';
 
 type KanbanBoardEmbedProps = {
   initialProjects: Record<string, unknown>[];
@@ -154,21 +155,21 @@ export function KanbanBoardEmbed({ initialProjects, initialSettings, initialColu
 
   return (
     <>
-      <div className="flex flex-col h-screen w-full overflow-hidden">
+      <div className={styles.Root}>
         {/* Header */}
-        <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex items-center justify-between p-4">
-            <h1 className="text-2xl font-bold tracking-tight">
+        <div className={styles.Header}>
+          <div className={styles.HeaderRow}>
+            <h1 className={styles.Title}>
               {settingsState.boardTitle || 'Kanban Board'}
             </h1>
-            <div className="text-xs text-muted-foreground">
+            <div className={styles.Meta}>
               Embed View
             </div>
           </div>
         </div>
 
         {/* Kanban Board */}
-        <div className="flex-1 overflow-hidden">
+        <div className={styles.Board}>
           <ClientDndWrapper
             items={items}
             cols={cols}

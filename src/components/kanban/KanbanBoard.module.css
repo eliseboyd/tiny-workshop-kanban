@@ -1,0 +1,46 @@
+.TabFallback {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: var(--muted-foreground);
+}
+
+.Icon {
+  height: 1rem;
+  width: 1rem;
+}
+
+.ButtonIcon {
+  margin-right: 0.5rem;
+  height: 1rem;
+  width: 1rem;
+}
+
+.Root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding-top: 7rem;
+}
+
+.Top {
+  display: flex;
+  flex-direction: column;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+
+.LocationSwitcher {
+  margin-right: 0.5rem;
+}
+
+.Board {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
