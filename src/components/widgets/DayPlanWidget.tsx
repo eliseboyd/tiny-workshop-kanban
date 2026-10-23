@@ -225,7 +225,6 @@ export function DayPlanWidget({ widget, projects, columns = [], onEdit, onProjec
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      style={{ minHeight: '200px' }}
     >
       {/* Header */}
       <div 

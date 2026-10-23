@@ -1,6 +1,9 @@
 .Root {
   display: flex;
+  height: 100%;
+  min-height: 0;
   flex-direction: column;
+  overflow: hidden;
   background-color: var(--card);
   border-radius: var(--radius-lg);
   border-width: 1px;
