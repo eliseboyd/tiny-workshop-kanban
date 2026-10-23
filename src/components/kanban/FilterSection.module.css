@@ -1,0 +1,62 @@
+.Root {
+  border-top-width: 1px;
+  border-top-style: solid;
+  background-color: color-mix(in oklab, var(--muted) 20%, transparent);
+}
+
+.Inner {
+  padding-inline: 1rem;
+  padding-block: 0.5rem;
+}
+
+.Row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.Chip {
+  cursor: pointer;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+
+  @media (hover: hover) {
+    &:hover {
+      scale: 1.05;
+    }
+  }
+}
+
+.ChipActive {
+  box-shadow: 0 0 0 1px var(--background), 0 0 0 3px currentcolor;
+}
+
+.ChipEmoji {
+  margin-right: 0.25rem;
+}
+
+.ChipClearIcon {
+  margin-left: 0.25rem;
+  height: 0.75rem;
+  width: 0.75rem;
+}
+
+.Separator {
+  color: color-mix(in oklab, var(--muted-foreground) 30%, transparent);
+}
+
+.ClearButton {
+  height: 1.5rem;
+  padding-inline: 0.5rem;
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+}
+
+.Actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
