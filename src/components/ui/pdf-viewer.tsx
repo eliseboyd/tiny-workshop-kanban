@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
+import styles from './pdf-viewer.module.css';
 
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -31,20 +32,20 @@ export function PDFViewer({ url, fileName }: PDFViewerProps) {
   const zoomOut = () => setScale(prev => Math.max(0.5, prev - 0.25));
 
   return (
-    <div className="flex flex-col h-full w-full bg-neutral-100 dark:bg-neutral-900 rounded-lg overflow-hidden">
+    <div className={styles.Root}>
       {/* Toolbar */}
-      <div className="flex items-center justify-between bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 px-4 py-2 gap-4">
-        <div className="flex items-center gap-2">
+      <div className={styles.Toolbar}>
+        <div className={styles.Group}>
           <Button
             variant="outline"
             size="sm"
             onClick={goToPrevPage}
             disabled={pageNumber <= 1}
-            className="h-8 w-8 p-0"
+            className={styles.IconButton}
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className={styles.Icon} />
           </Button>
-          <span className="text-sm whitespace-nowrap">
+          <span className={styles.PageCount}>
             {pageNumber} / {numPages || '?'}
           </span>
           <Button
@@ -52,56 +53,56 @@ export function PDFViewer({ url, fileName }: PDFViewerProps) {
             size="sm"
             onClick={goToNextPage}
             disabled={pageNumber >= numPages}
-            className="h-8 w-8 p-0"
+            className={styles.IconButton}
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className={styles.Icon} />
           </Button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className={styles.Group}>
           <Button
             variant="outline"
             size="sm"
             onClick={zoomOut}
             disabled={scale <= 0.5}
-            className="h-8 w-8 p-0"
+            className={styles.IconButton}
           >
-            <ZoomOut className="h-4 w-4" />
+            <ZoomOut className={styles.Icon} />
           </Button>
-          <span className="text-sm w-12 text-center">{Math.round(scale * 100)}%</span>
+          <span className={styles.Zoom}>{Math.round(scale * 100)}%</span>
           <Button
             variant="outline"
             size="sm"
             onClick={zoomIn}
             disabled={scale >= 2.0}
-            className="h-8 w-8 p-0"
+            className={styles.IconButton}
           >
-            <ZoomIn className="h-4 w-4" />
+            <ZoomIn className={styles.Icon} />
           </Button>
         </div>
 
         <a href={url} download={fileName}>
-          <Button variant="outline" size="sm" className="h-8 gap-2">
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Download</span>
+          <Button variant="outline" size="sm" className={styles.DownloadButton}>
+            <Download className={styles.Icon} />
+            <span className={styles.DownloadLabel}>Download</span>
           </Button>
         </a>
       </div>
 
       {/* PDF Content */}
-      <div className="flex-1 overflow-auto flex items-start justify-center p-4">
+      <div className={styles.Content}>
         <Document
           file={url}
           onLoadSuccess={onDocumentLoadSuccess}
           loading={
-            <div className="flex items-center justify-center h-full text-muted-foreground">
+            <div className={styles.Status}>
               Loading PDF...
             </div>
           }
           error={
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
+            <div className={styles.Error}>
               <p>Failed to load PDF</p>
-              <a href={url} download className="text-blue-500 hover:underline">
+              <a href={url} download className={styles.ErrorLink}>
                 Download instead
               </a>
             </div>
@@ -112,7 +113,7 @@ export function PDFViewer({ url, fileName }: PDFViewerProps) {
             scale={scale}
             renderTextLayer={true}
             renderAnnotationLayer={true}
-            className="shadow-lg"
+            className={styles.Page}
           />
         </Document>
       </div>

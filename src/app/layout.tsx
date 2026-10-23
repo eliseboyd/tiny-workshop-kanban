@@ -78,7 +78,7 @@ export default async function RootLayout({
           HTML parse instead of on first fetch. React hoists this to <head>. */}
       {supabaseUrl && <link rel="preconnect" href={supabaseUrl} crossOrigin="anonymous" />}
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${styles.body}`}
       >
         <ThemeProvider
           attribute="class"

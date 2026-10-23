@@ -1,0 +1,42 @@
+.Sun {
+  height: 1.2rem;
+  width: 1.2rem;
+  rotate: 0deg;
+  scale: 100% 100%;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+
+  :global(.dark) & {
+    rotate: -90deg;
+    scale: 0% 0%;
+  }
+}
+
+.Moon {
+  position: absolute;
+  height: 1.2rem;
+  width: 1.2rem;
+  rotate: 90deg;
+  scale: 0% 0%;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+
+  :global(.dark) & {
+    rotate: 0deg;
+    scale: 100% 100%;
+  }
+}
+
+.SrOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border-width: 0;
+}

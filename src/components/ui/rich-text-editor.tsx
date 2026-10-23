@@ -10,6 +10,7 @@ import TaskItem from '@tiptap/extension-task-item';
 import { Bold, Italic, Strikethrough, Code, Link as LinkIcon, X, List, ListOrdered, CheckSquare, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Toggle } from '@/components/ui/toggle';
+import styles from './rich-text-editor.module.css';
 import { useEffect, useState } from 'react';
 
 type RichTextEditorProps = {
@@ -31,26 +32,26 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
         heading: false, // We have a separate title field
         paragraph: {
           HTMLAttributes: {
-            class: 'min-h-[1em]',
+            class: styles.Paragraph,
           },
         },
         bulletList: {
           keepMarks: true,
           keepAttributes: false,
           HTMLAttributes: {
-            class: 'list-disc list-outside ml-4 space-y-1',
+            class: styles.List,
           },
         },
         orderedList: {
           keepMarks: true,
           keepAttributes: false,
           HTMLAttributes: {
-            class: 'list-decimal list-outside ml-4 space-y-1',
+            class: styles.List,
           },
         },
         listItem: {
           HTMLAttributes: {
-            class: 'leading-normal',
+            class: styles.ListItem,
           },
         },
       }),
@@ -58,7 +59,7 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
       TaskItem.configure({
         nested: true,
         HTMLAttributes: {
-          class: 'flex items-start gap-2',
+          class: styles.TaskItem,
         },
       }),
       Link.configure({
@@ -66,21 +67,21 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
         autolink: true,
         defaultProtocol: 'https',
         HTMLAttributes: {
-            class: 'text-primary underline decoration-primary/30 underline-offset-4 hover:decoration-primary transition-colors cursor-pointer',
+            class: styles.Link,
             target: '_blank',
             rel: 'noopener noreferrer',
         }
       }),
       ImageExtension.configure({
         HTMLAttributes: {
-            class: 'w-full h-auto rounded-lg my-4 cursor-zoom-in border border-border/50 shadow-sm transition-all hover:shadow-md',
+            class: styles.Image,
         },
       }),
       // Remove placeholder if empty string is passed
       ...(placeholder !== '' ? [
         Placeholder.configure({
           placeholder: placeholder || '',
-          emptyEditorClass: 'is-editor-empty before:content-[attr(data-placeholder)] before:text-muted-foreground/50 before:float-left before:pointer-events-none',
+          emptyEditorClass: cn('is-editor-empty', styles.EmptyPlaceholder),
         })
       ] : []),
     ],
@@ -88,7 +89,8 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
     editorProps: {
       attributes: {
         class: cn(
-          'tiptap max-w-none min-h-[100px] focus:outline-none outline-none font-sans',
+          'tiptap',
+          styles.Editor,
           className
         ),
       },
@@ -237,12 +239,12 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
 
   return (
     <>
-        <div className="relative group border rounded-md bg-transparent border-transparent hover:border-border focus-within:border-border transition-colors">
+        <div className={styles.Root}>
         {/* Sticky Toolbar */}
-        <div className="sticky top-0 z-10 flex items-center gap-1 p-2 pb-2 border-b border-border/50 bg-background backdrop-blur-sm transition-opacity">
+        <div className={styles.Toolbar}>
           {isUploadingImage && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mr-2 px-2 py-1 bg-muted/50 rounded">
-              <Loader2 className="h-3 w-3 animate-spin" />
+            <div className={styles.Uploading}>
+              <Loader2 className={styles.Spinner} />
               <span>Uploading...</span>
             </div>
           )}
@@ -251,42 +253,42 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
             pressed={editor.isActive('bold')}
             onPressedChange={() => editor.chain().focus().toggleBold().run()}
             onMouseDown={(e) => e.preventDefault()}
-            className="h-7 w-7 p-0"
+            className={styles.ToolButton}
             aria-label="Bold"
           >
-            <Bold className="h-3.5 w-3.5" />
+            <Bold className={styles.ToolIcon} />
           </Toggle>
           <Toggle
             size="sm"
             pressed={editor.isActive('italic')}
             onPressedChange={() => editor.chain().focus().toggleItalic().run()}
             onMouseDown={(e) => e.preventDefault()}
-            className="h-7 w-7 p-0"
+            className={styles.ToolButton}
             aria-label="Italic"
           >
-            <Italic className="h-3.5 w-3.5" />
+            <Italic className={styles.ToolIcon} />
           </Toggle>
           <Toggle
             size="sm"
             pressed={editor.isActive('strike')}
             onPressedChange={() => editor.chain().focus().toggleStrike().run()}
             onMouseDown={(e) => e.preventDefault()}
-            className="h-7 w-7 p-0"
+            className={styles.ToolButton}
             aria-label="Strikethrough"
           >
-            <Strikethrough className="h-3.5 w-3.5" />
+            <Strikethrough className={styles.ToolIcon} />
           </Toggle>
           <Toggle
             size="sm"
             pressed={editor.isActive('code')}
             onPressedChange={() => editor.chain().focus().toggleCode().run()}
             onMouseDown={(e) => e.preventDefault()}
-            className="h-7 w-7 p-0"
+            className={styles.ToolButton}
             aria-label="Code"
           >
-            <Code className="h-3.5 w-3.5" />
+            <Code className={styles.ToolIcon} />
           </Toggle>
-          <div className="w-px h-4 bg-border mx-1" />
+          <div className={styles.Divider} />
           <Toggle
             size="sm"
             pressed={editor.isActive('bulletList')}
@@ -295,10 +297,10 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
             }}
             onMouseDown={(e) => e.preventDefault()}
             disabled={!editor.can().toggleBulletList()}
-            className="h-7 w-7 p-0"
+            className={styles.ToolButton}
             aria-label="Bullet List"
           >
-            <List className="h-3.5 w-3.5" />
+            <List className={styles.ToolIcon} />
           </Toggle>
           <Toggle
             size="sm"
@@ -308,10 +310,10 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
             }}
             onMouseDown={(e) => e.preventDefault()}
             disabled={!editor.can().toggleTaskList()}
-            className="h-7 w-7 p-0"
+            className={styles.ToolButton}
             aria-label="Task List"
           >
-            <CheckSquare className="h-3.5 w-3.5" />
+            <CheckSquare className={styles.ToolIcon} />
           </Toggle>
           <Toggle
             size="sm"
@@ -321,12 +323,12 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
             }}
             onMouseDown={(e) => e.preventDefault()}
             disabled={!editor.can().toggleOrderedList()}
-            className="h-7 w-7 p-0"
+            className={styles.ToolButton}
             aria-label="Ordered List"
           >
-            <ListOrdered className="h-3.5 w-3.5" />
+            <ListOrdered className={styles.ToolIcon} />
           </Toggle>
-          <div className="w-px h-4 bg-border mx-1" />
+          <div className={styles.Divider} />
           <Toggle
             size="sm"
             pressed={editor.isActive('link')}
@@ -341,15 +343,15 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
                 editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
             }}
             onMouseDown={(e) => e.preventDefault()}
-            className="h-7 w-7 p-0"
+            className={styles.ToolButton}
             aria-label="Link"
           >
-            <LinkIcon className="h-3.5 w-3.5" />
+            <LinkIcon className={styles.ToolIcon} />
           </Toggle>
       </div>
 
       {/* Editor Content */}
-      <div className="p-2">
+      <div className={styles.Body}>
         <EditorContent editor={editor} />
       </div>
     </div>
@@ -357,20 +359,20 @@ export function RichTextEditor({ content, onChange, placeholder, className, onIm
     {/* Lightbox for Image Expansion */}
     {zoomedImage && (
         <div 
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+            className={styles.Zoom}
             onClick={() => setZoomedImage(null)}
         >
-            <div className="relative max-w-[90vw] max-h-[90vh] overflow-auto">
+            <div className={styles.ZoomFrame}>
                  <button 
-                    className="absolute top-4 right-4 p-2 text-white/70 hover:text-white bg-black/50 rounded-full transition-colors"
+                    className={styles.ZoomClose}
                     onClick={() => setZoomedImage(null)}
                 >
-                    <X className="h-6 w-6" />
+                    <X className={styles.ZoomCloseIcon} />
                 </button>
                 <img 
                     src={zoomedImage} 
                     alt="Zoomed content" 
-                    className="max-w-full max-h-[90vh] object-contain rounded-md shadow-2xl"
+                    className={styles.ZoomImage}
                     onClick={(e) => e.stopPropagation()} // Prevent closing when clicking image
                 />
             </div>

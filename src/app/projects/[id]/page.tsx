@@ -1,6 +1,7 @@
 import { getProject } from '@/app/actions';
 import { ProjectEditor } from '@/components/kanban/ProjectEditor';
 import { notFound } from 'next/navigation';
+import styles from './page.module.css';
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -25,7 +26,7 @@ export default async function ProjectPage(props: PageProps) {
   };
 
   return (
-    <div className="h-screen w-full bg-background">
+    <div className={styles.Root}>
       <ProjectEditor project={mappedProject} />
     </div>
   );
