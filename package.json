@@ -13,7 +13,7 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "@eliseboyd/design": "^0.7.0",
+    "@eliseboyd/design": "^0.14.0",
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.12.0",
     "@supabase/ssr": "^0.8.0",
