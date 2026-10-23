@@ -696,6 +696,13 @@
   }
 }
 
+/* Keyboard users reach the cover actions by focus, not hover. */
+.CoverWrap:focus-within .CoverOverlay,
+.CoverWrap:focus-within .CoverEmptyPrompt,
+.CoverWrap:focus-within .DesktopCoverActionsHidden {
+  opacity: 1;
+}
+
 .ButtonLabel {
   margin-left: 0.5rem;
 }
@@ -1274,6 +1281,10 @@
   }
 }
 
+.MaterialRow:focus-within .MaterialActions {
+  opacity: 1;
+}
+
 .MaterialDelete {
   height: 2rem;
   width: 2rem;
@@ -1499,6 +1510,10 @@
   .PlanCard:hover .PlanOverlay {
     opacity: 1;
   }
+}
+
+.PlanCard:focus-within .PlanOverlay {
+  opacity: 1;
 }
 
 .PlanMeta {
@@ -1785,6 +1800,10 @@
   .MasonryCard:hover .MasonryOverlay {
     opacity: 1;
   }
+}
+
+.MasonryCard:focus-within .MasonryOverlay {
+  opacity: 1;
 }
 
 .MasonryOverlayButton {

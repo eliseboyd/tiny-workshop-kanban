@@ -545,6 +545,12 @@
   }
 }
 
+/* Keyboard users reach the same controls: reveal on focus too. */
+.RefThumb:focus-within .RefRemove,
+.RefRemove:focus-visible {
+  opacity: 100%;
+}
+
 .RefAdd {
   display: flex;
   flex-direction: column;

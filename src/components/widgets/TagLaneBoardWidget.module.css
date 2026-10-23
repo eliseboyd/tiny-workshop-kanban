@@ -237,6 +237,12 @@
   }
 }
 
+/* Keyboard users reach the same controls: reveal on focus too. */
+.Root:focus-within .SettingsButton,
+.SettingsButton:focus-visible {
+  opacity: 100%;
+}
+
 .SettingsIcon {
   height: 0.875rem;
   width: 0.875rem;

@@ -243,6 +243,7 @@ export function CompletedProjectsView({
                 <Badge
                   key={tag.name}
                   variant={selectedTags.includes(tag.name) ? "default" : "outline"}
+                  aria-pressed={selectedTags.includes(tag.name)}
                   className={cn(styles.Chip, selectedTags.includes(tag.name) && styles.ChipActive)}
                   style={selectedTags.includes(tag.name) ? { backgroundColor: tag.color, borderColor: tag.color } : {}}
                   onClick={() => toggleTag(tag.name)}

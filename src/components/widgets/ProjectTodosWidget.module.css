@@ -131,6 +131,11 @@
   }
 }
 
+/* Keyboard users reach the same controls: reveal on focus too. */
+.Card:focus-within .HeaderActions {
+  opacity: 100%;
+}
+
 .Subtitle {
   margin-top: 0.25rem;
   overflow: hidden;
@@ -247,6 +252,11 @@
   .Item:hover .ItemActions {
     opacity: 100%;
   }
+}
+
+/* Keyboard users reach the same controls: reveal on focus too. */
+.Item:focus-within .ItemActions {
+  opacity: 100%;
 }
 
 .EditButton {

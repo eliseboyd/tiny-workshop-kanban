@@ -92,6 +92,13 @@ function parseTodosFromHtml(html: string): TodoItem[] {
   return todos;
 }
 
+// Text typed in the widget is spliced into the project's TipTap HTML, so it
+// must be escaped or a "<" or "&" in a to-do corrupts the document.
+// parseTodosFromHtml decodes these same three entities on the way back out.
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 // Update a specific todo's checked state in the HTML
 function updateTodoCheckedInHtml(html: string, todoIndex: number, newChecked: boolean): string {
   let currentIndex = 0;
@@ -119,7 +126,7 @@ function updateTodoCheckedInHtml(html: string, todoIndex: number, newChecked: bo
 
 // Add a new todo to the HTML (creates or appends to task list)
 function addTodoToHtml(html: string, text: string): string {
-  const newTaskItem = `<li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>${text}</p></div></li>`;
+  const newTaskItem = `<li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>${escapeHtml(text)}</p></div></li>`;
   
   // Check if there's already a task list
   const taskListMatch = html.match(/<ul\s+[^>]*?data-type=["']taskList["'][^>]*?>/i);
@@ -183,9 +190,11 @@ function updateTodoTextInHtml(html: string, todoIndex: number, newText: string):
         currentIndex++;
         // Replace the text content while preserving structure
         // The content has <label>...</label><div><p>TEXT</p></div>
+        // Replacer function, not a replacement string, so "$1"/"$&" typed
+        // into a to-do are kept literally.
         const newContent = content.replace(
           /(<div[^>]*>)\s*<p[^>]*>[\s\S]*?<\/p>\s*(<\/div>)/i,
-          `$1<p>${newText}</p>$2`
+          (_m: string, open: string, close: string) => `${open}<p>${escapeHtml(newText)}</p>${close}`
         );
         return openTag + newContent + closeTag;
       }

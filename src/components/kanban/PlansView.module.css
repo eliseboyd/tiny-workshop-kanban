@@ -294,6 +294,11 @@
   }
 }
 
+/* Keyboard users reach the same controls: reveal on focus too. */
+.Card:focus-within .Overlay {
+  opacity: 100%;
+}
+
 .IconButton {
   width: 2rem;
   height: 2rem;
