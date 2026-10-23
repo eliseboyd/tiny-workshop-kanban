@@ -55,7 +55,7 @@ function SheetContent({
         {children}
         <SheetPrimitive.Close className={styles.Close}>
           <XIcon />
-          <span className="sr-only">Close</span>
+          <span className={styles.SrOnly}>Close</span>
         </SheetPrimitive.Close>
       </SheetPrimitive.Popup>
     </SheetPortal>

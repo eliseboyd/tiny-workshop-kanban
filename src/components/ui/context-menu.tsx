@@ -121,7 +121,7 @@ function ContextMenuCheckboxItem({
     >
       <span className={styles.Indicator}>
         <ContextMenuPrimitive.CheckboxItemIndicator>
-          <CheckIcon className="size-4" />
+          <CheckIcon className={styles.Glyph} />
         </ContextMenuPrimitive.CheckboxItemIndicator>
       </span>
       {children}
@@ -142,7 +142,7 @@ function ContextMenuRadioItem({
     >
       <span className={styles.Indicator}>
         <ContextMenuPrimitive.RadioItemIndicator>
-          <CircleIcon className="size-2 fill-current" />
+          <CircleIcon className={styles.RadioDot} />
         </ContextMenuPrimitive.RadioItemIndicator>
       </span>
       {children}

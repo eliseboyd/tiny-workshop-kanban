@@ -55,7 +55,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close data-slot="dialog-close" className={styles.Close}>
             <XIcon />
-            <span className="sr-only">Close</span>
+            <span className={styles.SrOnly}>Close</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Popup>

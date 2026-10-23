@@ -1,6 +1,6 @@
 # Project Board
 
-A simple Kanban board application built with Next.js, Shadcn UI, and SQLite.
+A simple Kanban board application built with Next.js, Base UI and CSS Modules (styled with the `@eliseboyd/design` tokens), and SQLite.
 
 ## Features
 
