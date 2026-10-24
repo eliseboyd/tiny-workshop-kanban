@@ -13,30 +13,35 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Next does not apply basePath to metadata URLs (it renders them as written),
+// and the board is served at tinywork.shop/kanban — so without the prefix the
+// manifest and the touch icons resolve against the home hub at the apex and
+// the installed app has no manifest at all. Spelled out, like MasterNav's hrefs.
 export const metadata: Metadata = {
   title: "Tiny Workshop Kanban",
   description: "A beautiful kanban board for managing your tiny workshop projects",
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: 'any' },
-      { url: '/favicon.png', type: 'image/png' },
+      { url: '/kanban/favicon.ico', sizes: 'any' },
+      { url: '/kanban/favicon.png', type: 'image/png' },
     ],
     apple: [
-      { url: '/favicon-60@2x.png', sizes: '120x120', type: 'image/png' },
-      { url: '/favicon-60@3x.png', sizes: '180x180', type: 'image/png' },
+      { url: '/kanban/favicon-60@2x.png', sizes: '120x120', type: 'image/png' },
+      { url: '/kanban/favicon-60@3x.png', sizes: '180x180', type: 'image/png' },
     ],
     other: [
       {
         rel: 'apple-touch-icon-precomposed',
-        url: '/favicon-60@2x.png',
+        url: '/kanban/favicon-60@2x.png',
       },
     ],
   },
-  manifest: '/site.webmanifest',
+  manifest: '/kanban/site.webmanifest',
 };
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { ConfirmProvider } from "@/components/ui/confirm-dialog";
+import { OfflineMode } from "@/components/offline-mode";
 import MasterNav from "@eliseboyd/design/nav";
 import { createClient } from "@/utils/supabase/server";
 import { getAllowedUserIds } from "@/utils/supabase/env";
@@ -98,6 +103,10 @@ export default async function RootLayout({
           signOutAction="/kanban/auth/signout"
         />
         <ConfirmProvider>{children}</ConfirmProvider>
+        {/* Offline mode: the service worker that keeps the last-seen board
+            and the status pill bottom-left. Signed in only — the login page
+            is never cached and has nothing to queue. */}
+        {claims ? <OfflineMode /> : null}
         </div>
         </ThemeProvider>
       </body>

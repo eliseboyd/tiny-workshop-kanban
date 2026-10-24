@@ -680,9 +680,18 @@ export async function moveIdeaToKanban(ideaId: string, status: string) {
   revalidateBoard();
 }
 
-export async function createIdea(title: string, status = 'todo') {
+/**
+ * Creates an idea. `id` may be supplied by the client (the offline capture
+ * queue mints one per idea so a retry creates nothing twice); a duplicate key
+ * means the first attempt got through, and is reported as such rather than
+ * as an error.
+ */
+export async function createIdea(
+  title: string,
+  status = 'todo',
+  id: string = uuidv4(),
+): Promise<{ id: string; duplicate: boolean }> {
   const supabase = createServiceRoleClient();
-  const id = uuidv4();
   const { error } = await supabase.from('projects').insert({
     id,
     title,
@@ -692,13 +701,18 @@ export async function createIdea(title: string, status = 'todo') {
     is_task: false,
   });
 
+  if (error?.code === '23505') {
+    return { id, duplicate: true };
+  }
   if (error) {
     console.error('Error creating idea:', JSON.stringify(error, null, 2));
   }
 
   revalidateBoard();
-  return id;
+  return { id, duplicate: false };
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type QuickCaptureResult = {
   id: string;
@@ -712,7 +726,9 @@ export type QuickCaptureResult = {
  */
 export async function quickCapture(
   text: string,
-  sourceUrl?: string | null
+  sourceUrl?: string | null,
+  /** Client-minted project id, for an idempotent retry (offline queue). */
+  requestedId?: string | null,
 ): Promise<QuickCaptureResult> {
   const trimmed = text.trim();
   const paramUrl = sourceUrl?.trim() ? cleanUrl(sourceUrl.trim()) : null;
@@ -729,7 +745,14 @@ export async function quickCapture(
   const body =
     lines.length > 1 ? lines.slice(1).join('\n').trim().slice(0, 2000) : '';
 
-  const id = await createIdea(title, status);
+  const created = await createIdea(
+    title,
+    status,
+    requestedId && UUID_RE.test(requestedId) ? requestedId : undefined,
+  );
+  const id = created.id;
+  // Already there from an earlier send: the enrichment below ran then too.
+  if (created.duplicate) return { id };
 
   const updates: Record<string, unknown> = {};
   if (body) {

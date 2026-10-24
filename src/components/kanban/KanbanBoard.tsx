@@ -42,6 +42,8 @@ const SettingsModal = dynamic(() => import('./SettingsModal').then(m => ({ defau
 import { Button } from '@/components/ui/button';
 import { Plus, Settings, KanbanSquareDashed } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/use-local-storage';
+import { useCaptureQueueFlush } from '@/hooks/use-offline';
+import { holdCapture, isNetworkError } from '@/lib/capture-queue';
 import { quickCapture, updateProjectStatus, updateSettings, updateColumn, createColumn, createProject, deleteColumn, deleteProject, updateColumnsOrder, updateColumnOrder, getAllTags, getAllProjectGroups, getAllWidgets, getAllMaterials, getProjects, getProject, getAllPlans, StandalonePlan, toggleProjectPinned, getIdeas, moveIdeaToKanban, createIdea, moveProjectToIdeas, getArchived } from '@/app/actions';
 
 import { ClientDndWrapper } from './ClientDndWrapper';
@@ -143,6 +145,10 @@ type KanbanBoardProps = {
 };
 
 import { v4 as uuidv4 } from 'uuid';
+
+// What the capture log shows for an idea held in the offline queue: saved
+// from the user's side, the retry is ours (src/hooks/use-offline.ts).
+const NOTICE_HELD = "Offline — saved on this device, goes to the board when you're back online.";
 import { isInProjectGroup, isInAnyProjectGroup } from '@/lib/project-groups';
 
 type BoardView = 'dashboard' | 'kanban' | 'ideas' | 'plans' | 'completed';
@@ -686,6 +692,19 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
       setIdeas(mapProjects(ideasData));
   };
 
+  // Quick captures held while offline (src/lib/capture-queue.ts) are saved
+  // here once the connection is back, under the id they were minted with, so
+  // nothing is created twice; the ideas bin then refreshes to show them.
+  useCaptureQueueFlush(
+    async (entry) => {
+      await quickCapture(entry.text, null, entry.id);
+    },
+    async () => {
+      await refreshIdeas();
+      await loadTagsAndGroups();
+    },
+  );
+
   const handleDeleteIdea = async (id: string) => {
       const ok = await confirmDialog({
           title: 'Delete idea?',
@@ -708,7 +727,7 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
 
   const handleCreateIdea = async () => {
       const firstColumnId = cols[0]?.id || 'todo';
-      const id = await createIdea('New Idea', firstColumnId);
+      const { id } = await createIdea('New Idea', firstColumnId);
       const freshIdeas = await getIdeas();
       const mapped = mapProjects(freshIdeas);
       setIdeas(mapped);
@@ -890,6 +909,14 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
               hint="First line becomes the title, the rest the description. Paste a link for a preview image."
               empty="Ideas land in the Ideas bin."
               onCapture={async (text) => {
+                // Minted here and sent with the save, so a retry of this exact
+                // capture — from the offline queue, or after a dropped
+                // connection — creates nothing twice.
+                const ideaId = uuidv4();
+                if (!navigator.onLine) {
+                  holdCapture(text, ideaId);
+                  return { notice: NOTICE_HELD };
+                }
                 const tempId = `optimistic-${uuidv4()}`;
                 const colId = cols[0]?.id ?? 'todo';
                 setIdeas((prev) => [
@@ -914,7 +941,16 @@ export function KanbanBoard({ initialProjects, initialSettings, initialColumns, 
                   ...prev,
                 ]);
                 try {
-                  const result = await quickCapture(text);
+                  let result;
+                  try {
+                    result = await quickCapture(text, null, ideaId);
+                  } catch (e) {
+                    // No connection after all (the browser's flag is
+                    // optimistic): hold it, the queue sends it later.
+                    if (!isNetworkError(e)) throw e;
+                    holdCapture(text, ideaId);
+                    return { notice: NOTICE_HELD };
+                  }
                   await refreshIdeas();
                   setActiveView('ideas');
                   await loadTagsAndGroups();

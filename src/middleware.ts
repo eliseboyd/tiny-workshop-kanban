@@ -51,9 +51,14 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - uploads/ (user uploaded content - public)
+     * - sw.js, offline.html (the offline mode's static files in public/: the
+     *   browser re-fetches the worker script on its own schedule, and a
+     *   redirect to /login there is a failed update, not a sign-in)
+     * - site.webmanifest (fetched without cookies when the app is installed;
+     *   gated, the install got a login redirect instead of a manifest)
      * Feel free to modify this pattern to include more paths.
      */
-    '/((?!_next/static|_next/image|favicon.ico|uploads/|shortcuts/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|shortcut)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|sw.js|offline.html|site.webmanifest|uploads/|shortcuts/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|shortcut)$).*)',
   ],
 };
 

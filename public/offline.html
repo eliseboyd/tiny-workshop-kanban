@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Tiny Workshop Kanban</title>
+<!--
+  Served by public/sw.js when a page is asked for offline and no copy of it
+  has been kept. Static and self-contained on purpose: it has to render with
+  nothing else cached, so no fonts, no chunks, no tokens from the design
+  package. The colours are the neutral theme's literals (--background,
+  --foreground, --muted-foreground, --border in @eliseboyd/design
+  themes/neutral.css), light and dark.
+-->
+<style>
+  :root {
+    --bg: oklch(1 0 0);
+    --fg: oklch(0.145 0 0);
+    --muted: oklch(0.556 0 0);
+    --border: oklch(0.922 0 0);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: oklch(0.145 0 0);
+      --fg: oklch(0.985 0 0);
+      --muted: oklch(0.708 0 0);
+      --border: oklch(1 0 0 / 10%);
+    }
+  }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, sans-serif;
+    display: grid;
+    place-items: center;
+    padding: calc(2rem + env(safe-area-inset-top)) 1.5rem calc(2rem + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 22rem; width: 100%; }
+  h1 { font-size: 1.125rem; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 0.5rem; }
+  p { margin: 0 0 0.75rem; color: var(--muted); }
+  .queue:empty { display: none; }
+  button {
+    margin-top: 1rem;
+    min-height: 44px;
+    padding: 0 1.25rem;
+    border-radius: 9999px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--fg);
+    font: inherit;
+    font-size: 0.9375rem;
+    cursor: pointer;
+  }
+  button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>You&rsquo;re offline</h1>
+  <p>The board hasn&rsquo;t been cached on this device yet. Open it once while online and it will be here next time.</p>
+  <p class="queue" id="queue"></p>
+  <button type="button" onclick="location.reload()">Try again</button>
+</main>
+<script>
+  // The quick-capture queue lives in localStorage on this origin
+  // (src/lib/capture-queue.ts), so the page can say what is waiting.
+  try {
+    var q = JSON.parse(localStorage.getItem("kanban.capture-queue") || "[]");
+    if (Array.isArray(q) && q.length) {
+      document.getElementById("queue").textContent =
+        (q.length === 1 ? "1 idea is" : q.length + " ideas are") + " waiting to be saved when you're back online.";
+    }
+  } catch (e) {}
+  addEventListener("online", function () { location.reload(); });
+</script>
+</body>
+</html>
