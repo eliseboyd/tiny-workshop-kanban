@@ -27,7 +27,7 @@
  * Kept in step with merlin/public/sw.js — same file, different constants.
  */
 
-const VERSION = "v1";
+const VERSION = "v2";
 const BASE = "/kanban"; // Next basePath — the worker only sees this subtree (scope /kanban/)
 const OFFLINE_URL = `${BASE}/offline.html`;
 
@@ -94,12 +94,12 @@ self.addEventListener("fetch", (event) => {
   // are partial and speculative, so they are left to the network alone.
   if (req.headers.get("RSC") === "1") {
     if (req.headers.has("Next-Router-Prefetch")) return;
-    event.respondWith(rsc(req, url));
+    event.respondWith(rsc(event, req, url));
     return;
   }
 
   if (path.startsWith("/_next/static/")) {
-    event.respondWith(cacheFirst(req));
+    event.respondWith(cacheFirst(event, req));
     return;
   }
 
@@ -111,19 +111,27 @@ self.addEventListener("fetch", (event) => {
     dest === "script" ||
     path.startsWith("/_next/image")
   ) {
-    event.respondWith(staleWhileRevalidate(req));
+    event.respondWith(staleWhileRevalidate(event, req));
   }
 });
 
 // ---------------------------------------------------------------- strategies
+//
+// Every strategy returns the network response the moment it arrives and
+// stores the copy via event.waitUntil. Never `await cache.put(res.clone())`
+// before returning: a clone is a tee of the body stream, and WebKit (iOS
+// Safari, the installed app) applies backpressure to the copy nobody is
+// reading yet — with a large body (the /today RSC payload) the put waits for
+// the page to read the original, the page waits for the put, and the
+// request hangs for good. That was the bug behind "pull to refresh gets
+// stuck" on the first release; Chromium buffers the tee and never showed it.
 
 async function page(event, req) {
   const key = stripHash(req.url);
   try {
     const res = await fetch(req);
     if (cacheable(res)) {
-      const cache = await caches.open(PAGES);
-      event.waitUntil(cache.put(key, res.clone()).then(() => trim(PAGES, MAX_PAGES)));
+      event.waitUntil(store(PAGES, key, res.clone(), MAX_PAGES));
       event.waitUntil(ensureShell());
     }
     return res;
@@ -135,15 +143,11 @@ async function page(event, req) {
   }
 }
 
-async function rsc(req, url) {
+async function rsc(event, req, url) {
   const key = rscKey(url);
   try {
     const res = await fetch(req);
-    if (cacheable(res)) {
-      const cache = await caches.open(RSC);
-      await cache.put(key, res.clone());
-      trim(RSC, MAX_RSC);
-    }
+    if (cacheable(res)) event.waitUntil(store(RSC, key, res.clone(), MAX_RSC));
     return res;
   } catch (e) {
     const cache = await caches.open(RSC);
@@ -155,37 +159,48 @@ async function rsc(req, url) {
   }
 }
 
-async function cacheFirst(req) {
+async function cacheFirst(event, req) {
   const cache = await caches.open(ASSETS);
   const cached = await cache.match(req, { ignoreVary: true });
   if (cached) return cached;
   const res = await fetch(req);
-  if (cacheable(res)) {
-    await cache.put(req, res.clone());
-    trim(ASSETS, MAX_ASSETS);
-  }
+  if (cacheable(res)) event.waitUntil(store(ASSETS, req, res.clone(), MAX_ASSETS));
   return res;
 }
 
-async function staleWhileRevalidate(req) {
+async function staleWhileRevalidate(event, req) {
   const cache = await caches.open(ASSETS);
   const cached = await cache.match(req, { ignoreVary: true });
   const refresh = fetch(req)
-    .then(async (res) => {
-      if (cacheable(res)) {
-        await cache.put(req, res.clone());
-        trim(ASSETS, MAX_ASSETS);
-      }
+    .then((res) => {
+      if (cacheable(res)) event.waitUntil(store(ASSETS, req, res.clone(), MAX_ASSETS));
       return res;
     })
     .catch(() => null);
-  if (cached) return cached;
+  if (cached) {
+    // Keep the worker alive long enough for the background refresh to land.
+    event.waitUntil(refresh);
+    return cached;
+  }
   const fresh = await refresh;
   if (fresh) return fresh;
   return new Response("", { status: 504, statusText: "Offline" });
 }
 
 // ---------------------------------------------------------------- helpers
+
+// Put one entry and keep the cache under its cap. Always run under
+// event.waitUntil, never awaited on the response path (see above).
+async function store(name, key, res, max) {
+  try {
+    const cache = await caches.open(name);
+    await cache.put(key, res);
+    await trim(name, max);
+  } catch {
+    // Quota, or a response the Cache API refuses: the page already has its
+    // copy, only the offline copy is missing.
+  }
+}
 
 // Only a real, same-origin, non-redirected success goes in: the login
 // redirect is a 3xx, and following it would cache the login page under the
